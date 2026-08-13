@@ -13,11 +13,11 @@ const SheetClose = Dialog.Close;
 function SheetContent({ className, children, ...props }: Dialog.Popup.Props) {
   return (
     <Dialog.Portal>
-      <Dialog.Backdrop className="fixed inset-0 z-50 bg-[rgba(25,25,39,0.35)]" />
+      <Dialog.Backdrop className="demo-sheet-backdrop fixed inset-0 z-50 bg-[rgba(25,25,39,0.35)]" />
       <Dialog.Viewport className="fixed inset-0 z-50 flex items-end justify-center">
         <Dialog.Popup
           className={cn(
-            "relative max-h-[calc(100dvh-96px)] w-full max-w-[390px] overflow-y-auto rounded-t-[28px] bg-white pt-5 text-ink-900 outline-none",
+            "demo-sheet-popup relative max-h-[calc(100dvh-96px)] w-full max-w-[390px] overflow-y-auto rounded-t-[28px] bg-white pt-5 text-ink-900 outline-none",
             className,
           )}
           {...props}

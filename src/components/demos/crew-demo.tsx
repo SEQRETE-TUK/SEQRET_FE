@@ -1,13 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 import {
+  AlertTriangle,
   ArrowLeft,
   Building2,
   Camera,
   Check,
   ChevronRight,
   ImagePlus,
+  LoaderCircle,
   Phone,
   ShieldCheck,
   Truck,
@@ -16,6 +19,8 @@ import {
 } from "lucide-react";
 import { MobileFrame, StatusBar } from "@/components/demo-ui";
 import { DemoFeedbackProvider, useDemoFeedback } from "@/components/demos/demo-feedback";
+import { DemoLinkState } from "@/components/demos/demo-link-state";
+import { useDemoQuery } from "@/components/demos/use-demo-query";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -88,6 +93,7 @@ function Bottom({ children }: { children: React.ReactNode }) {
 
 function Assignment({ next }: { next: () => void }) {
   const [notice, setNotice] = useState(false);
+  const [starting, setStarting] = useState(false);
 
   return (
     <div className="flex min-h-[calc(100dvh-48px)] flex-col md:min-h-[832px]">
@@ -130,7 +136,7 @@ function Assignment({ next }: { next: () => void }) {
       </div>
 
       <Bottom>
-        <Action onClick={next}>오늘 작업 시작하기</Action>
+        <Action disabled={starting} onClick={() => { if (starting) return; setStarting(true); window.setTimeout(next, 450); }}>{starting ? <span className="inline-flex items-center gap-2"><LoaderCircle className="demo-spin" size={18} />작업 준비 중...</span> : "오늘 작업 시작하기"}</Action>
         <Action secondary onClick={() => setNotice(true)}>
           <span className="inline-flex items-center gap-2"><Phone size={18} /> 팀장에게 전화</span>
         </Action>
@@ -141,6 +147,7 @@ function Assignment({ next }: { next: () => void }) {
 
 function CheckIn({ next, back }: { next: () => void; back: () => void }) {
   const [checks, setChecks] = useState([true, true, false]);
+  const [checkingIn, setCheckingIn] = useState(false);
   const labels = ["보호장비 착용 (안전화·장갑)", "차량·리프트 점검", "작업 통로·엘리베이터 확인"];
   const ready = checks.every(Boolean);
 
@@ -189,7 +196,7 @@ function CheckIn({ next, back }: { next: () => void; back: () => void }) {
       </main>
 
       <Bottom>
-        <Action disabled={!ready} onClick={next}>체크인 · 작업 시작</Action>
+        <Action disabled={!ready || checkingIn} onClick={() => { if (!ready || checkingIn) return; setCheckingIn(true); window.setTimeout(next, 500); }}>{checkingIn ? <span className="inline-flex items-center gap-2"><LoaderCircle className="demo-spin" size={18} />체크인 기록 중...</span> : "체크인 · 작업 시작"}</Action>
         <p className="text-center text-xs text-[#8E90A0]">
           {ready ? "안전 확인을 완료했어요" : `안전 확인 ${checks.filter(Boolean).length === 2 ? "1건" : `${3 - checks.filter(Boolean).length}건`}이 남았어요`}
         </p>
@@ -255,14 +262,32 @@ function Scope({ next, back }: { next: () => void; back: () => void }) {
   );
 }
 
-function IssueReport({ next, back }: { next: () => void; back: () => void }) {
+function IssueReport({ next, back, demoState = "" }: { next: () => void; back: () => void; demoState?: string }) {
   const [category, setCategory] = useState("현장 장애");
   const [details, setDetails] = useState("도착지 엘리베이터 고장으로 사다리차가 필요합니다.\n5층 창측 진입 가능 확인했습니다.");
   const [photos, setPhotos] = useState(2);
   const [amount, setAmount] = useState("150000");
   const [paused, setPaused] = useState(false);
+  const [uploadFailed, setUploadFailed] = useState(demoState === "upload-failed");
+  const [retrying, setRetrying] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
   const notify = useDemoFeedback();
   const total = 1_280_000 + Number(amount || 0);
+  useEffect(() => {
+    if (demoState !== "upload-failed") return;
+    const timer = window.setTimeout(() => setUploadFailed(true), 0);
+    return () => window.clearTimeout(timer);
+  }, [demoState]);
+  const retryUpload = () => {
+    if (retrying) return;
+    setRetrying(true);
+    window.setTimeout(() => {
+      setRetrying(false);
+      setUploadFailed(false);
+      notify("실패한 고장 안내문 사진 1장만 다시 업로드했어요. 작성한 설명은 그대로 유지됐어요.");
+    }, 650);
+  };
 
   return (
     <div className="flex min-h-[calc(100dvh-48px)] flex-col md:min-h-[832px]">
@@ -273,6 +298,7 @@ function IssueReport({ next, back }: { next: () => void; back: () => void }) {
           <p className="mt-1 text-xs text-[#4B4B5C]">보고만 올리면 승인은 고객이 앱에서 직접 해요</p>
         </div>
         {paused && <div className="rounded-2xl bg-[#FFF6E5] p-4 text-[13px] font-bold text-[#9A6200]">작업 일시 중지 기록됨 · 업체가 현장 이슈를 검토할 때까지 기존 승인 범위 밖 작업은 진행하지 않아요.</div>}
+        {submitted && <div className="demo-pop rounded-2xl bg-[#E6F7EF] p-4"><p className="text-[13px] font-bold text-[#17A46B]">현장 이슈를 업체에 전달했어요</p><p className="mt-1 text-xs text-[#4B4B5C]">업체가 증빙을 검토하고 금액이 있는 변경안을 만든 뒤 고객에게 보냅니다.</p><Link className="mt-3 flex h-11 items-center justify-center rounded-xl bg-[#191927] text-[13px] font-bold text-white" href="/provider?screen=4&state=field-issue">업체 현장 이슈 견적으로 이어보기</Link></div>}
 
         <section>
           <h2 className="mb-2 text-[15px] font-bold text-[#191927]">무슨 일인가요?</h2>
@@ -308,13 +334,13 @@ function IssueReport({ next, back }: { next: () => void; back: () => void }) {
             {Array.from({ length: photos }, (_, index) => (
               <button
                 aria-label={`증빙 사진 ${index + 1} 삭제`}
-                className="grid h-20 place-items-center rounded-xl border border-dashed border-[#E9EAF2] bg-[#F4F5F9] text-[#8E90A0]"
+                className={`grid h-20 place-items-center rounded-xl border border-dashed ${uploadFailed && index === 1 ? "border-[#F5A623] bg-[#FFF6E5] text-[#9A6200]" : "border-[#E9EAF2] bg-[#F4F5F9] text-[#8E90A0]"}`}
                 key={index}
-                onClick={() => setPhotos((value) => Math.max(0, value - 1))}
+                onClick={() => uploadFailed && index === 1 ? retryUpload() : setPhotos((value) => Math.max(0, value - 1))}
                 type="button"
               >
-                {index === 0 ? <Camera size={24} /> : <Building2 size={24} />}
-                <span className="-mt-3 text-[11px]">{index === 0 ? "현장 사진" : "고장 안내문"}</span>
+                {uploadFailed && index === 1 ? (retrying ? <LoaderCircle className="demo-spin" size={24} /> : <AlertTriangle size={24} />) : index === 0 ? <Camera size={24} /> : <Building2 size={24} />}
+                <span className="-mt-3 text-[11px]">{uploadFailed && index === 1 ? (retrying ? "재시도 중" : "업로드 실패 · 재시도") : index === 0 ? "현장 사진" : "고장 안내문"}</span>
               </button>
             ))}
             {photos < 3 && (
@@ -352,20 +378,24 @@ function IssueReport({ next, back }: { next: () => void; back: () => void }) {
       </main>
 
       <Bottom>
-        <Action disabled={!category || !details.trim() || photos < 1} onClick={() => { notify("현장 이슈를 업체에 보고했어요. 업체가 금액과 변경안을 검토합니다."); next(); }}>업체에 이슈 보고</Action>
+        {submitted ? <Action secondary onClick={next}>데모: 변경 처리 완료 후 완료 기록</Action> : <Action disabled={!category || !details.trim() || photos < 1 || uploadFailed || sending} onClick={() => { if (sending) return; setSending(true); window.setTimeout(() => { setSending(false); setSubmitted(true); notify("현장 이슈를 업체에 보고했어요. 업체가 금액과 변경안을 검토합니다."); }, 550); }}>{sending ? <span className="inline-flex items-center gap-2"><LoaderCircle className="demo-spin" size={18} />보고 중...</span> : uploadFailed ? "증빙 업로드를 먼저 재시도해 주세요" : "업체에 이슈 보고"}</Action>}
         <Action secondary onClick={() => { setPaused(!paused); notify(paused ? "작업 재개 상태로 변경했어요." : "작업 일시 중지를 기록했어요."); }}>{paused ? "작업 재개" : "작업 일시 중지"}</Action>
       </Bottom>
     </div>
   );
 }
 
-function Completion({ back }: { back: () => void }) {
+function Completion({ back, demoState = "" }: { back: () => void; demoState?: string }) {
   const [done, setDone] = useState([true, true, false]);
   const [truckPhoto, setTruckPhoto] = useState(false);
   const [checks, setChecks] = useState([true, false, false]);
   const [endConfirmed, setEndConfirmed] = useState(false);
   const [customerConfirmed, setCustomerConfirmed] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [uploadRetried, setUploadRetried] = useState(false);
+  const [uploadRetrying, setUploadRetrying] = useState(false);
+  const [offlineRecovered, setOfflineRecovered] = useState(false);
   const notify = useDemoFeedback();
   const areas = [
     ["거실", "완료 5장 · 14:02 업로드"],
@@ -373,7 +403,9 @@ function Completion({ back }: { back: () => void }) {
     ["주방 · 베란다", "지금 촬영해 주세요"],
   ];
   const checklist = ["승인 범위의 짐을 모두 하차했어요", "포장재·작업 도구를 회수했어요", "고객과 공간별 완료 상태를 확인했어요"];
-  const ready = done.every(Boolean) && checks.every(Boolean) && endConfirmed && customerConfirmed;
+  const uploadFailed = demoState === "completion-upload-failed" && !uploadRetried;
+  const offline = demoState === "completion-offline" && !offlineRecovered;
+  const ready = done.every(Boolean) && checks.every(Boolean) && endConfirmed && customerConfirmed && !uploadFailed && !offline;
 
   const capture = (index: number) => setDone((current) => current.map((item, area) => (area === index ? true : item)));
 
@@ -384,6 +416,7 @@ function Completion({ back }: { back: () => void }) {
         <div className="rounded-xl bg-[#F4F5F9] p-4 text-[13px] font-semibold text-[#4B4B5C]">
           MOVE-240912 · 체크인 07:46 · 최신 승인 범위 v4
         </div>
+        {offline && <div className="demo-pop rounded-2xl border border-[#F5A623] bg-[#FFF6E5] p-4"><div className="flex gap-3"><AlertTriangle className="shrink-0 text-[#F5A623]" size={20} /><div><p className="text-[13px] font-bold text-[#9A6200]">현재 네트워크 연결이 불안정해요</p><p className="mt-1 text-xs leading-5 text-[#4B4B5C]">촬영·체크리스트·고객 현장 확인 입력은 이 화면에 그대로 보존돼요. 연결이 복구된 뒤 제출할 수 있어요.</p></div></div><button className="mt-3 text-[12px] font-bold text-[#4F46E5]" onClick={() => { setOfflineRecovered(true); notify("네트워크 연결을 다시 확인했어요. 입력한 완료 기록은 그대로 유지됐어요."); }} type="button">연결 다시 확인</button></div>}
 
         <section>
           <div className="mb-2 flex items-center justify-between">
@@ -393,24 +426,41 @@ function Completion({ back }: { back: () => void }) {
             </Badge>
           </div>
           <div className="space-y-2">
-            {areas.map(([area, detail], index) => (
-              <div className={`flex min-h-[76px] items-center rounded-2xl border px-4 ${done[index] ? "border-[#E9EAF2] bg-white" : "border-[#818CF8] bg-[#EEF2FF]"}`} key={area}>
-                <span className={`grid size-8 place-items-center rounded-full text-white ${done[index] ? "bg-[#17A46B]" : "bg-[#4F46E5]"}`}>
-                  {done[index] ? <Check size={18} strokeWidth={3} /> : <Camera size={18} />}
+            {areas.map(([area, detail], index) => {
+              const failedArea = uploadFailed && index === 2;
+              return (
+              <div className={`flex min-h-[76px] items-center rounded-2xl border px-4 ${failedArea ? "border-[#F5A623] bg-[#FFF6E5]" : done[index] ? "border-[#E9EAF2] bg-white" : "border-[#818CF8] bg-[#EEF2FF]"}`} key={area}>
+                <span className={`grid size-8 place-items-center rounded-full text-white ${failedArea ? "bg-[#F5A623]" : done[index] ? "bg-[#17A46B]" : "bg-[#4F46E5]"}`}>
+                  {failedArea ? (uploadRetrying ? <LoaderCircle className="demo-spin" size={18} /> : <AlertTriangle size={18} />) : done[index] ? <Check size={18} strokeWidth={3} /> : <Camera size={18} />}
                 </span>
                 <span className="ml-3 min-w-0 flex-1">
                   <b className="block text-[13px] text-[#191927]">{area}</b>
-                  <small className={`block text-xs ${done[index] ? "text-[#8E90A0]" : "font-semibold text-[#4F46E5]"}`}>{detail}</small>
+                  <small className={`block text-xs ${failedArea ? "font-semibold text-[#9A6200]" : done[index] ? "text-[#8E90A0]" : "font-semibold text-[#4F46E5]"}`}>{failedArea ? "업로드 실패 · 다른 입력은 그대로 유지됨" : detail}</small>
                 </span>
                 <button
-                  className={`h-8 rounded-full px-4 text-xs font-bold ${done[index] ? "bg-[#F4F5F9] text-[#4B4B5C]" : "bg-[#4F46E5] text-white"}`}
-                  onClick={() => done[index] ? notify(`${area} 완료 사진을 열었어요.`) : capture(index)}
+                  className={`h-8 rounded-full px-4 text-xs font-bold ${failedArea ? "bg-[#F5A623] text-white" : done[index] ? "bg-[#F4F5F9] text-[#4B4B5C]" : "bg-[#4F46E5] text-white"}`}
+                  disabled={uploadRetrying}
+                  onClick={() => {
+                    if (failedArea) {
+                      if (uploadRetrying) return;
+                      setUploadRetrying(true);
+                      window.setTimeout(() => {
+                        setUploadRetrying(false);
+                        setUploadRetried(true);
+                        capture(index);
+                        notify(`${area} 실패 사진만 다시 업로드했어요. 체크리스트와 현장 확인 입력은 유지됐어요.`);
+                      }, 650);
+                      return;
+                    }
+                    if (done[index]) notify(`${area} 완료 사진을 열었어요.`);
+                    else capture(index);
+                  }}
                   type="button"
                 >
-                  {done[index] ? "보기" : "촬영"}
+                  {failedArea ? uploadRetrying ? "재시도 중" : "재시도" : done[index] ? "보기" : "촬영"}
                 </button>
               </div>
-            ))}
+            )})}
           </div>
         </section>
 
@@ -448,17 +498,18 @@ function Completion({ back }: { back: () => void }) {
         <div className="rounded-xl bg-[#EEF2FF] px-4 py-3 text-xs text-[#4B4B5C]">제출한 완료 기록은 감사 이력에 남아요. 완료 사진은 전후 기록을 사람이 확인하기 위한 자료이며 파손·원인·책임을 자동 판단하지 않아요.</div>
 
         {submitted && (
-          <div className="flex items-center gap-3 rounded-2xl bg-[#E6F7EF] p-4 text-[13px] font-bold text-[#17A46B]">
-            <ShieldCheck size={22} /> 작업 완료 기록을 제출했고 업체 완료 요약에 반영됐어요.
+          <div className="demo-pop rounded-2xl bg-[#E6F7EF] p-4 text-[13px] font-bold text-[#17A46B]">
+            <div className="flex items-center gap-3"><ShieldCheck size={22} /> 작업 완료 기록을 제출했고 업체 완료 요약에 반영됐어요.</div>
+            <Link className="mt-3 flex h-11 items-center justify-center rounded-xl bg-[#191927] text-[13px] font-bold text-white" href="/provider?screen=5">업체 완료 요약으로 이어보기</Link>
           </div>
         )}
       </main>
 
       <Bottom>
-        <Action disabled={!ready || submitted} onClick={() => { setSubmitted(true); notify("작업 완료 기록을 제출했어요."); }}>
-          {submitted ? "제출 완료" : "작업 완료 기록 제출"}
+        <Action disabled={!ready || submitted || submitting} onClick={() => { if (submitting || submitted) return; setSubmitting(true); window.setTimeout(() => { setSubmitting(false); setSubmitted(true); notify("작업 완료 기록을 제출했어요."); }, 550); }}>
+          {submitting ? <span className="inline-flex items-center gap-2"><LoaderCircle className="demo-spin" size={18} />제출 중...</span> : submitted ? "제출 완료" : "작업 완료 기록 제출"}
         </Action>
-        {!ready && <p className="text-center text-xs text-[#8E90A0]">필수 사진 · 체크리스트 · 종료 시각 · 고객 현장 확인을 모두 완료해 주세요</p>}
+        {!ready && <p className="text-center text-xs text-[#8E90A0]">{offline ? "연결 복구 후 현재 입력 그대로 제출할 수 있어요" : uploadFailed ? "실패한 완료 사진만 재시도해 주세요" : "필수 사진 · 체크리스트 · 종료 시각 · 고객 현장 확인을 모두 완료해 주세요"}</p>}
       </Bottom>
     </div>
   );
@@ -466,15 +517,26 @@ function Completion({ back }: { back: () => void }) {
 
 export function CrewDemo() {
   const [screen, setScreen] = useState(0);
+  const requestedScreen = useDemoQuery("screen");
+  const demoState = useDemoQuery("state");
+  useEffect(() => {
+    const parsed = Number(requestedScreen);
+    if (!Number.isInteger(parsed) || parsed < 0 || parsed > 4) return;
+    const timer = window.setTimeout(() => setScreen(parsed), 0);
+    return () => window.clearTimeout(timer);
+  }, [requestedScreen]);
+  const linkState = demoState === "link-expired" || demoState === "link-revoked" || demoState === "link-invalid" ? demoState : null;
 
   return (
     <DemoFeedbackProvider><MobileFrame>
       <StatusBar />
-      {screen === 0 && <Assignment next={() => setScreen(1)} />}
-      {screen === 1 && <CheckIn back={() => setScreen(0)} next={() => setScreen(2)} />}
-      {screen === 2 && <Scope back={() => setScreen(1)} next={() => setScreen(3)} />}
-      {screen === 3 && <IssueReport back={() => setScreen(2)} next={() => setScreen(4)} />}
-      {screen === 4 && <Completion back={() => setScreen(3)} />}
+      {linkState ? <DemoLinkState roleLabel="작업자" state={linkState} /> : <div key={screen} className="demo-screen-enter">
+        {screen === 0 && <Assignment next={() => setScreen(1)} />}
+        {screen === 1 && <CheckIn back={() => setScreen(0)} next={() => setScreen(2)} />}
+        {screen === 2 && <Scope back={() => setScreen(1)} next={() => setScreen(3)} />}
+        {screen === 3 && <IssueReport back={() => setScreen(2)} demoState={demoState} next={() => setScreen(4)} />}
+        {screen === 4 && <Completion back={() => setScreen(3)} demoState={demoState} />}
+      </div>}
     </MobileFrame></DemoFeedbackProvider>
   );
 }
