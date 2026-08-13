@@ -226,27 +226,62 @@ function ConfirmItems({ next, back, openItems }: { next: () => void; back: () =>
   );
 }
 
-function ScopeSummary({ next, back, go }: { next: () => void; back: () => void; go: (screen: number) => void }) {
+function ScopeSummary({ next, back, go, demoState = "" }: { next: () => void; back: () => void; go: (screen: number) => void; demoState?: string }) {
   const [confirmed, setConfirmed] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [stateResolved, setStateResolved] = useState(false);
   const notify = useDemoFeedback();
+  if (demoState === "provider-no-participation") {
+    return (
+      <Page><StatusBar /><Top onBack={back} title="소비자 단독 카드" aside={<button onClick={() => go(12)}>지난 버전</button>} />
+        <main className="flex-1 px-6 pb-5">
+          <div className="demo-pop rounded-2xl border border-[#F5A623] bg-[#FFF6E5] p-4"><p className="text-[13px] font-bold text-[#9A6200]">업체 미참여 · 공동확인 전</p><p className={`mt-1 text-xs leading-5 ${muted}`}>이 카드는 소비자가 정리한 단독 초안이에요. 출력·공유할 수 있지만 합의 완료나 승인본으로 표시하지 않아요.</p></div>
+          <Card className="mt-4 p-5"><div className="flex justify-between"><span className={`text-[12px] ${muted}`}>내가 정리한 작업범위</span><Badge variant="warning">공동확인 전</Badge></div><p className="mt-2 text-[28px] font-extrabold">금액 미정</p><p className={`mt-3 text-xs ${muted}`}>짐 21개 · 도착지 조건 입력 완료 · 업체가 참여하면 이 초안부터 검토해요</p></Card>
+          <h2 className="mb-3 mt-6 text-[15px] font-bold">확인 상태</h2><Card className="p-4"><div className="flex items-center gap-3"><span className="grid size-9 place-items-center rounded-full bg-[#EEF2FF] text-xs font-bold text-[#4F46E5]">나</span><div><p className="text-[14px] font-bold">소비자 초안 작성 완료</p><p className={`text-xs ${muted}`}>업체 확인 없음 · 승인본 아님</p></div></div></Card>
+          <p className="mt-4 rounded-xl bg-[#EEF2FF] px-4 py-3 text-xs font-semibold">업체가 나중에 참여하면 현재 단독 초안을 기준으로 업체 검토를 시작해요.</p>
+        </main><Bottom><div className="grid grid-cols-2 gap-2"><Primary onClick={() => go(10)}>업체 초대하기</Primary><Outline onClick={() => notify("‘공동확인 전’ 표시가 포함된 소비자 단독 카드 출력본을 준비했어요.")}>단독 카드 출력</Outline></div></Bottom>
+      </Page>
+    );
+  }
+  if ((demoState === "integrity-error" || demoState === "confirmation-version-mismatch") && !stateResolved) {
+    const integrityError = demoState === "integrity-error";
+    return (
+      <Page><StatusBar /><Top onBack={back} title="작업범위 확인" aside="v3" />
+        <main className="flex-1 px-6 pb-5"><div className={`demo-pop rounded-2xl border p-5 ${integrityError ? "border-[#E5484D] bg-[#FDECEC]" : "border-[#F5A623] bg-[#FFF6E5]"}`}><AlertTriangle className={integrityError ? "text-[#E5484D]" : "text-[#F5A623]"} size={24} /><h1 className="mt-4 text-[21px] font-extrabold">{integrityError ? "승인본 무결성을 확인하지 못했어요" : "같은 버전을 보고 있지 않아요"}</h1><p className={`mt-2 text-[13px] leading-5 ${muted}`}>{integrityError ? "저장된 v3 본문과 무결성 확인값이 일치하지 않아 확인을 차단했어요. 서버의 승인본을 다시 불러와야 해요." : "나는 v3를 열었지만 업체는 새 제안 v4를 제출했어요. 버전 ID가 다르면 공동확인을 완료할 수 없어요."}</p><p className="mt-3 text-xs font-bold text-[#9A6200]">{integrityError ? "SCOPE_INTEGRITY_MISMATCH" : "SCOPE_VERSION_CONFLICT · local v3 / latest v4"}</p></div><Card className="mt-4 p-5"><div className="flex justify-between text-[13px]"><span className={muted}>현재 확인 상태</span><b>확인 차단</b></div><div className="mt-3 flex justify-between text-[13px]"><span className={muted}>기존 승인본</span><b>{integrityError ? "검증 필요" : "v3 유지"}</b></div><p className={`mt-4 text-xs ${muted}`}>자동 덮어쓰기나 자동 확인 처리는 하지 않아요.</p></Card></main>
+        <Bottom><Primary onClick={() => { setStateResolved(true); notify(integrityError ? "서버 승인본을 다시 불러와 무결성 확인을 통과했어요." : "최신 제안 v4를 불러왔어요. 이제 같은 버전에서 확인할 수 있어요."); }}>{integrityError ? "승인본 다시 불러오기" : "최신 제안 다시 불러오기"}</Primary><Outline disabled>이 버전 내용 확인</Outline></Bottom>
+      </Page>
+    );
+  }
   return (
     <Page><StatusBar /><Top onBack={back} title="작업범위 v3" aside={<button onClick={() => go(12)}>지난 버전</button>} /><main className="flex-1 px-6 pb-5"><Card className="p-5"><div className="flex justify-between"><span className={`text-[12px] ${muted}`}>한빛이사 제안 총액</span><Badge variant={confirmed ? "success" : "warning"}>{confirmed ? "양측 확인 · 잠김" : "내 확인 필요"}</Badge></div><p className="mt-2 text-[30px] font-extrabold tracking-[-0.5px]">1,280,000원</p><Badge className="mt-2" variant="danger">이전보다 +120,000</Badge><p className={`mt-4 text-[12px] ${muted}`}>5톤 1대 · 작업자 4명 · 6시간 · 소비자가 초대한 참여자</p></Card>
         <h2 className="mb-3 mt-6 text-[15px] font-bold">이번에 달라진 것</h2><button onClick={() => notify("침실 근거 영상 0:12와 업체 변경 사유를 열었어요.")} className="w-full rounded-2xl bg-[#FFF6E5] p-4 text-left"><div className="flex gap-3"><span className="grid size-8 place-items-center rounded-full bg-white text-[#F5A623]"><Plus size={20} /></span><div><p className="text-[14px] font-bold">피아노 전문 인력 1명 추가</p><p className="mt-1 text-[12px] text-[#9B6400]">사유: 안전 운반 · 침실 영상 근거 →</p></div><strong className="ml-auto text-[14px] text-[#E5484D]">+120,000</strong></div></button>
         <h2 className="mb-3 mt-6 text-[15px] font-bold">그대로인 것</h2><section className={`${card} space-y-2 p-4 text-[13px] font-semibold`}><p><Check className="mr-2 inline" size={17} />짐 21개 · 포장·운반·정리 · 냉장고 문 분리</p><p><Check className="mr-2 inline" size={17} />기본 견적 1,160,000원</p><p className="text-[#E5484D]"><X className="mr-2 inline" size={17} />제외: 폐기물 처리 · 입주청소</p></section>
         <h2 className="mb-3 mt-6 text-[15px] font-bold">함께 확인하는 사람</h2><section className={`${card} flex items-center p-4`}><span className={`grid size-9 place-items-center rounded-full ${confirmed ? "bg-[#17A46B] text-white" : "bg-[#F4F5F9] text-[#8E90A0]"}`}>나</span><span className="-ml-1 grid size-9 place-items-center rounded-full bg-[#17A46B] text-[11px] text-white">한</span><div className="ml-3"><p className="text-[14px] font-bold">{confirmed ? "나 확인함 · 한빛이사 확인함" : "나 확인 대기 · 한빛이사 확인함"}</p><p className={`text-[12px] ${muted}`}>{confirmed ? "v3가 승인본으로 잠겼어요" : "내가 확인하면 이 버전이 승인본으로 잠겨요"}</p></div></section><p className="mt-4 rounded-xl bg-[#EEF2FF] px-4 py-3 text-[12px] font-semibold">확인은 서명이 아니라 ‘같은 내용을 봤다’는 기록이에요</p>
         {confirmed && <div className="demo-pop mt-4 rounded-2xl bg-[#E6F7EF] p-4"><p className="text-[13px] font-bold text-[#17A46B]">v3 공동확인 완료</p><p className={`mt-1 text-[12px] ${muted}`}>이제 업체가 승인본 기준으로 배차·인력을 확정할 수 있어요.</p><Link className="mt-3 flex h-11 items-center justify-center rounded-xl bg-[#191927] text-[13px] font-bold text-white" href="/provider?screen=3">업체 배차 화면으로 이어보기</Link></div>}
-      </main><Bottom>{confirmed ? <Outline onClick={next}>현장 변경 승인 데모 바로보기</Outline> : <div className="grid grid-cols-[2fr_1fr] gap-2"><Primary disabled={confirming} onClick={() => { if (confirming) return; setConfirming(true); window.setTimeout(() => { setConfirming(false); setConfirmed(true); notify("소비자 확인을 기록했고 v3가 양측 확인 완료 상태로 잠겼어요."); }, 500); }}>{confirming ? <><LoaderCircle className="demo-spin mr-2 inline" size={18} />확인 기록 중...</> : "이 내용대로 확인"}</Primary><Outline onClick={() => go(11)}>수정 요청</Outline></div>}</Bottom></Page>
+      </main><Bottom>{confirmed ? <Outline onClick={next}>현장 변경 승인 데모 바로보기</Outline> : <div className="grid grid-cols-[2fr_1fr] gap-2"><Primary disabled={confirming} onClick={() => { if (confirming) return; setConfirming(true); window.setTimeout(() => { setConfirming(false); setConfirmed(true); notify("소비자 확인을 기록했고 v3가 양측 확인 완료 상태로 잠겼어요."); }, 500); }}>{confirming ? <><LoaderCircle className="demo-spin mr-2 inline" size={18} />확인 기록 중...</> : "이 버전 내용 확인"}</Primary><Outline onClick={() => go(11)}>수정 요청</Outline></div>}</Bottom></Page>
   );
 }
 
-function OnsiteApproval({ next, back }: { next: () => void; back: () => void }) {
+function OnsiteApproval({ next, back, demoState = "" }: { next: () => void; back: () => void; demoState?: string }) {
   const [decisionMode, setDecisionMode] = useState<"explain" | "reject" | null>(null);
   const [note, setNote] = useState("");
   const [response, setResponse] = useState("");
   const [approved, setApproved] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const notify = useDemoFeedback();
+  const requestCancelled = demoState === "change-cancelled";
+  const requestExpired = demoState === "change-expired";
+  const explanationPending = demoState === "change-explanation-requested";
+  if (requestCancelled || requestExpired || explanationPending) {
+    const title = requestCancelled ? "변경요청이 철회됐어요" : requestExpired ? "변경요청 응답 기간이 끝났어요" : "추가 설명을 기다리고 있어요";
+    const description = requestCancelled ? "업체가 CR-01 요청을 철회했어요. 기존 승인본 v3과 1,280,000원은 그대로 유지돼요." : requestExpired ? "작업 종료 또는 응답기한 경과로 이 요청에는 더 이상 응답할 수 없어요. 기존 승인본은 바뀌지 않아요." : "설명 요청 상태에서는 업체의 새 리비전이 올 때까지 총액과 승인본을 바꾸지 않아요.";
+    return (
+      <Page><StatusBar /><Top onBack={back} title="현장 변경" aside={<Badge variant="warning">{requestCancelled ? "CANCELLED" : requestExpired ? "EXPIRED" : "설명 요청됨"}</Badge>} />
+        <main className="flex-1 px-6 pb-5"><div className="demo-pop rounded-2xl border border-[#F5A623] bg-[#FFF6E5] p-5"><AlertTriangle className="text-[#F5A623]" size={24} /><h1 className="mt-4 text-[21px] font-extrabold">{title}</h1><p className={`mt-2 text-[13px] leading-5 ${muted}`}>{description}</p></div><Card className="mt-4 p-5"><div className="flex justify-between text-[13px]"><span className={muted}>기준 승인본</span><b>v3 · 유지</b></div><div className="mt-3 flex justify-between text-[13px]"><span className={muted}>현재 확정 금액</span><b>1,280,000원</b></div><div className="mt-3 flex justify-between text-[13px]"><span className={muted}>요청 증감액</span><b className="text-[#8E90A0]">+150,000원 · 미반영</b></div></Card>{explanationPending && <Card className="mt-4 border-[#818CF8] bg-[#EEF2FF] p-4"><p className="text-[13px] font-bold text-[#4F46E5]">내 설명 요청 · 11:04</p><p className={`mt-1 text-xs ${muted}`}>“사다리차가 꼭 필요한 근거와 작업 가능 위치를 더 알려주세요.”</p><p className="mt-3 text-xs font-bold">업체 답변 또는 수정 리비전 대기</p></Card>}</main>
+        <Bottom><Primary disabled>{explanationPending ? "업체 답변 대기" : "이 요청에는 응답할 수 없음"}</Primary><Outline onClick={back}>현재 작업으로 돌아가기</Outline></Bottom>
+      </Page>
+    );
+  }
   const sendDecision = () => {
     if (!decisionMode || !note.trim()) return;
     const label = decisionMode === "explain" ? "설명 요청됨" : "거절됨";
@@ -279,6 +314,14 @@ function Completion({ next, back, demoState = "" }: { next: () => void; back: ()
   const dataFailed = demoState === "completion-data-error" && !dataRetried;
   const requestBlocked = demoState === "completion-request-expired" || demoState === "completion-request-revoked" || demoState === "completion-already-confirmed";
   const requestMessage = demoState === "completion-request-expired" ? "완료 확인 요청의 응답 기간이 끝났어요. 업체에 새 요청을 부탁해 주세요." : demoState === "completion-request-revoked" ? "업체가 이 완료 확인 요청을 철회했어요. 현재 요청에는 응답할 수 없어요." : demoState === "completion-already-confirmed" ? "이미 완료 확인한 요청이에요. 확인 시각과 결과는 감사 기록에 보존돼요." : "";
+  if (demoState === "completion-no-media") {
+    return (
+      <Page><StatusBar /><Top onBack={back} title="이사 완료" aside={<span className="rounded-full bg-[#E6F7EF] px-3 py-2 text-[#17A46B]">작업 종료</span>} />
+        <main className="flex-1 px-6 pb-5"><h1 className="mt-2 text-[24px] font-extrabold">완료 기록을 확인해 주세요</h1><p className={`mt-1 text-[13px] ${muted}`}>완료 미디어가 없어도 작업 종료 사실과 최종 금액은 별도로 확인할 수 있어요.</p><section className={`${card} mt-5 p-5`}><div className="flex items-center justify-between"><h2 className="text-[15px] font-bold">전 · 후 비교</h2><Badge variant="neutral">완료 미디어 없음</Badge></div><div className="mt-4 grid h-36 place-items-center rounded-2xl border border-dashed border-[#D8DAE5] bg-[#F4F5F9] px-6 text-center"><div><Camera className="mx-auto text-[#8E90A0]" size={28} /><p className="mt-2 text-[14px] font-bold">제출된 완료 사진·영상이 없어요</p><p className={`mt-1 text-xs leading-5 ${muted}`}>미디어 유무와 작업 완료 상태는 별도로 기록돼요.</p></div></div><p className={`mt-3 text-[11px] ${muted}`}>서비스는 완료 미디어로 파손 여부, 원인 또는 책임을 자동 판단하지 않아요.</p></section><section className={`${card} mt-4 p-5`}><p className={`text-xs ${muted}`}>최종 확정 금액 · v4</p><strong className="mt-2 block text-[30px] font-extrabold">1,430,000원</strong><p className={`mt-2 text-xs ${muted}`}>기본 합의 1,280,000원 + 승인 변경 150,000원</p></section><section className={`${card} mt-4 p-5`}><h2 className="text-[15px] font-bold">기록에 없는 추가금 요구가 있었나요?</h2><div className="mt-3 grid grid-cols-2 gap-2"><button onClick={() => setExtra(false)} className={`h-14 rounded-2xl font-bold ${!extra ? "bg-[#191927] text-white" : "border border-[#E0E2EC]"}`}>아니요, 없었어요</button><button onClick={() => setExtra(true)} className={`h-14 rounded-2xl font-bold ${extra ? "bg-[#191927] text-white" : "border border-[#E0E2EC]"}`}>네, 있었어요</button></div><p className={`mt-3 text-[11px] ${muted}`}>완료 확인은 작업 종료 사실의 기록이며 파손 없음이나 권리 포기를 의미하지 않아요.</p></section></main>
+        <Bottom><Primary disabled={confirming} onClick={() => { if (confirming) return; setConfirming(true); window.setTimeout(() => { notify("완료 미디어 없음 상태와 함께 작업 완료 확인을 기록했어요."); next(); }, 500); }}>{confirming ? <><LoaderCircle className="demo-spin mr-2 inline" size={18} />확인 기록 중...</> : "완료 확인"}</Primary></Bottom>
+      </Page>
+    );
+  }
   return (
     <Page><StatusBar /><Top onBack={back} title="이사 완료" aside={<span className="rounded-full bg-[#E6F7EF] px-3 py-2 text-[#17A46B]">작업 종료</span>} /><main className="flex-1 px-6 pb-5"><h1 className="mt-2 text-[24px] font-extrabold">고생하셨어요!</h1><p className={`mt-1 text-[13px] ${muted}`}>완료 기록과 최종 금액을 확인하고 마무리해 주세요</p>{requestBlocked && <div className={`demo-pop mt-4 rounded-2xl p-4 ${demoState === "completion-already-confirmed" ? "bg-[#E6F7EF] text-[#176B4A]" : "border border-[#F5A623] bg-[#FFF6E5] text-[#9A6200]"}`}><p className="text-[13px] font-bold">{demoState === "completion-already-confirmed" ? "완료 확인됨 · 14:28" : "현재 요청에 응답할 수 없어요"}</p><p className="mt-1 text-xs leading-5 text-[#4B4B5C]">{requestMessage}</p></div>}{issueSent && <p className="mt-3 rounded-xl bg-[#FFF6E5] px-4 py-3 text-[12px] font-bold text-[#9B6400]">문제 신고가 접수됐어요 · 완료 확인과 별도로 기록됩니다</p>}{dataFailed && <div className="demo-pop mt-4 rounded-2xl border border-[#F5A623] bg-[#FFF6E5] p-4"><div className="flex gap-3"><AlertTriangle className="shrink-0 text-[#F5A623]" size={20} /><div><p className="text-[13px] font-bold text-[#9A6200]">최종 범위와 금액을 불러오지 못했어요</p><p className="mt-1 text-xs text-[#4B4B5C]">완료 확인은 데이터가 복구될 때까지 막아두었어요.</p></div></div><button onClick={() => { setDataRetried(true); notify("최종 범위와 금액을 다시 불러왔어요."); }} className="mt-3 text-[12px] font-bold text-[#4F46E5]">다시 불러오기</button></div>}<section className={`${card} mt-5 p-5`}><div className="flex justify-between"><h2 className="text-[15px] font-bold">전 · 후 비교</h2><button onClick={() => setRoomIndex((roomIndex + 1) % rooms.length)} className="rounded-full bg-[#F4F5F9] px-4 py-2 text-[11px] font-bold">{rooms[roomIndex]} <ChevronDown className="inline" size={13} /></button></div>{mediaFailed ? <div className="demo-pop mt-3 grid h-36 place-items-center rounded-2xl border border-dashed border-[#F5A623] bg-[#FFF6E5] px-5 text-center"><div><AlertTriangle className="mx-auto text-[#F5A623]" size={25} /><p className="mt-2 text-[13px] font-bold text-[#9A6200]">완료 사진 1장을 불러오지 못했어요</p><button onClick={() => { setMediaRetried(true); notify("실패한 완료 사진만 다시 불러왔어요."); }} className="mt-2 text-[12px] font-bold text-[#4F46E5]">사진 다시 불러오기</button></div></div> : <button aria-label="전후 기록 크게 보기" onClick={() => notify(`${rooms[roomIndex]} 작업 전후 기록을 크게 열었어요.`)} className="demo-interactive-card relative mt-3 grid h-36 w-full grid-cols-2 overflow-hidden rounded-2xl bg-[#DADBE4]"><div className="border-r-2 border-white" /><div /><span className="absolute left-2 top-3 rounded bg-[#747785] px-2 py-1 text-[10px] text-white">전 09.10</span><span className="absolute right-2 top-3 rounded bg-[#191927] px-2 py-1 text-[10px] text-white">후 09.12</span><span className="absolute left-1/2 top-1/2 grid size-8 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-[#4F46E5] text-white">↔</span></button>}<p className={`mt-3 text-[11px] ${muted}`}>사람이 전후 기록을 확인하는 자료예요 · 파손·원인·책임을 자동 판단하지 않아요</p></section><section className={`${card} mt-4 p-5`}><p className={`text-[12px] ${muted}`}>최종 확정 금액 · v4</p><div className="mt-2 flex items-center justify-between"><strong className="text-[30px] font-extrabold">{dataFailed ? "—" : "1,430,000원"}</strong><span className="rounded-full bg-[#E6F7EF] px-3 py-2 text-[11px] font-bold text-[#17A46B]">승인 변경 +150,000원</span></div><p className={`mt-2 text-[11px] ${muted}`}>{dataFailed ? "데이터를 다시 불러와 주세요" : "기본 합의 1,280,000원 + 승인된 현장 변경 150,000원"}</p></section><section className={`${card} mt-4 p-5`}><h2 className="text-[15px] font-bold">기록에 없는 추가금 요구가 있었나요?</h2><p className={`mt-1 text-[12px] ${muted}`}>완료 후 제품 지표 확인을 위한 질문이에요</p><div className="mt-3 grid grid-cols-2 gap-2"><button onClick={() => setExtra(false)} className={`h-14 rounded-2xl font-bold ${!extra ? "bg-[#191927] text-white" : "border border-[#E0E2EC]"}`}>아니요, 없었어요</button><button onClick={() => setExtra(true)} className={`h-14 rounded-2xl font-bold ${extra ? "bg-[#191927] text-white" : "border border-[#E0E2EC]"}`}>네, 있었어요</button></div><p className={`mt-3 text-[11px] ${muted}`}>완료 확인은 작업 종료 사실의 기록이며 파손 없음이나 권리 포기를 의미하지 않아요</p></section></main><Bottom><div className="grid grid-cols-[2fr_1fr] gap-2"><Primary disabled={confirming || dataFailed || requestBlocked} onClick={() => { if (confirming || dataFailed || requestBlocked) return; setConfirming(true); window.setTimeout(() => { notify("완료 확인을 기록했어요."); next(); }, 500); }}>{confirming ? <><LoaderCircle className="demo-spin mr-2 inline" size={18} />확인 기록 중...</> : requestBlocked ? demoState === "completion-already-confirmed" ? "이미 완료 확인함" : "현재 요청 응답 불가" : dataFailed ? "데이터 복구 후 확인 가능" : "완료 확인"}</Primary><Outline disabled={requestBlocked} onClick={() => setIssueOpen(true)}>문제 신고</Outline></div></Bottom>
       <Sheet open={issueOpen} onOpenChange={setIssueOpen}><SheetContent><SheetHeader><SheetTitle>어떤 문제가 있었나요?</SheetTitle><SheetDescription>신고는 완료 확인과 별도로 감사 기록에 남아요.</SheetDescription></SheetHeader><div className="px-6"><div className="grid grid-cols-2 gap-2">{["작업 누락", "파손", "금액", "기타"].map((type) => <button key={type} onClick={() => setIssueType(type)} className={`h-12 rounded-xl border text-[13px] font-bold ${issueType === type ? "border-[#4F46E5] bg-[#EEF2FF] text-[#4F46E5]" : "border-[#E9EAF2]"}`}>{type}</button>)}</div><textarea aria-label="문제 신고 상세" value={issueNote} onChange={(event) => setIssueNote(event.target.value.slice(0, 2000))} placeholder="상세 내용을 입력해 주세요" className="mt-4 h-32 w-full resize-none rounded-2xl bg-[#F4F5F9] p-4 text-[13px] outline-none" /><p className={`mt-2 text-right text-[11px] ${muted}`}>{issueNote.length}/2000</p></div><SheetFooter><Primary disabled={!issueNote.trim() || reporting} onClick={() => { if (reporting) return; setReporting(true); window.setTimeout(() => { setReporting(false); setIssueSent(true); setIssueOpen(false); setIssueNote(""); notify(`${issueType} 문제 신고를 접수했어요.`); }, 500); }}>{reporting ? <><LoaderCircle className="demo-spin mr-2 inline" size={18} />접수 중...</> : "문제 신고 접수"}</Primary></SheetFooter></SheetContent></Sheet>
@@ -334,13 +377,19 @@ function Invite({ next, back }: { next: () => void; back: () => void }) {
   );
 }
 
-function Revision({ next, back }: { next: () => void; back: () => void }) {
+function Revision({ next, back, demoState = "" }: { next: () => void; back: () => void; demoState?: string }) {
   const [topics, setTopics] = useState(["짐 목록 수정", "작업 방식"]);
   const [note, setNote] = useState("화분 하나는 지인에게 드리기로 해서 빼주세요. 에어컨은 도착지 설치까지 가능한지 확인 부탁드려요.");
   const [photo, setPhoto] = useState(false);
   const [sending, setSending] = useState(false);
+  const [conflictResolved, setConflictResolved] = useState(false);
   const notify = useDemoFeedback();
   const toggle = (topic: string) => setTopics(topics.includes(topic) ? topics.filter((item) => item !== topic) : [...topics, topic]);
+  if (demoState === "scope-conflict" && !conflictResolved) {
+    return (
+      <Page><StatusBar /><Sheet open onOpenChange={(open) => !open && back()}><SheetContent><SheetHeader><SheetTitle>수정 중 새 버전이 도착했어요</SheetTitle><SheetDescription>동시에 편집한 내용을 자동으로 덮어쓰지 않아요.</SheetDescription></SheetHeader><div className="px-6"><div className="demo-pop rounded-2xl border border-[#F5A623] bg-[#FFF6E5] p-4"><AlertTriangle className="text-[#F5A623]" size={22} /><p className="mt-3 text-[14px] font-bold text-[#9A6200]">기준 버전 충돌 · local v3 / latest v4</p><p className={`mt-2 text-xs leading-5 ${muted}`}>내가 v3를 기준으로 수정하는 동안 업체가 v4를 제출했어요. 최신 버전을 확인하기 전에는 새 수정안을 보낼 수 없어요.</p></div><Card className="mt-4 p-4"><p className={`text-xs ${muted}`}>작성 중인 메모는 유지돼요</p><p className="mt-2 text-[13px] font-semibold leading-5">{note}</p></Card></div><SheetFooter><Primary onClick={() => { setConflictResolved(true); notify("최신 v4를 불러왔어요. 작성 중이던 메모와 선택 항목은 유지됐어요."); }}>v4 다시 불러오기 · 작성 내용 유지</Primary></SheetFooter></SheetContent></Sheet></Page>
+    );
+  }
   return (
     <Page><StatusBar />
       <Sheet open onOpenChange={(open) => !open && back()}>
@@ -388,13 +437,13 @@ export function ConsumerDemo() {
     case 2: content = <Conditions next={next} back={back} />; break;
     case 3: content = <Capture next={next} back={back} />; break;
     case 4: content = <ConfirmItems next={next} back={back} openItems={() => go(9)} />; break;
-    case 5: content = <ScopeSummary next={next} back={back} go={go} />; break;
-    case 6: content = <OnsiteApproval next={next} back={back} />; break;
+    case 5: content = <ScopeSummary next={next} back={back} go={go} demoState={demoState} />; break;
+    case 6: content = <OnsiteApproval next={next} back={back} demoState={demoState} />; break;
     case 7: content = <Completion next={next} back={back} demoState={demoState} />; break;
     case 8: content = <Analysis next={next} back={back} demoState={demoState} />; break;
     case 9: content = <Analysis next={next} back={back} demoState={demoState} sheet />; break;
     case 10: content = <Invite next={next} back={back} />; break;
-    case 11: content = <Revision next={next} back={back} />; break;
+    case 11: content = <Revision next={next} back={back} demoState={demoState} />; break;
     default: content = <History back={back} />;
   }
   const linkState = demoState === "link-expired" || demoState === "link-revoked" || demoState === "link-invalid" ? demoState : null;

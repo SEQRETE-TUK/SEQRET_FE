@@ -220,6 +220,7 @@ function Operation({ next, back, demoState = "" }: { next: () => void; back: () 
   const [proposalSent, setProposalSent] = useState(false);
   const [proposalSending, setProposalSending] = useState(false);
   const [evidenceRetried, setEvidenceRetried] = useState(false);
+  const [pauseResolved, setPauseResolved] = useState(false);
   const notify = useDemoFeedback();
   const projected = 1_280_000 + Number(delta || 0);
   const issueProcessed = demoState === "field-issue-processed";
@@ -234,6 +235,16 @@ function Operation({ next, back, demoState = "" }: { next: () => void; back: () 
     const timer = window.setTimeout(() => setIssueOpen(true), 0);
     return () => window.clearTimeout(timer);
   }, [demoState]);
+  if (demoState === "job-terminated") {
+    return (
+      <div className="flex min-h-[calc(100dvh-48px)] flex-col md:min-h-[832px]"><MobileHeader onBack={back} title="오늘 · 박민서 고객" trailing={<Badge variant="danger">작업 종료</Badge>} /><main className="px-5"><div className="demo-pop mt-2 rounded-2xl border border-[#E5484D] bg-[#FDECEC] p-5"><AlertTriangle className="text-[#E5484D]" size={26} /><h1 className={`mt-4 text-[21px] font-extrabold ${ink}`}>이 작업은 종료됐어요</h1><p className={`mt-2 text-[13px] leading-5 ${muted}`}>외부 협의 후 작업 종료가 기록되어 신규 변경요청, 추가 작업 진행, 완료 기록 준비를 더 이상 할 수 없어요.</p><p className="mt-3 text-xs font-bold text-[#B4232C]">TERMINATED · 11:18</p></div><Card className="mt-4 p-4"><div className="flex justify-between text-[13px]"><span className={muted}>마지막 승인본</span><b>v3 · 1,280,000원</b></div><div className="mt-3 flex justify-between text-[13px]"><span className={muted}>미완료 변경요청</span><b>CR-01 · 종료 처리</b></div><p className={`mt-4 text-xs ${muted}`}>기존 승인·변경·감사 기록은 그대로 보존돼요.</p></Card></main><MobileBottom><Button className="w-full" disabled>종료된 작업 · 추가 처리 불가</Button></MobileBottom></div>
+    );
+  }
+  if (demoState === "job-paused" && !pauseResolved) {
+    return (
+      <div className="flex min-h-[calc(100dvh-48px)] flex-col md:min-h-[832px]"><MobileHeader onBack={back} title="오늘 · 박민서 고객" trailing={<Badge variant="warning">일시 중지</Badge>} /><main className="px-5"><div className="demo-pop mt-2 rounded-2xl border border-[#F5A623] bg-[#FFF6E5] p-5"><Clock3 className="text-[#F5A623]" size={26} /><h1 className={`mt-4 text-[21px] font-extrabold ${ink}`}>작업이 일시 중지됐어요</h1><p className={`mt-2 text-[13px] leading-5 ${muted}`}>거절된 현장 변경과 안전 확인이 필요해 승인 범위 밖 작업을 멈춘 상태예요. 서비스 밖 협의가 끝난 뒤 재개 상태를 기록할 수 있어요.</p></div><Card className="mt-4 p-4"><div className="flex justify-between text-[13px]"><span className={muted}>유효한 승인본</span><b>v3 · 유지</b></div><div className="mt-3 flex justify-between text-[13px]"><span className={muted}>현재 총액</span><b>1,280,000원</b></div><div className="mt-3 flex justify-between text-[13px]"><span className={muted}>중지 사유</span><b>CR-01 거절 · 안전 협의</b></div></Card><p className={`mt-4 rounded-xl bg-[#EEF2FF] px-4 py-3 text-xs ${muted}`}>재개해도 거절된 변경 금액을 승인으로 소급 기록하지 않아요.</p></main><MobileBottom><Button className="w-full" onClick={() => { setPauseResolved(true); notify("외부 협의 후 작업 재개를 11:22로 기록했어요. 기존 승인본 v3은 그대로 유지돼요."); }} size="cta">외부 협의 후 작업 재개</Button></MobileBottom></div>
+    );
+  }
   return (
     <div className="flex min-h-[calc(100dvh-48px)] flex-col md:min-h-[832px]">
       <MobileHeader onBack={back} title="오늘 · 박민서 고객" trailing={<span className="text-xs font-bold text-[#17A46B]">● LIVE</span>} />
