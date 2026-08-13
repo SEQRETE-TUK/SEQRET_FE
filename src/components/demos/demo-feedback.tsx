@@ -23,7 +23,7 @@ export function DemoFeedbackProvider({ children }: { children: ReactNode }) {
       {message && (
         <div
           aria-live="polite"
-          className="demo-toast-enter pointer-events-none fixed bottom-6 left-1/2 z-[100] flex max-w-[calc(100vw-32px)] -translate-x-1/2 items-center gap-2 rounded-full bg-[#191927] px-4 py-3 text-[12px] font-bold text-white shadow-lg"
+          className="demo-toast-enter pointer-events-none fixed bottom-6 left-1/2 z-[100] flex max-w-[calc(100vw-32px)] -translate-x-1/2 items-center gap-2 rounded-full bg-ink-900 px-4 py-3 text-[12px] font-bold text-white shadow-lg"
           role="status"
         >
           <CheckCircle2 size={16} />

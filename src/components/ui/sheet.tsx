@@ -25,7 +25,7 @@ function SheetContent({ className, children, ...props }: Dialog.Popup.Props) {
           <div className="mx-auto mb-4 h-1 w-12 rounded-full bg-[#E1E3EC]" aria-hidden="true" />
           {children}
           <Dialog.Close
-            className="absolute top-5 right-5 flex size-10 items-center justify-center rounded-full text-ink-600 hover:bg-canvas focus-visible:outline-3 focus-visible:outline-primary-400"
+            className="absolute top-5 right-5 flex size-11 items-center justify-center rounded-full text-ink-600 hover:bg-canvas focus-visible:outline-3 focus-visible:outline-primary-400"
             aria-label="닫기"
           >
             <X aria-hidden="true" />

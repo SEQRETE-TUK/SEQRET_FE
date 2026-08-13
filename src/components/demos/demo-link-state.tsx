@@ -20,14 +20,14 @@ export function DemoLinkState({ state, roleLabel }: DemoLinkStateProps) {
   const [title, description] = copy[state];
 
   return (
-    <div className="demo-screen-enter flex min-h-[832px] flex-col bg-[#F4F5F9] px-6 pb-8 pt-20 text-[#191927]">
-      <span className="demo-pop grid size-14 place-items-center rounded-2xl bg-[#FFF6E5] text-[#F5A623]">
+    <div className="demo-screen-enter flex min-h-[832px] flex-col bg-canvas px-6 pb-8 pt-20 text-ink-900">
+      <span className="demo-pop grid size-14 place-items-center rounded-2xl bg-warning-bg text-warning">
         <AlertTriangle size={28} />
       </span>
-      <p className="mt-5 text-[12px] font-bold text-[#8E90A0]">{roleLabel} 링크 확인</p>
+      <p className="mt-5 text-[12px] font-bold text-ink-400">{roleLabel} 링크 확인</p>
       <h1 className="mt-2 text-[24px] font-extrabold leading-[32px]">{title}</h1>
-      <p className="mt-3 text-[14px] leading-6 text-[#4B4B5C]">{description}</p>
-      <div className="mt-6 rounded-2xl bg-white p-4 text-[12px] leading-5 text-[#8E90A0]">
+      <p className="mt-3 text-[14px] leading-6 text-ink-600">{description}</p>
+      <div className="mt-6 rounded-2xl bg-white p-4 text-[12px] leading-5 text-ink-400">
         <Link2 className="mr-2 inline" size={16} />
         만료·폐기·잘못된 링크에서는 고객명, 주소, 금액 같은 민감정보를 노출하지 않아요.
       </div>
