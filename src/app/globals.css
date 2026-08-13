@@ -96,7 +96,7 @@ textarea:focus-visible {
 
 .mobile-frame {
   position: relative;
-  width: min(100%, 390px);
+  width: min(100%, 440px);
   min-height: 100dvh;
   overflow-x: hidden;
   background: var(--bg);
@@ -125,7 +125,7 @@ textarea:focus-visible {
 
 @media (min-width: 768px) {
   .mobile-frame {
-    min-height: 844px;
+    min-height: 880px;
     margin-block: 24px;
     border: 1px solid var(--line);
     border-radius: 32px;

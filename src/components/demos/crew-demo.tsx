@@ -15,6 +15,7 @@ import {
   X,
 } from "lucide-react";
 import { MobileFrame, StatusBar } from "@/components/demo-ui";
+import { DemoFeedbackProvider, useDemoFeedback } from "@/components/demos/demo-feedback";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -89,7 +90,7 @@ function Assignment({ next }: { next: () => void }) {
   const [notice, setNotice] = useState(false);
 
   return (
-    <div className="flex min-h-[calc(100dvh-48px)] flex-col md:min-h-[796px]">
+    <div className="flex min-h-[calc(100dvh-48px)] flex-col md:min-h-[832px]">
       <div className="px-5 pt-4">
         <div className="flex items-center gap-4">
           <strong className="text-2xl font-black tracking-[-1px] text-[#4F46E5]">짐싸</strong>
@@ -147,7 +148,7 @@ function CheckIn({ next, back }: { next: () => void; back: () => void }) {
     setChecks((current) => current.map((checked, item) => (item === index ? !checked : checked)));
 
   return (
-    <div className="flex min-h-[calc(100dvh-48px)] flex-col md:min-h-[796px]">
+    <div className="flex min-h-[calc(100dvh-48px)] flex-col md:min-h-[832px]">
       <Header title="현장 도착 · 체크인" back={back} />
       <main className="space-y-6 px-5 pt-2">
         <div className="rounded-2xl bg-[#EEF2FF] p-4">
@@ -199,6 +200,7 @@ function CheckIn({ next, back }: { next: () => void; back: () => void }) {
 
 function Scope({ next, back }: { next: () => void; back: () => void }) {
   const [videoSeen, setVideoSeen] = useState(false);
+  const notify = useDemoFeedback();
   const rooms = [
     ["거실 7", "소파 · TV · 화분 · 책장…"],
     ["침실 6", "피아노 · 붙박이장 제외 확정…"],
@@ -206,7 +208,7 @@ function Scope({ next, back }: { next: () => void; back: () => void }) {
   ];
 
   return (
-    <div className="flex min-h-[calc(100dvh-48px)] flex-col md:min-h-[796px]">
+    <div className="flex min-h-[calc(100dvh-48px)] flex-col md:min-h-[832px]">
       <Header title="승인 범위 확인" back={back} badge="v3 · 양측 확정" />
       <main className="space-y-6 px-5 pt-2">
         <div className="rounded-xl bg-[#F4F5F9] p-4 text-[13px] font-semibold text-[#4B4B5C]">
@@ -227,7 +229,7 @@ function Scope({ next, back }: { next: () => void; back: () => void }) {
           <h2 className="mb-2 text-[15px] font-bold text-[#191927]">공간별 짐 (근거 영상 연결)</h2>
           <div className="space-y-2">
             {rooms.map(([room, detail]) => (
-              <button className="flex h-14 w-full items-center rounded-2xl border border-[#E9EAF2] bg-white px-4 text-left" key={room} type="button">
+              <button onClick={() => notify(`${room} 상세 품목과 주의사항을 열었어요.`)} className="flex h-14 w-full items-center rounded-2xl border border-[#E9EAF2] bg-white px-4 text-left" key={room} type="button">
                 <b className="w-[84px] text-[13px] text-[#191927]">{room}</b>
                 <span className="truncate text-xs text-[#8E90A0]">{detail}</span>
                 <ChevronRight className="ml-auto text-[#8E90A0]" size={18} />
@@ -258,16 +260,19 @@ function IssueReport({ next, back }: { next: () => void; back: () => void }) {
   const [details, setDetails] = useState("도착지 엘리베이터 고장으로 사다리차가 필요합니다.\n5층 창측 진입 가능 확인했습니다.");
   const [photos, setPhotos] = useState(2);
   const [amount, setAmount] = useState("150000");
+  const [paused, setPaused] = useState(false);
+  const notify = useDemoFeedback();
   const total = 1_280_000 + Number(amount || 0);
 
   return (
-    <div className="flex min-h-[calc(100dvh-48px)] flex-col md:min-h-[796px]">
+    <div className="flex min-h-[calc(100dvh-48px)] flex-col md:min-h-[832px]">
       <Header title="변경 · 이슈 보고" close={back} />
       <main className="space-y-5 px-5 pt-2">
         <div className="rounded-2xl bg-[#EEF2FF] p-4">
           <p className="text-[13px] font-bold text-[#4F46E5]">작업자는 금액을 확정할 수 없어요</p>
           <p className="mt-1 text-xs text-[#4B4B5C]">보고만 올리면 승인은 고객이 앱에서 직접 해요</p>
         </div>
+        {paused && <div className="rounded-2xl bg-[#FFF6E5] p-4 text-[13px] font-bold text-[#9A6200]">작업 일시 중지 기록됨 · 업체가 현장 이슈를 검토할 때까지 기존 승인 범위 밖 작업은 진행하지 않아요.</div>}
 
         <section>
           <h2 className="mb-2 text-[15px] font-bold text-[#191927]">무슨 일인가요?</h2>
@@ -347,8 +352,8 @@ function IssueReport({ next, back }: { next: () => void; back: () => void }) {
       </main>
 
       <Bottom>
-        <Action disabled={!category || !details.trim() || photos < 1} onClick={next}>고객 승인 요청 보내기</Action>
-        <Action secondary onClick={back}>작업 일시 중지</Action>
+        <Action disabled={!category || !details.trim() || photos < 1} onClick={() => { notify("현장 이슈를 업체에 보고했어요. 업체가 금액과 변경안을 검토합니다."); next(); }}>업체에 이슈 보고</Action>
+        <Action secondary onClick={() => { setPaused(!paused); notify(paused ? "작업 재개 상태로 변경했어요." : "작업 일시 중지를 기록했어요."); }}>{paused ? "작업 재개" : "작업 일시 중지"}</Action>
       </Bottom>
     </div>
   );
@@ -357,21 +362,27 @@ function IssueReport({ next, back }: { next: () => void; back: () => void }) {
 function Completion({ back }: { back: () => void }) {
   const [done, setDone] = useState([true, true, false]);
   const [truckPhoto, setTruckPhoto] = useState(false);
+  const [checks, setChecks] = useState([true, false, false]);
+  const [endConfirmed, setEndConfirmed] = useState(false);
+  const [customerConfirmed, setCustomerConfirmed] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const notify = useDemoFeedback();
   const areas = [
     ["거실", "완료 5장 · 14:02 업로드"],
     ["침실 (피아노 포함)", "완료 6장 · 14:08 업로드"],
     ["주방 · 베란다", "지금 촬영해 주세요"],
   ];
+  const checklist = ["승인 범위의 짐을 모두 하차했어요", "포장재·작업 도구를 회수했어요", "고객과 공간별 완료 상태를 확인했어요"];
+  const ready = done.every(Boolean) && checks.every(Boolean) && endConfirmed && customerConfirmed;
 
   const capture = (index: number) => setDone((current) => current.map((item, area) => (area === index ? true : item)));
 
   return (
-    <div className="flex min-h-[calc(100dvh-48px)] flex-col md:min-h-[796px]">
-      <Header title="완료 사진 제출" back={back} badge="작업 마무리" />
+    <div className="flex min-h-[calc(100dvh-48px)] flex-col md:min-h-[832px]">
+      <Header title="작업 완료 기록" back={back} badge="작업 마무리" />
       <main className="space-y-5 px-5 pt-2">
         <div className="rounded-xl bg-[#F4F5F9] p-4 text-[13px] font-semibold text-[#4B4B5C]">
-          구역을 직접 선택해서 올려주세요 · 자동 분류하지 않아요
+          MOVE-240912 · 체크인 07:46 · 최신 승인 범위 v4
         </div>
 
         <section>
@@ -393,7 +404,7 @@ function Completion({ back }: { back: () => void }) {
                 </span>
                 <button
                   className={`h-8 rounded-full px-4 text-xs font-bold ${done[index] ? "bg-[#F4F5F9] text-[#4B4B5C]" : "bg-[#4F46E5] text-white"}`}
-                  onClick={() => capture(index)}
+                  onClick={() => done[index] ? notify(`${area} 완료 사진을 열었어요.`) : capture(index)}
                   type="button"
                 >
                   {done[index] ? "보기" : "촬영"}
@@ -401,6 +412,18 @@ function Completion({ back }: { back: () => void }) {
               </div>
             ))}
           </div>
+        </section>
+
+        <section>
+          <div className="mb-2 flex items-center justify-between"><h2 className="text-[15px] font-bold text-[#191927]">완료 체크리스트</h2><Badge variant={checks.every(Boolean) ? "success" : "warning"}>{checks.filter(Boolean).length}/3</Badge></div>
+          <Panel className="space-y-1 p-4">
+            {checklist.map((label, index) => <button aria-pressed={checks[index]} className="flex min-h-11 w-full items-center gap-3 text-left text-[13px] font-semibold text-[#191927]" key={label} onClick={() => setChecks((current) => current.map((checked, item) => item === index ? !checked : checked))} type="button"><span className={`grid size-5 shrink-0 place-items-center rounded-md border ${checks[index] ? "border-[#4F46E5] bg-[#4F46E5] text-white" : "border-[#8E90A0]"}`}>{checks[index] && <Check size={13} strokeWidth={3} />}</span>{label}</button>)}
+          </Panel>
+        </section>
+
+        <section>
+          <h2 className="mb-2 text-[15px] font-bold text-[#191927]">현장 변경 요약</h2>
+          <Panel className="space-y-2 text-[13px]"><div className="flex justify-between"><b>CR-01 · 사다리차 하차</b><Badge variant="success">고객 승인</Badge></div><p className="text-xs text-[#8E90A0]">11:02 승인 · 결과 범위 v4 · 기존 승인본 v3 보존</p><div className="flex justify-between"><span className="text-[#8E90A0]">미처리 현장 이슈</span><b className="text-[#17A46B]">0건</b></div></Panel>
         </section>
 
         <button
@@ -418,24 +441,24 @@ function Completion({ back }: { back: () => void }) {
           </Badge>
         </button>
 
-        <div className="rounded-2xl bg-[#F4F5F9] p-4">
-          <h2 className="text-[13px] font-bold text-[#191927]">내 근무 기록</h2>
-          <p className="mt-2 text-xs text-[#4B4B5C]">07:46 체크인 → 진행 중 · 예상 종료 14:20</p>
-          <p className="mt-1 text-xs text-[#8E90A0]">제출하면 팀장·업체에 공유되고 완료 기록에 포함돼요</p>
-        </div>
+        <div className="rounded-2xl bg-[#F4F5F9] p-4"><div className="flex items-center justify-between"><div><h2 className="text-[13px] font-bold text-[#191927]">작업자 근무 기록</h2><p className="mt-2 text-xs text-[#4B4B5C]">07:46 시작 → 14:20 종료 · 실제 6시간 34분</p></div><button onClick={() => setEndConfirmed(!endConfirmed)} className={`rounded-full px-4 py-2 text-xs font-bold ${endConfirmed ? "bg-[#E6F7EF] text-[#17A46B]" : "bg-white text-[#4F46E5]"}`}>{endConfirmed ? "종료 확인됨" : "종료 시각 확인"}</button></div><p className="mt-2 text-xs text-[#8E90A0]">김도윤 · 최민석 · 박진호 · 이현수 근무 기록에 함께 반영돼요</p></div>
+
+        <div className={`rounded-2xl border p-4 ${customerConfirmed ? "border-[#73E4A7] bg-[#E6F7EF]" : "border-[#E9EAF2] bg-white"}`}><div className="flex items-center gap-3"><span className={`grid size-9 place-items-center rounded-full ${customerConfirmed ? "bg-[#17A46B] text-white" : "bg-[#F4F5F9] text-[#8E90A0]"}`}><ShieldCheck size={20} /></span><div className="flex-1"><h2 className="text-[13px] font-bold text-[#191927]">고객 현장 확인</h2><p className="text-xs text-[#8E90A0]">작업 종료 사실 확인 · 계약 서명이나 파손 없음 확인이 아니에요</p></div><button onClick={() => { setCustomerConfirmed(true); notify("고객 현장 확인을 14:21로 기록했어요."); }} disabled={customerConfirmed} className="rounded-full bg-[#4F46E5] px-4 py-2 text-xs font-bold text-white disabled:bg-[#17A46B]">{customerConfirmed ? "14:21 확인" : "현장 확인 받기"}</button></div></div>
+
+        <div className="rounded-xl bg-[#EEF2FF] px-4 py-3 text-xs text-[#4B4B5C]">제출한 완료 기록은 감사 이력에 남아요. 완료 사진은 전후 기록을 사람이 확인하기 위한 자료이며 파손·원인·책임을 자동 판단하지 않아요.</div>
 
         {submitted && (
           <div className="flex items-center gap-3 rounded-2xl bg-[#E6F7EF] p-4 text-[13px] font-bold text-[#17A46B]">
-            <ShieldCheck size={22} /> 완료 사진을 제출했고 작업이 종료됐어요.
+            <ShieldCheck size={22} /> 작업 완료 기록을 제출했고 업체 완료 요약에 반영됐어요.
           </div>
         )}
       </main>
 
       <Bottom>
-        <Action disabled={!done.every(Boolean) || submitted} onClick={() => setSubmitted(true)}>
-          {submitted ? "제출 완료" : "제출하고 작업 종료"}
+        <Action disabled={!ready || submitted} onClick={() => { setSubmitted(true); notify("작업 완료 기록을 제출했어요."); }}>
+          {submitted ? "제출 완료" : "작업 완료 기록 제출"}
         </Action>
-        {!done.every(Boolean) && <p className="text-center text-xs text-[#8E90A0]">남은 구역 1개를 완료하면 제출할 수 있어요</p>}
+        {!ready && <p className="text-center text-xs text-[#8E90A0]">필수 사진 · 체크리스트 · 종료 시각 · 고객 현장 확인을 모두 완료해 주세요</p>}
       </Bottom>
     </div>
   );
@@ -445,14 +468,14 @@ export function CrewDemo() {
   const [screen, setScreen] = useState(0);
 
   return (
-    <MobileFrame>
+    <DemoFeedbackProvider><MobileFrame>
       <StatusBar />
       {screen === 0 && <Assignment next={() => setScreen(1)} />}
       {screen === 1 && <CheckIn back={() => setScreen(0)} next={() => setScreen(2)} />}
       {screen === 2 && <Scope back={() => setScreen(1)} next={() => setScreen(3)} />}
       {screen === 3 && <IssueReport back={() => setScreen(2)} next={() => setScreen(4)} />}
       {screen === 4 && <Completion back={() => setScreen(3)} />}
-    </MobileFrame>
+    </MobileFrame></DemoFeedbackProvider>
   );
 }
 
