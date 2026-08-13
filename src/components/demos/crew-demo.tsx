@@ -99,7 +99,7 @@ function Assignment({ next }: { next: () => void }) {
     <div className="flex min-h-[calc(100dvh-48px)] flex-col md:min-h-[832px]">
       <div className="px-5 pt-4">
         <div className="flex items-center gap-4">
-          <strong className="text-2xl font-black tracking-[-1px] text-[#4F46E5]">짐싸</strong>
+          <strong className="text-2xl font-black tracking-[-1px] text-[#4F46E5]">SEQRET</strong>
           <Badge variant="neutral">작업자용</Badge>
         </div>
 
@@ -205,9 +205,10 @@ function CheckIn({ next, back }: { next: () => void; back: () => void }) {
   );
 }
 
-function Scope({ next, back }: { next: () => void; back: () => void }) {
+function Scope({ next, back, demoState = "" }: { next: () => void; back: () => void; demoState?: string }) {
   const [videoSeen, setVideoSeen] = useState(false);
   const notify = useDemoFeedback();
+  const latestApproved = demoState === "latest-v4";
   const rooms = [
     ["거실 7", "소파 · TV · 화분 · 책장…"],
     ["침실 6", "피아노 · 붙박이장 제외 확정…"],
@@ -216,11 +217,17 @@ function Scope({ next, back }: { next: () => void; back: () => void }) {
 
   return (
     <div className="flex min-h-[calc(100dvh-48px)] flex-col md:min-h-[832px]">
-      <Header title="승인 범위 확인" back={back} badge="v3 · 양측 확정" />
+      <Header title="승인 범위 확인" back={back} badge={latestApproved ? "v4 · 변경 승인" : "v3 · 양측 확정"} />
       <main className="space-y-6 px-5 pt-2">
         <div className="rounded-xl bg-[#F4F5F9] p-4 text-[13px] font-semibold text-[#4B4B5C]">
           읽기 전용 · 이 목록에 없는 작업은 하기 전에 보고해 주세요
         </div>
+        {latestApproved && (
+          <div className="demo-pop rounded-2xl bg-[#E6F7EF] p-4 text-[13px] text-[#176B4A]">
+            <p className="font-bold">최신 승인범위 v4 · 11:02 반영</p>
+            <p className="mt-1 text-xs">CR-01 사다리차 하차가 고객 승인 후 추가됐어요.</p>
+          </div>
+        )}
 
         <section>
           <h2 className="mb-2 text-[15px] font-bold text-[#191927]">오늘 할 작업</h2>
@@ -228,6 +235,7 @@ function Scope({ next, back }: { next: () => void; back: () => void }) {
             {["전체 포장·운반·정리 (21개 품목)", "냉장고 문 분리 · TV 보호 포장", "피아노 전문 운반 (김도윤·최민석)"].map((item) => (
               <p className="flex items-start gap-1.5" key={item}><Check className="mt-0.5 shrink-0" size={14} strokeWidth={2.5} />{item}</p>
             ))}
+            {latestApproved && <p className="flex items-start gap-1.5 text-[#176B4A]"><Check className="mt-0.5 shrink-0" size={14} strokeWidth={2.5} />사다리차 하차 · 승인 변경 CR-01</p>}
             <p className="flex items-start gap-1.5 text-[#E5484D]"><X className="mt-0.5 shrink-0" size={14} />제외: 폐기물 처리 · 입주청소</p>
           </Panel>
         </section>
@@ -255,7 +263,7 @@ function Scope({ next, back }: { next: () => void; back: () => void }) {
       <Bottom>
         <div className="grid grid-cols-2 gap-3">
           <Action secondary onClick={() => setVideoSeen(true)}><span className="inline-flex items-center gap-2"><Video size={18} /> 근거 영상 보기</span></Action>
-          <Action onClick={next}>변경·이슈 보고</Action>
+          <Action onClick={next}>{latestApproved ? "작업 완료 기록" : "변경·이슈 보고"}</Action>
         </div>
       </Bottom>
     </div>
@@ -533,7 +541,7 @@ export function CrewDemo() {
       {linkState ? <DemoLinkState roleLabel="작업자" state={linkState} /> : <div key={screen} className="demo-screen-enter">
         {screen === 0 && <Assignment next={() => setScreen(1)} />}
         {screen === 1 && <CheckIn back={() => setScreen(0)} next={() => setScreen(2)} />}
-        {screen === 2 && <Scope back={() => setScreen(1)} next={() => setScreen(3)} />}
+        {screen === 2 && <Scope back={() => setScreen(1)} demoState={demoState} next={() => setScreen(demoState === "latest-v4" ? 4 : 3)} />}
         {screen === 3 && <IssueReport back={() => setScreen(2)} demoState={demoState} next={() => setScreen(4)} />}
         {screen === 4 && <Completion back={() => setScreen(3)} demoState={demoState} />}
       </div>}

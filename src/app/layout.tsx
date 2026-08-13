@@ -6,9 +6,9 @@ import "@fontsource/pretendard/800.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "짐싸 · 이사 작업범위 공동확인",
+  title: "SEQRET · 이사 작업범위 공동확인",
   description: "고객, 이사업체, 작업자가 같은 작업범위를 확인하는 해커톤 데모",
-  applicationName: "짐싸 작업범위",
+  applicationName: "SEQRET",
 };
 
 export const viewport: Viewport = {

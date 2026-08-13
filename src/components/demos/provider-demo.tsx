@@ -80,7 +80,7 @@ function Invite({ next, jump }: { next: () => void; jump: (screen: number) => vo
     <div className="flex min-h-[calc(100dvh-48px)] flex-col md:min-h-[832px]">
       <main className="px-5 pt-3">
         <div className="flex items-center gap-3">
-          <strong className="text-2xl font-black tracking-[-1px] text-[#4F46E5]">짐싸</strong>
+          <strong className="text-2xl font-black tracking-[-1px] text-[#4F46E5]">SEQRET</strong>
           <Badge variant="primary">업체용</Badge>
         </div>
         <h1 className={`mt-6 text-[22px] font-extrabold leading-[30px] tracking-[-0.5px] ${ink}`}>박민서님이 검토를<br />요청했어요</h1>
@@ -336,7 +336,7 @@ function WebShell({ view, setView, children }: { view: WebView; setView: (view: 
   ];
   return (
     <div className="min-h-screen bg-[#F4F5F9] text-[#191927]">
-      <header className="flex h-16 items-center border-b border-[#E9EAF2] bg-white px-7"><strong className="text-2xl font-black text-[#3730A3]">짐싸</strong><Badge className="ml-4" variant="primary">파트너 PWA</Badge><button onClick={() => notify("현재 링크 참여자: 한빛이사 · 이상담 관리자")} className={`ml-auto text-[13px] font-bold ${muted}`} type="button">한빛이사 · 이상담 관리자⌄</button></header>
+      <header className="flex h-16 items-center border-b border-[#E9EAF2] bg-white px-7"><strong className="text-2xl font-black text-[#3730A3]">SEQRET</strong><Badge className="ml-4" variant="primary">파트너 PWA</Badge><button onClick={() => notify("현재 링크 참여자: 한빛이사 · 이상담 관리자")} className={`ml-auto text-[13px] font-bold ${muted}`} type="button">한빛이사 · 이상담 관리자⌄</button></header>
       <div className="flex min-h-[calc(100vh-64px)]">
         <aside className="w-[220px] shrink-0 border-r border-[#E9EAF2] bg-white p-3 max-lg:hidden">{nav.map(([id,label,icon]) => <button className={`mb-1 flex h-11 w-full items-center gap-3 rounded-xl px-4 text-left text-[13px] font-bold ${view === id ? 'bg-[#EEF2FF] text-[#3730A3]' : 'text-[#4B4B5C]'}`} key={id} onClick={() => setView(id)} type="button">{icon}{label}</button>)}</aside>
         <main className="min-w-0 flex-1 p-7 max-md:p-4">
