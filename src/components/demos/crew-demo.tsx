@@ -306,7 +306,7 @@ function IssueReport({ next, back, demoState = "" }: { next: () => void; back: (
           <p className="mt-1 text-xs text-[#4B4B5C]">보고만 올리면 승인은 고객이 앱에서 직접 해요</p>
         </div>
         {paused && <div className="rounded-2xl bg-[#FFF6E5] p-4 text-[13px] font-bold text-[#9A6200]">작업 일시 중지 기록됨 · 업체가 현장 이슈를 검토할 때까지 기존 승인 범위 밖 작업은 진행하지 않아요.</div>}
-        {submitted && <div className="demo-pop rounded-2xl bg-[#E6F7EF] p-4"><p className="text-[13px] font-bold text-[#17A46B]">현장 이슈를 업체에 전달했어요</p><p className="mt-1 text-xs text-[#4B4B5C]">업체가 증빙을 검토하고 금액이 있는 변경안을 만든 뒤 고객에게 보냅니다.</p><Link className="mt-3 flex h-11 items-center justify-center rounded-xl bg-[#191927] text-[13px] font-bold text-white" href="/provider?screen=4&state=field-issue">업체 현장 이슈 견적으로 이어보기</Link></div>}
+        {submitted && <div className="demo-pop rounded-2xl bg-[#E6F7EF] p-4"><p className="text-[13px] font-bold text-[#17A46B]">현장 이슈를 업체에 전달했어요</p><p className="mt-1 text-xs text-[#4B4B5C]">업체가 증빙을 검토하고 금액이 있는 변경안을 만든 뒤 고객에게 보냅니다.</p><Link className="mt-3 flex h-11 items-center justify-center rounded-xl bg-[#191927] text-[13px] font-bold text-white" href="/provider/web?view=quote&state=field-issue">업체 PWA 현장 이슈 견적으로 이어보기</Link></div>}
 
         <section>
           <h2 className="mb-2 text-[15px] font-bold text-[#191927]">무슨 일인가요?</h2>

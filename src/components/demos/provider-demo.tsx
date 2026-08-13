@@ -372,6 +372,41 @@ function QuoteView({ next }: { next: () => void }) {
       <div className="space-y-5"><Card className="border-[#818CF8] p-5"><h2 className="text-[17px] font-bold">견적 구성</h2><div className="mt-5 flex justify-between text-[13px]"><span>기본 견적</span><b>1,160,000</b></div><button className="mt-4 flex w-full justify-between" onClick={() => setExtra(!extra)} type="button"><span className="text-[13px]">피아노 전문 인력 +1</span><b>{extra ? '120,000' : '제외'}</b></button><button onClick={() => notify("새 견적 라인아이템을 추가했어요.")} className="mt-4 text-[13px] font-bold text-[#3730A3]" type="button"><Plus className="inline" size={15} /> 항목 추가</button><div className="my-4 h-px bg-[#E9EAF2]" /><div className="flex items-end justify-between"><b>제안 총액</b><strong className="text-2xl text-[#3730A3]">{(extra ? 1280000 : 1160000).toLocaleString()}원</strong></div><Button className="mt-6 w-full" disabled={sending} onClick={() => { if (sending) return; setSending(true); window.setTimeout(next, 500); }} size="cta">{sending ? <><LoaderCircle className="demo-spin" size={18} /> 전송 중...</> : "견적 제안 보내기 (v3)"}</Button></Card><Card className="p-5"><h2 className="font-bold">공동 확인 상태</h2><div className="mt-4 flex justify-between text-[13px]"><b>박민서 (고객)</b><Badge>대기</Badge></div><div className="mt-3 flex justify-between text-[13px]"><b>이상담 (나)</b><Badge>대기</Badge></div></Card></div></div></>;
 }
 
+function FieldIssueView({ demoState = "" }: { demoState?: string }) {
+  const [delta, setDelta] = useState("150000");
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(demoState === "field-issue-processed");
+  const [evidenceFailed, setEvidenceFailed] = useState(demoState === "field-issue-evidence-error");
+  const notify = useDemoFeedback();
+  const blocked = demoState === "field-issue-conflict" || demoState === "field-issue-stale" || evidenceFailed;
+  const total = 1_280_000 + Number(delta || 0);
+  const warning = demoState === "field-issue-conflict"
+    ? "다른 담당자가 먼저 변경안을 작성 중이에요. 중복 전송은 차단됩니다."
+    : demoState === "field-issue-stale"
+      ? "기준 승인범위가 변경됐어요. 최신 버전을 확인한 뒤 다시 작성해 주세요."
+      : evidenceFailed
+        ? "증빙 사진 1장을 불러오지 못했어요. 나머지 입력은 유지됩니다."
+        : "현장 이슈 FIELD-01 · 작업 일시 중지 없이 검토할 수 있어요.";
+
+  return <>
+    <div className="flex items-start justify-between gap-4">
+      <div><Badge variant={sent ? "success" : "warning"}>{sent ? "고객 전송 완료" : "입력 필요"}</Badge><h1 className="mt-3 text-2xl font-extrabold">현장 이슈 견적</h1><p className={`mt-1 text-[13px] ${muted}`}>도착지 엘리베이터 고장 · 10:55 · 기준 승인범위 v3</p></div>
+      <Link className="rounded-xl border border-[#E9EAF2] bg-white px-4 py-3 text-[13px] font-bold" href="/crew?screen=3">작업자 보고 보기</Link>
+    </div>
+    <div className={`mt-5 rounded-xl px-4 py-3 text-[13px] font-bold ${blocked ? "bg-[#FFF6E5] text-[#9A6200]" : sent ? "bg-[#E6F7EF] text-[#17A46B]" : "bg-[#EEF2FF] text-[#3730A3]"}`}>{warning}</div>
+    <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,2fr)_minmax(340px,1fr)]">
+      <div className="space-y-5">
+        <Card className="p-5"><div className="flex items-center justify-between"><h2 className="text-[17px] font-bold">현장 증빙 · 기사 설명</h2><Badge variant="warning">FIELD-01</Badge></div><p className="mt-3 text-[14px] font-bold">엘리베이터 고장으로 사다리차 하차가 필요합니다.</p><p className={`mt-1 text-[13px] ${muted}`}>5층 창문 진입 가능 · 김도윤 기사 · 증빙 2건</p><div className="mt-4 grid grid-cols-2 gap-3"><button className="demo-interactive-card grid h-28 place-items-center rounded-xl bg-[#F4F5F9] text-[13px] font-bold" onClick={() => notify("고장 엘리베이터 사진을 열었어요.")} type="button"><Video size={22} />고장 엘리베이터</button><button className={`demo-interactive-card grid h-28 place-items-center rounded-xl text-[13px] font-bold ${evidenceFailed ? "bg-[#FDECEC] text-[#E5484D]" : "bg-[#F4F5F9]"}`} onClick={() => { setEvidenceFailed(false); notify("안내문 증빙을 다시 불러왔어요."); }} type="button">{evidenceFailed ? <AlertTriangle size={22} /> : <FileText size={22} />}{evidenceFailed ? "불러오기 실패 · 재시도" : "고장 안내문"}</button></div></Card>
+        <Card className="overflow-hidden"><div className="border-b border-[#E9EAF2] p-5"><h2 className="text-[17px] font-bold">변경 작업</h2></div><div className="grid grid-cols-[1fr_80px_1fr_110px] gap-3 px-5 py-4 text-[12px] text-[#8E90A0]"><span>항목</span><span>수량</span><span>작업</span><span>상태</span></div><div className="grid grid-cols-[1fr_80px_1fr_110px] items-center gap-3 border-t border-[#E9EAF2] px-5 py-4 text-[13px]"><b>사다리차</b><span>1</span><span>하차 추가</span><Badge variant="warning">업체 확정</Badge></div><div className="grid grid-cols-[1fr_80px_1fr_110px] items-center gap-3 border-t border-[#E9EAF2] px-5 py-4 text-[13px]"><b>확정 범위</b><span>21개</span><span>기존 작업 유지</span><Badge variant="primary">v3 최신</Badge></div></Card>
+      </div>
+      <div className="space-y-5">
+        <Card className="border-[#818CF8] p-5"><h2 className="text-[17px] font-bold">변경 편집</h2><div className="mt-5 flex justify-between text-[13px]"><span className={muted}>기존 금액</span><b>1,280,000원</b></div><label className="mt-4 block text-[13px] font-bold">증감 금액<input className="mt-2 h-12 w-full rounded-xl bg-[#F4F5F9] px-4 text-right text-[16px] font-bold outline-none" disabled={sent} min="0" onChange={(event) => setDelta(event.target.value)} type="number" value={delta} /></label><label className="mt-4 block text-[13px] font-bold">변경 사유<textarea className="mt-2 h-24 w-full resize-none rounded-xl bg-[#F4F5F9] p-4 text-[13px] outline-none" defaultValue="엘리베이터 고장으로 사다리차 하차 방법이 필요합니다." disabled={sent} /></label><div className="my-5 h-px bg-[#E9EAF2]" /><div className="flex items-end justify-between"><b>변경 후 총액</b><strong className="text-2xl text-[#3730A3]">{total.toLocaleString()}원</strong></div><Button className="mt-6 w-full" disabled={blocked || sent || sending || !Number(delta)} onClick={() => { setSending(true); window.setTimeout(() => { setSending(false); setSent(true); notify("변경안 v4를 고객에게 보냈어요."); }, 500); }} size="cta">{sending ? <><LoaderCircle className="demo-spin" size={18} /> 전송 중...</> : sent ? "고객 전송 완료" : blocked ? "문제를 먼저 해결해 주세요" : "변경안 고객에게 보내기"}</Button>{sent && <Link className="mt-3 flex h-11 items-center justify-center rounded-xl bg-[#191927] text-[13px] font-bold text-white" href="/?screen=6">고객 변경 승인으로 이어보기</Link>}</Card>
+        <Card className="p-5"><h2 className="font-bold">추가 확인</h2><div className="mt-4 flex justify-between text-[13px]"><b>현장기사</b><Badge variant="success">전달 완료</Badge></div><div className="mt-3 flex justify-between text-[13px]"><b>고객</b><Badge variant={sent ? "warning" : "neutral"}>{sent ? "응답 대기" : "전송 전"}</Badge></div></Card>
+      </div>
+    </div>
+  </>;
+}
+
 function AssignView({ next, demoState = "" }: { next: () => void; demoState?: string }) {
   const [vehicle, setVehicle] = useState(0);
   const [assigning, setAssigning] = useState(false);
@@ -415,7 +450,7 @@ export function ProviderWebDemo() {
   return <DemoFeedbackProvider><WebShell setView={setView} view={view}>
     <div key={view} className="demo-screen-enter">
       {view === "cases" && <CasesView open={setView} />}
-      {view === "quote" && <QuoteView next={() => setView("assign")} />}
+      {view === "quote" && (demoState.startsWith("field-issue") ? <FieldIssueView demoState={demoState} /> : <QuoteView next={() => setView("assign")} />)}
       {view === "assign" && <AssignView demoState={demoState} next={() => setView("operate")} />}
       {view === "operate" && <OperateView demoState={demoState} />}
     </div>
