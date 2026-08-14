@@ -36,7 +36,7 @@ export function DemoLinkState({ state, roleLabel }: DemoLinkStateProps) {
           <RefreshCw size={17} /> 새 링크 요청 안내
         </Button>
         <Button className="w-full" onClick={() => window.location.assign(window.location.pathname)} size="cta" variant="outline">
-          정상 데모로 돌아가기
+          처음 화면으로 돌아가기
         </Button>
       </div>
     </div>

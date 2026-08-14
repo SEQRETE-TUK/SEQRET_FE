@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
-import Image from "next/image";
+import Link from "@/components/native-link";
+import Image from "@/components/native-image";
 import { useEffect, useState, type ReactNode } from "react";
 import {
   AlertTriangle,
@@ -33,6 +33,15 @@ import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetT
 
 const ink = "text-ink-900";
 const muted = "text-ink-400";
+const baseQuote = 1_160_000;
+const quoteItems = [
+  { id: "piano", label: "피아노 전문 인력 1명", detail: "3층 계단 하차 · 근거 영상 0:12", amount: 120_000 },
+  { id: "ladder", label: "사다리차 예약", detail: "도착지 계단 운반 대체", amount: 150_000 },
+  { id: "appliance", label: "가전 분해·설치", detail: "세탁기·냉장고 분리 작업", amount: 80_000 },
+  { id: "packing", label: "포장 자재 추가", detail: "완충재·박스 보강", amount: 40_000 },
+] as const;
+
+type QuoteItemId = (typeof quoteItems)[number]["id"];
 
 function MobileHeader({
   title,
@@ -112,12 +121,15 @@ function Invite({ next, jump }: { next: () => void; jump: (screen: number) => vo
   );
 }
 
-function Quote({ next, back }: { next: () => void; back: () => void }) {
-  const [included, setIncluded] = useState(true);
+function Quote({ next, back, itemIds, setItemIds }: { next: () => void; back: () => void; itemIds: QuoteItemId[]; setItemIds: (ids: QuoteItemId[]) => void }) {
   const [saved, setSaved] = useState(false);
   const [sending, setSending] = useState(false);
+  const [itemsOpen, setItemsOpen] = useState(false);
   const notify = useDemoFeedback();
-  const total = included ? 1_280_000 : 1_160_000;
+  const selectedItems = quoteItems.filter((item) => itemIds.includes(item.id));
+  const included = itemIds.includes("piano");
+  const total = baseQuote + selectedItems.reduce((sum, item) => sum + item.amount, 0);
+  const toggleItem = (id: QuoteItemId) => setItemIds(itemIds.includes(id) ? itemIds.filter((itemId) => itemId !== id) : [...itemIds, id]);
   return (
     <div className="flex min-h-[calc(100dvh-48px)] flex-col md:min-h-[832px]">
       <MobileHeader onBack={back} title="짐 검토 · 견적" trailing={<Badge variant="primary">한빛이사</Badge>} />
@@ -130,60 +142,70 @@ function Quote({ next, back }: { next: () => void; back: () => void }) {
             <div><b className={ink}>업라이트 피아노</b><p className={`mt-1 text-xs ${muted}`}>3층 계단 하차 예상<br />전문 인력 추가가 필요해 보여요</p></div>
           </div>
           <div className="mt-3 grid grid-cols-2 gap-2">
-            <Button onClick={() => setIncluded(true)} size="chip" variant={included ? "secondary" : "outline"}>인력 +1 반영</Button>
-            <Button onClick={() => setIncluded(false)} size="chip" variant={!included ? "secondary" : "outline"}>반영 안 함</Button>
+            <Button onClick={() => !included && toggleItem("piano")} size="chip" variant={included ? "secondary" : "outline"}>인력 +1 반영</Button>
+            <Button onClick={() => included && toggleItem("piano")} size="chip" variant={!included ? "secondary" : "outline"}>반영 안 함</Button>
           </div>
         </Card>
-        <div className="mt-5 flex items-center justify-between"><h2 className={`text-[17px] font-bold ${ink}`}>견적 구성</h2><button onClick={() => notify("확정 품목 21개와 공간별 근거를 펼쳤어요.")} className="inline-flex min-h-11 items-center px-2 text-[13px] font-bold text-primary-600" type="button">품목 21개 보기</button></div>
+        <div className="mt-5 flex items-center justify-between"><h2 className={`text-[17px] font-bold ${ink}`}>견적 구성</h2><span className={`text-[12px] font-bold ${muted}`}>확정 품목 21개 기준</span></div>
         <Card className="mt-2 p-4">
-          <div className="flex justify-between text-[13px]"><span className={muted}>기본 견적 · 5톤 1대 · 4명 · 6시간</span><b>1,160,000</b></div>
-          <div className="mt-3 flex justify-between text-[13px]"><span className={muted}>피아노 전문 인력 +1</span><b className={included ? "text-primary-600" : muted}>{included ? "120,000" : "미포함"}</b></div>
-          <button onClick={() => notify("새 견적 항목 입력 행을 추가했어요.")} className="mt-3 inline-flex min-h-11 items-center text-[13px] font-bold text-primary-600" type="button"><Plus className="inline" size={15} /> 항목 추가</button>
+          <div className="flex justify-between text-[13px]"><span className={muted}>기본 견적 · 5톤 1대 · 4명 · 6시간</span><b>{baseQuote.toLocaleString()}</b></div>
+          {selectedItems.map((item) => <div className="mt-3 flex min-h-11 items-center gap-2 text-[13px]" key={item.id}><span className={`min-w-0 flex-1 ${muted}`}>{item.label}</span><b>{item.amount.toLocaleString()}</b><button aria-label={`${item.label} 제외`} className="grid size-11 place-items-center text-ink-400" onClick={() => toggleItem(item.id)} type="button"><X size={17} /></button></div>)}
+          <Button className="mt-3" onClick={() => setItemsOpen(true)} size="chip" variant="outline"><Plus size={16} /> 항목 선택</Button>
           <div className="my-3 h-px bg-line" />
-          <div className="flex items-end justify-between"><b className={ink}>제안 총액</b><strong className="text-[28px] font-extrabold tracking-[-0.5px] text-primary-600">{total.toLocaleString()}원</strong></div>
+          <div className="flex items-end justify-between"><b className={ink}>제안 총액</b><strong className="text-[28px] font-extrabold tracking-[-0.5px] text-ink-900">{total.toLocaleString()}원</strong></div>
           <p className={`mt-2 text-xs ${muted}`}>포함 포장·운반·정리 · 제외 폐기물/입주청소</p>
         </Card>
         <div className="mt-5 px-5"><b className={`text-[13px] ${ink}`}>고객에게 보낼 한마디</b><p className={`mt-1 text-[13px] ${muted}`}>피아노 전문 인력이 안전하게 옮겨드릴게요.</p></div>
       </main>
       <MobileBottom>
-        <div className="grid grid-cols-2 gap-2"><Button disabled={sending} onClick={() => { if (sending) return; setSending(true); window.setTimeout(next, 500); }} size="cta">{sending ? <><LoaderCircle className="demo-spin" size={18} /> 전송 중...</> : "견적 제안 보내기"}</Button><Button disabled={sending} onClick={() => { setSaved(true); notify("견적 초안을 임시 저장했어요."); }} size="cta" variant="outline">{saved ? "저장됨" : "임시 저장"}</Button></div>
+        <div className="grid grid-cols-[1fr_136px] gap-2"><Button disabled={sending} onClick={() => { if (sending) return; setSending(true); window.setTimeout(next, 350); }} size="cta">{sending ? <><LoaderCircle className="demo-spin" size={18} /> 준비 중...</> : "수정안 검토하기"}</Button><Button className="whitespace-nowrap" disabled={sending} onClick={() => { setSaved(true); notify("견적 초안을 임시 저장했어요."); }} size="cta" variant="outline">{saved ? "저장됨" : "임시 저장"}</Button></div>
       </MobileBottom>
+      <Sheet open={itemsOpen} onOpenChange={setItemsOpen}><SheetContent><SheetHeader><SheetTitle>추가 견적 항목 선택</SheetTitle><SheetDescription>필요한 작업을 선택하면 제안 총액에 바로 반영돼요.</SheetDescription></SheetHeader><div className="space-y-2 px-5">{quoteItems.map((item) => { const selected = itemIds.includes(item.id); return <button aria-pressed={selected} className={`flex min-h-[72px] w-full items-center rounded-2xl border p-4 text-left ${selected ? "border-primary-400 bg-primary-50" : "border-line bg-white"}`} key={item.id} onClick={() => toggleItem(item.id)} type="button"><span className={`grid size-7 shrink-0 place-items-center rounded-lg ${selected ? "bg-primary-600 text-white" : "border border-line text-transparent"}`}><Check size={17} /></span><span className="ml-3 min-w-0 flex-1"><b className="block text-[14px]">{item.label}</b><small className={`mt-1 block text-[12px] ${muted}`}>{item.detail}</small></span><b className="ml-2 text-[14px]">+{item.amount.toLocaleString()}</b></button>; })}</div><SheetFooter><Button className="w-full" onClick={() => setItemsOpen(false)} size="cta">선택 항목 반영 · {total.toLocaleString()}원</Button></SheetFooter></SheetContent></Sheet>
     </div>
   );
 }
 
-function Revision({ next, back }: { next: () => void; back: () => void }) {
+function Revision({ next, back, itemIds }: { next: () => void; back: () => void; itemIds: QuoteItemId[] }) {
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
+  const [accepted, setAccepted] = useState(false);
   const notify = useDemoFeedback();
+  const selectedItems = quoteItems.filter((item) => itemIds.includes(item.id));
+  const total = baseQuote + selectedItems.reduce((sum, item) => sum + item.amount, 0);
   const send = () => {
     if (sending || sent) return;
     setSending(true);
     window.setTimeout(() => {
       setSending(false);
       setSent(true);
-      notify("업체 수정안 v3를 고객에게 보냈어요. 고객 수락 전에는 배차를 확정하지 않아요.");
+      notify("수정안 v3을 박민서 고객에게 보냈어요.");
+      window.setTimeout(() => setAccepted(true), 1200);
     }, 550);
   };
   return (
-    <div className="flex min-h-[calc(100dvh-48px)] flex-col bg-ink-900/35 pt-20 md:min-h-[832px]">
-      <section className="mt-auto rounded-t-[28px] bg-white px-5 pb-6 pt-3">
-        <div className="mx-auto mb-4 h-1 w-12 rounded-full bg-[#DFE1EA]" />
-        <div className="flex items-center"><h1 className={`flex-1 text-[20px] font-extrabold ${ink}`}>이대로 수정안을 보낼까요?</h1><button aria-label="닫기" className="grid size-11 place-items-center rounded-full" onClick={back} type="button"><X className={muted} size={22} /></button></div>
-        <p className={`mt-1 text-xs ${muted}`}>v2 기준 → 새 제안 v3 · 기존 확인은 무효화돼요</p>
-        <Card className="mt-4 border-0 bg-warning-bg p-4">
-          <div className="flex items-center gap-3"><span className="grid size-8 place-items-center rounded-full bg-white text-warning"><Plus size={18} /></span><div className="flex-1"><b className={ink}>피아노 전문 인력 1명</b><p className="text-xs text-warning-ink">근거: 현실 영상 0:12 · 3층 계단 하차</p></div><b className="text-danger-ink">+120,000</b></div>
+    <div className="flex min-h-[calc(100dvh-48px)] flex-col md:min-h-[832px]">
+      <MobileHeader onBack={back} title="수정안 확인" />
+      <main className="px-5">
+        <h1 className={`mt-2 whitespace-nowrap text-[22px] font-extrabold ${ink}`}>고객에게 보낼 내용을 확인해 주세요</h1>
+        <p className={`mt-2 text-[13px] ${muted}`}>새 수정안을 보내면 기존 v2 확인은 종료되고 v3 수락을 기다려요.</p>
+
+        <Card className="mt-5 divide-y divide-line px-4">
+          <div className="flex min-h-14 items-center justify-between text-[13px]"><span className={muted}>기본 견적</span><b>{baseQuote.toLocaleString()}원</b></div>
+          {selectedItems.map((item) => <div className="flex min-h-14 items-center justify-between gap-3 text-[13px]" key={item.id}><span className="min-w-0 flex-1"><b className="block">{item.label}</b><small className={`mt-1 block ${muted}`}>{item.detail}</small></span><b className="text-danger-ink">+{item.amount.toLocaleString()}원</b></div>)}
         </Card>
-        <Card className="mt-4 border-primary-400 p-4">
-          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3"><div><span className={`text-xs ${muted}`}>기존 (v2)</span><b className={`block text-lg ${muted}`}>1,160,000원</b></div><ChevronRight className="text-primary-600" /><div><span className="text-xs font-bold text-primary-600">새 제안 (v3)</span><b className="block text-[22px] text-primary-600">1,280,000원</b></div></div>
-          <p className={`mt-3 text-xs ${muted}`}>고객이 확인해야 확정 · 승인 전 금액 변동 없음</p>
+
+        <Card className="mt-4 p-5">
+          <div className="flex items-end justify-between"><span className={`text-[13px] ${muted}`}>기존 v2 · {baseQuote.toLocaleString()}원</span><span className="text-[12px] font-bold text-danger-ink">+{(total - baseQuote).toLocaleString()}원</span></div>
+          <div className="mt-2 flex items-end justify-between"><b>새 제안 v3</b><strong className="text-[28px] font-extrabold">{total.toLocaleString()}원</strong></div>
         </Card>
-        <label className={`mt-4 block text-[15px] font-bold ${ink}`}>변경 사유 (고객에게 보여요)<textarea className="mt-2 h-20 w-full resize-none rounded-2xl border-0 bg-canvas p-4 text-[13px] font-medium outline-none" defaultValue="피아노 안전 운반을 위해 전문 작업자 1명이 추가로 필요합니다." /></label>
-        <div className="mt-4 rounded-xl bg-primary-50 p-4 text-xs text-primary-600"><b>보내면 고객 수락 대기로 전환</b><br /><span className={muted}>고객이 같은 v3을 수락한 뒤에만 배차를 확정해요</span></div>
-        {sent && <div className="demo-pop mt-4 rounded-2xl bg-success-bg p-4"><p className="text-[13px] font-bold text-success-ink">수정안 v3 발송 완료</p><p className={`mt-1 text-xs ${muted}`}>지금은 고객 수락 대기 상태예요. 고객이 v3을 수락하면 배차를 확정할 수 있어요.</p><Link className="mt-3 flex h-11 items-center justify-center rounded-xl bg-ink-900 text-[13px] font-bold text-white" href="/?screen=5">고객 제안 수락 화면 보기</Link></div>}
-        {sent ? <Button className="mt-5 w-full" onClick={next} size="cta" variant="outline">데모: 공동확인 완료로 가정하고 배차</Button> : <Button className="mt-5 w-full" disabled={sending} onClick={send} size="cta">{sending ? <><LoaderCircle className="demo-spin" size={18} /> 전송 중...</> : <><Send size={18} /> 수정안 보내기</>}</Button>}
-        <button className={`mt-3 inline-flex min-h-11 w-full items-center justify-center text-[13px] font-bold ${muted}`} onClick={back} type="button">돌아가서 더 수정하기</button>
-      </section>
+
+        <label className={`mt-5 block text-[15px] font-bold ${ink}`}>고객에게 보일 변경 사유<textarea className="mt-2 h-24 w-full resize-none rounded-2xl border border-line bg-white p-4 text-[13px] font-medium outline-none" defaultValue="전문 작업자와 사다리차를 추가해 안전하게 운반합니다." /></label>
+
+        {sent && <div className={`demo-pop mt-4 rounded-2xl p-4 ${accepted ? "bg-success-bg" : "bg-warning-bg"}`}><p className={`text-[13px] font-bold ${accepted ? "text-success-ink" : "text-warning-ink"}`}>{accepted ? "박민서 고객이 v3을 수락했어요" : "수정안 v3을 보냈어요 · 고객 수락 대기"}</p><p className={`mt-1 text-xs ${muted}`}>{accepted ? "이 견적으로 배차와 작업자를 등록할 수 있어요." : "고객 화면에도 같은 항목과 총액이 표시돼요."}</p></div>}
+      </main>
+      <MobileBottom sub={sent ? <button className="inline-flex min-h-11 items-center" onClick={back} type="button">견적 구성으로 돌아가기</button> : "전송 전에는 견적 구성을 다시 수정할 수 있어요"}>
+        {!sent ? <Button className="w-full" disabled={sending} onClick={send} size="cta">{sending ? <><LoaderCircle className="demo-spin" size={18} /> 전송 중...</> : <><Send size={18} /> 고객에게 수정안 보내기</>}</Button> : <Button className="w-full" disabled={!accepted} onClick={next} size="cta">{accepted ? "배차·인력 등록하기" : "박민서 고객 수락 대기"}</Button>}
+      </MobileBottom>
     </div>
   );
 }
@@ -207,7 +229,7 @@ function Assignment({ next, back, demoState = "" }: { next: () => void; back: ()
         <Card className="mt-2 divide-y divide-line px-4">
           {crew.map(([name], i) => <div className="flex h-12 items-center gap-3" key={name}><span className="grid size-8 place-items-center rounded-full bg-primary-50 text-xs font-bold text-primary-600">{name[0]}</span><b className={`flex-1 text-[13px] ${ink}`}>{name}</b>{i < 2 && <Badge variant="warning">피아노 자격</Badge>}<span className="text-xs font-bold text-success-ink">배정됨</span></div>)}
         </Card>
-        {sent && <div className="demo-pop mt-4 rounded-2xl bg-success-bg p-4"><p className="text-center text-xs font-bold text-success-ink">작업자 4명에게 전용 링크를 보냈어요.</p><Link className="mt-3 flex h-11 items-center justify-center rounded-xl bg-ink-900 text-[13px] font-bold text-white" href="/crew?screen=0">작업자 초대 랜딩으로 이어보기</Link></div>}
+          {sent && <div className="demo-pop mt-4 rounded-2xl bg-success-bg p-4"><p className="text-center text-xs font-bold text-success-ink">작업자 4명에게 전용 링크를 보냈어요.</p></div>}
       </main>
       <MobileBottom sub={<button className="inline-flex min-h-11 items-center" onClick={() => { setSent(false); notify("배정을 다시 편집할 수 있게 열었어요."); }} type="button">인원 바꾸기</button>}><Button className="w-full" disabled={conflict || assigning} onClick={() => { if (sent) { next(); return; } if (assigning) return; setAssigning(true); window.setTimeout(() => { setAssigning(false); setSent(true); notify("배정을 확정하고 작업자 전용 링크를 발송했어요."); }, 500); }} size="cta">{conflict ? "충돌을 먼저 해결해 주세요" : assigning ? <><LoaderCircle className="demo-spin" size={18} /> 배정 확정 중...</> : sent ? "당일 현황으로 이동" : "배정 확정 · 링크 발송"}</Button></MobileBottom>
     </div>
@@ -215,10 +237,10 @@ function Assignment({ next, back, demoState = "" }: { next: () => void; back: ()
 }
 
 function Operation({ next, back, demoState = "" }: { next: () => void; back: () => void; demoState?: string }) {
-  const [reminded, setReminded] = useState(false);
   const [issueOpen, setIssueOpen] = useState(demoState.startsWith("field-issue"));
   const [delta, setDelta] = useState("150000");
   const [proposalSent, setProposalSent] = useState(false);
+  const [issueApproved, setIssueApproved] = useState(demoState === "field-issue-processed");
   const [proposalSending, setProposalSending] = useState(false);
   const [evidenceRetried, setEvidenceRetried] = useState(false);
   const [pauseResolved, setPauseResolved] = useState(false);
@@ -247,19 +269,27 @@ function Operation({ next, back, demoState = "" }: { next: () => void; back: () 
       <div className="flex min-h-[calc(100dvh-48px)] flex-col md:min-h-[832px]"><MobileHeader onBack={back} title="오늘 · 박민서 고객" trailing={<Badge variant="warning">일시 중지</Badge>} /><main className="px-5"><div className="demo-pop mt-2 rounded-2xl border border-warning bg-warning-bg p-5"><Clock3 className="text-warning" size={26} /><h1 className={`mt-4 text-[21px] font-extrabold ${ink}`}>작업이 일시 중지됐어요</h1><p className={`mt-2 text-[13px] leading-5 ${muted}`}>거절된 현장 변경과 안전 확인이 필요해 승인 범위 밖 작업을 멈춘 상태예요. 서비스 밖 협의가 끝난 뒤 재개 상태를 기록할 수 있어요.</p></div><Card className="mt-4 p-4"><div className="flex justify-between text-[13px]"><span className={muted}>유효한 승인본</span><b>v3 · 유지</b></div><div className="mt-3 flex justify-between text-[13px]"><span className={muted}>현재 총액</span><b>1,280,000원</b></div><div className="mt-3 flex justify-between text-[13px]"><span className={muted}>중지 사유</span><b>CR-01 거절 · 안전 협의</b></div></Card><p className={`mt-4 rounded-xl bg-primary-50 px-4 py-3 text-xs ${muted}`}>재개해도 거절된 변경 금액을 승인으로 소급 기록하지 않아요.</p></main><MobileBottom><Button className="w-full" onClick={() => { setPauseResolved(true); notify("외부 협의 후 작업 재개를 11:22로 기록했어요. 기존 승인본 v3은 그대로 유지돼요."); }} size="cta">외부 협의 후 작업 재개</Button></MobileBottom></div>
     );
   }
+  const flow = [
+    ["08:02", "체크인 · 안전확인 3종", "done"],
+    ["09:40", "상차 완료 · 사진 6장", "done"],
+    issueApproved ? ["11:02", "고객 승인 · v4 확정", "done"] : proposalSent ? ["10:57", "변경안 v4 · 고객 수락 대기", "wait"] : ["10:55", "사다리차 요청 · 확인 필요", "wait"],
+    ["다음", "도착지 하차", "next"],
+    ["다음", "완료 기록", "next"],
+  ];
   return (
     <div className="flex min-h-[calc(100dvh-48px)] flex-col md:min-h-[832px]">
-      <MobileHeader onBack={back} title="오늘 · 박민서 고객" trailing={<span className="text-xs font-bold text-success-ink">● LIVE</span>} />
+      <MobileHeader onBack={back} title="오늘 · 박민서 고객" trailing={<Badge variant="success">진행 중</Badge>} />
       <main className="px-5">
-        <Card className="border-l-4 border-l-primary-600 p-5"><b className="text-xs text-success-ink">08:02 체크인 · 안전확인 통과</b><h1 className={`mt-2 text-xl font-extrabold ${ink}`}>출발지 상차 진행 중</h1><div className="mt-2 flex items-center justify-between"><span className={`text-[13px] ${muted}`}>김도윤 팀 4명 · v3 · 1,280,000원</span><Button onClick={() => notify("김도윤 팀장에게 전화 연결을 요청했어요.")} size="chip" variant="outline">팀장 통화</Button></div></Card>
-        <Card className="mt-4 border-warning bg-warning-bg p-4"><Badge variant="warning">지금 처리할 1건</Badge><h2 className={`mt-2 text-[16px] font-bold ${ink}`}>현장 이슈 · 사다리차 필요</h2><p className={`mt-1 text-xs ${muted}`}>김도윤 기사 10:55 · 증빙 2건 · 금액은 업체가 확정</p><div className="mt-3 grid grid-cols-2 gap-2"><Button onClick={() => setIssueOpen(true)} size="chip" variant="outline">이슈 검토 · 견적</Button><Button onClick={() => { setReminded(true); notify("고객에게 처리 상태 안내를 보냈어요."); }} size="chip" variant="outline">고객에게 안내</Button></div></Card>
-        <h2 className={`mb-2 mt-5 text-[17px] font-bold ${ink}`}>오늘 흐름</h2>
-        <Card className="p-4"><div className="space-y-5">
-          {[['08:02 체크인 · 안전확인 3종','done'],['09:40 상차 완료 · 사진 6장','done'],['10:55 변경요청 CR-01 접수','wait'],['도착지 하차','next'],['완료 기록 · 고객 확인','next']].map(([label,state]) => <div className="flex items-center gap-3" key={label}><span className={`size-4 rounded-full ${state === 'done' ? 'bg-success' : state === 'wait' ? 'bg-warning' : 'bg-[#E4E6ED]'}`} /><b className={`text-[13px] ${state === 'next' ? muted : ink}`}>{label}</b>{state === 'wait' && <Badge className="ml-auto" variant="warning">응답 대기</Badge>}</div>)}
-        </div></Card>{reminded && <p className="mt-3 text-center text-xs font-bold text-success-ink">고객에게 현장 이슈 처리 상태를 안내했어요.</p>}{proposalSent && <div className="demo-pop mt-3 rounded-xl bg-success-bg px-4 py-4 text-center"><p className="text-xs font-bold text-success-ink">변경안을 고객에게 보냈어요 · 고객 응답 대기</p><Link className="mt-3 flex h-10 items-center justify-center rounded-xl bg-ink-900 text-[12px] font-bold text-white" href="/?screen=6">고객 변경 승인으로 이어보기</Link></div>}
+        <section className="border-b border-line pb-5 pt-2"><div className="flex items-center justify-between"><b className="text-[12px] text-success-ink">08:02 체크인 · 안전확인 통과</b><button className="min-h-11 px-2 text-[13px] font-bold text-ink-600" onClick={() => notify("김도윤 팀장에게 전화 연결을 요청했어요.")} type="button">팀장에게 전화</button></div><h1 className={`mt-1 text-[24px] font-extrabold ${ink}`}>출발지 상차 중</h1><p className={`mt-2 text-[13px] ${muted}`}>김도윤 팀 · 작업자 4명</p><p className={`mt-1 text-[13px] ${muted}`}>양측 수락 견적 v3 · 1,280,000원</p></section>
+
+        {!issueApproved && <Card className="mt-5 p-5"><div className="flex items-start gap-3"><span className="grid size-10 shrink-0 place-items-center rounded-xl bg-warning-bg text-warning-ink"><Clock3 size={21} /></span><div className="min-w-0 flex-1"><p className="text-[12px] font-bold text-warning-ink">{proposalSent ? "고객 수락 대기" : "지금 확인할 현장 요청"}</p><h2 className={`mt-1 text-[18px] font-extrabold ${ink}`}>사다리차가 필요해요</h2><p className={`mt-1 text-[12px] ${muted}`}>도착지 엘리베이터 고장 · 증빙 2건</p></div></div>{proposalSent && <p className="mt-4 border-t border-line pt-4 text-[13px] font-bold text-warning-ink">변경안 v4을 보냈어요. 박민서 고객의 수락을 기다려요.</p>}</Card>}
+        {issueApproved && <div className="demo-pop mt-5 rounded-2xl bg-success-bg p-5"><div className="flex items-center gap-3"><span className="grid size-9 place-items-center rounded-full bg-success text-white"><Check size={20} /></span><div><b className="text-[15px] text-success-ink">사다리차 변경 승인 완료</b><p className={`mt-1 text-[12px] ${muted}`}>v4 · 최종 1,430,000원</p></div></div></div>}
+
+        <h2 className={`mb-2 mt-6 text-[17px] font-bold ${ink}`}>오늘 진행 기록</h2>
+        <ol className="overflow-hidden rounded-2xl border border-line bg-white px-4">{flow.map(([time, label, state]) => <li className="flex min-h-14 items-center gap-3 border-b border-line last:border-b-0" key={`${time}-${label}`}><span className={`grid size-7 shrink-0 place-items-center rounded-full ${state === "done" ? "bg-success-bg text-success-ink" : state === "wait" ? "bg-warning-bg text-warning-ink" : "bg-canvas text-ink-400"}`}>{state === "done" ? <Check size={16} /> : <Clock3 size={15} />}</span><span className={`w-11 text-[12px] font-bold ${state === "next" ? muted : ink}`}>{time}</span><b className={`min-w-0 flex-1 text-[13px] ${state === "next" ? muted : ink}`}>{label}</b></li>)}</ol>
       </main>
-      <MobileBottom><div className="grid grid-cols-2 gap-2"><Button onClick={() => notify("작업자 4명: 모두 체크인 · 1명 현장 이슈 보고 중")} variant="secondary">작업자 현황</Button><Button onClick={next} variant="outline">완료 기록 준비</Button></div></MobileBottom>
-      <Sheet open={issueOpen} onOpenChange={setIssueOpen}><SheetContent><SheetHeader><SheetTitle>현장 이슈 견적</SheetTitle><SheetDescription>기사 보고는 증빙으로만 사용하고, 금액과 변경 작업은 업체가 확정해 고객에게 보내요.</SheetDescription></SheetHeader><div className="space-y-4 px-5">{workPaused && <div className="rounded-xl bg-danger-bg p-3 text-[12px] font-bold text-danger-ink">작업 일시 중지됨 · 변경안 결정 전 승인 범위 밖 작업은 진행하지 않아요</div>}{(issueProcessed || issueConflict || issueStale) && <div className={`rounded-xl p-3 text-[12px] font-bold ${issueProcessed ? "bg-success-bg text-success-ink" : "bg-warning-bg text-warning-ink"}`}>{issueProcessed ? "FIELD-01은 v4 변경안으로 이미 처리됐어요." : issueConflict ? "다른 업체 담당자가 FIELD-01 제안을 먼저 만들었어요. 중복 제안은 차단됩니다." : "기준 승인본이 v3에서 변경됐어요. 최신 버전을 다시 불러온 뒤 제안해 주세요."}</div>}<Card className="border-warning bg-warning-bg p-4"><Badge variant="warning">FIELD-01 · 10:55</Badge><p className={`mt-2 text-[14px] font-bold ${ink}`}>도착지 엘리베이터 고장 · 사다리차 필요</p><p className={`mt-1 text-xs ${muted}`}>5층 창측 진입 가능 · 기사 증빙 사진 2장</p><div className="mt-3 grid grid-cols-2 gap-2"><button onClick={() => notify("고장 엘리베이터 사진을 열었어요.")} className="h-16 rounded-xl bg-white text-xs font-bold">고장 사진</button><button onClick={() => evidenceFailed ? setEvidenceRetried(true) : notify("관리실 안내문 사진을 열었어요.")} className={`h-16 rounded-xl text-xs font-bold ${evidenceFailed ? "border border-warning bg-warning-bg text-warning-ink" : "bg-white"}`}>{evidenceFailed ? "안내문 로드 실패 · 재시도" : "안내문"}</button></div></Card><Card className="p-4"><div className="flex justify-between text-[13px]"><span className={muted}>기준 승인본</span><b>{issueStale ? "v3 · 최신 아님" : "v3 · 1,280,000원"}</b></div><div className="mt-3 flex justify-between text-[13px]"><span className={muted}>추가 작업</span><b>사다리차 하차</b></div></Card><label className={`block text-[13px] font-bold ${ink}`}>증감 금액<input disabled={issueProcessed || issueConflict || issueStale} value={delta} onChange={(event) => setDelta(event.target.value)} type="number" min="0" className="mt-2 h-12 w-full rounded-xl bg-canvas px-4 text-right text-[16px] font-bold outline-none disabled:opacity-50" /></label><label className={`block text-[13px] font-bold ${ink}`}>고객에게 보일 변경 사유<textarea disabled={issueProcessed || issueConflict || issueStale} defaultValue="도착지 엘리베이터 고장으로 계단 운반 대신 사다리차 작업이 필요합니다." className="mt-2 h-20 w-full resize-none rounded-xl bg-canvas p-4 text-[13px] outline-none disabled:opacity-50" /></label><Card className="border-primary-400 bg-primary-50 p-4"><div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 text-center"><div><span className={`text-[11px] ${muted}`}>기존 총액</span><b className="block text-[15px]">1,280,000원</b></div><ChevronRight className="text-primary-600" /><div><span className="text-[11px] font-bold text-primary-600">변경 후</span><b className="block text-[18px] text-primary-600">{projected.toLocaleString()}원</b></div></div></Card></div><SheetFooter><Button disabled={!Number(delta) || proposalSending || issueBlocked} className="w-full" onClick={() => { if (proposalSending || issueBlocked) return; setProposalSending(true); window.setTimeout(() => { setProposalSending(false); setProposalSent(true); setIssueOpen(false); notify("변경안 v4 제안을 고객에게 보냈어요."); }, 550); }} size="cta">{proposalSending ? <><LoaderCircle className="demo-spin" size={18} /> 전송 중...</> : issueBlocked ? issueBlockLabel : "변경안 고객에게 보내기"}</Button></SheetFooter></SheetContent></Sheet>
+      <MobileBottom sub={<button className="inline-flex min-h-11 items-center" onClick={() => notify("작업자 4명 모두 체크인했고 김도윤 기사가 현장 요청을 보고했어요.")} type="button">작업자 4명 현황</button>}>{issueApproved ? <Button className="w-full" onClick={next} size="cta">완료 기록 준비</Button> : proposalSent ? <Button className="w-full" disabled size="cta">박민서 고객 수락 대기</Button> : <Button className="w-full" onClick={() => setIssueOpen(true)} size="cta">사다리차 견적 검토</Button>}</MobileBottom>
+      <Sheet open={issueOpen} onOpenChange={setIssueOpen}><SheetContent><SheetHeader><SheetTitle>현장 이슈 견적</SheetTitle><SheetDescription>기사 보고는 증빙으로만 사용하고, 금액과 변경 작업은 업체가 확정해 고객에게 보내요.</SheetDescription></SheetHeader><div className="space-y-4 px-5">{workPaused && <div className="rounded-xl bg-danger-bg p-3 text-[12px] font-bold text-danger-ink">작업 일시 중지됨 · 변경안 결정 전 승인 범위 밖 작업은 진행하지 않아요</div>}{(issueProcessed || issueConflict || issueStale) && <div className={`rounded-xl p-3 text-[12px] font-bold ${issueProcessed ? "bg-success-bg text-success-ink" : "bg-warning-bg text-warning-ink"}`}>{issueProcessed ? "FIELD-01은 v4 변경안으로 이미 처리됐어요." : issueConflict ? "다른 업체 담당자가 FIELD-01 제안을 먼저 만들었어요. 중복 제안은 차단됩니다." : "기준 승인본이 v3에서 변경됐어요. 최신 버전을 다시 불러온 뒤 제안해 주세요."}</div>}<Card className="border-warning bg-warning-bg p-4"><Badge variant="warning">FIELD-01 · 10:55</Badge><p className={`mt-2 text-[14px] font-bold ${ink}`}>도착지 엘리베이터 고장 · 사다리차 필요</p><p className={`mt-1 text-xs ${muted}`}>5층 창측 진입 가능 · 기사 증빙 사진 2장</p><div className="mt-3 grid grid-cols-2 gap-2"><button onClick={() => notify("고장 엘리베이터 사진을 열었어요.")} className="h-16 rounded-xl bg-white text-xs font-bold">고장 사진</button><button onClick={() => evidenceFailed ? setEvidenceRetried(true) : notify("관리실 안내문 사진을 열었어요.")} className={`h-16 rounded-xl text-xs font-bold ${evidenceFailed ? "border border-warning bg-warning-bg text-warning-ink" : "bg-white"}`}>{evidenceFailed ? "안내문 로드 실패 · 재시도" : "안내문"}</button></div></Card><Card className="p-4"><div className="flex justify-between text-[13px]"><span className={muted}>기준 승인본</span><b>{issueStale ? "v3 · 최신 아님" : "v3 · 1,280,000원"}</b></div><div className="mt-3 flex justify-between text-[13px]"><span className={muted}>추가 작업</span><b>사다리차 하차</b></div></Card><label className={`block text-[13px] font-bold ${ink}`}>증감 금액<input disabled={issueProcessed || issueConflict || issueStale} value={delta} onChange={(event) => setDelta(event.target.value)} type="number" min="0" className="mt-2 h-12 w-full rounded-xl bg-canvas px-4 text-right text-[16px] font-bold outline-none disabled:opacity-50" /></label><label className={`block text-[13px] font-bold ${ink}`}>고객에게 보일 변경 사유<textarea disabled={issueProcessed || issueConflict || issueStale} defaultValue="도착지 엘리베이터 고장으로 계단 운반 대신 사다리차 작업이 필요합니다." className="mt-2 h-20 w-full resize-none rounded-xl bg-canvas p-4 text-[13px] outline-none disabled:opacity-50" /></label><Card className="border-primary-400 bg-primary-50 p-4"><div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 text-center"><div><span className={`text-[11px] ${muted}`}>기존 총액</span><b className="block text-[15px]">1,280,000원</b></div><ChevronRight className="text-primary-600" /><div><span className="text-[11px] font-bold text-primary-600">변경 후</span><b className="block text-[18px] text-primary-600">{projected.toLocaleString()}원</b></div></div></Card></div><SheetFooter><Button disabled={!Number(delta) || proposalSending || issueBlocked} className="w-full" onClick={() => { if (proposalSending || issueBlocked) return; setProposalSending(true); window.setTimeout(() => { setProposalSending(false); setProposalSent(true); setIssueOpen(false); notify("변경안 v4 제안을 고객에게 보냈어요."); window.setTimeout(() => setIssueApproved(true), 1200); }, 550); }} size="cta">{proposalSending ? <><LoaderCircle className="demo-spin" size={18} /> 전송 중...</> : issueBlocked ? issueBlockLabel : "변경안 고객에게 보내기"}</Button></SheetFooter></SheetContent></Sheet>
     </div>
   );
 }
@@ -292,7 +322,7 @@ function Completion({ back, demoState = "" }: { back: () => void; demoState?: st
         <div className="mt-2 grid grid-cols-3 gap-2">{[['거실 5장',true],['침실 6장',true],['주방·베란다',false]].map(([label,done]) => <button onClick={() => notify(done ? `${label} 완료 기록을 열었어요.` : `${label} 완료 미디어를 기다리고 있어요.`)} className={`grid h-24 place-items-center rounded-xl border ${done ? 'border-transparent bg-line' : 'border-dashed border-warning bg-warning-bg'}`} key={String(label)} type="button">{done ? <Check className="rounded-full bg-success p-1 text-white" /> : <Video className="text-warning" />}<span className={`-mt-3 text-[11px] font-bold ${done ? ink : 'text-warning-ink'}`}>{label}</span></button>)}</div>
         <h2 className={`mb-2 mt-5 text-[15px] font-bold ${ink}`}>완료 확인</h2><Card className="p-4"><div className="flex items-center gap-3"><span className="grid size-8 place-items-center rounded-full bg-success text-white"><Check size={18} /></span><b className={`flex-1 text-[13px] ${ink}`}>한빛이사 (나) · 14:21</b></div><div className="mt-3 flex items-center gap-3"><span className="size-8 rounded-full border border-line" /><b className={`flex-1 text-[13px] ${ink}`}>박민서 고객</b><Badge variant={requested ? 'warning' : 'primary'}>{requested ? '알림 보냄' : '리마인드'}</Badge></div></Card>
         <div className={`mt-5 flex items-center gap-3 rounded-2xl px-5 py-4 ${docState === "failed" ? "bg-warning-bg" : "bg-white"}`}><FileText className={docState === "failed" ? "text-warning" : muted} /><div className="flex-1"><b className={`text-[13px] ${ink}`}>문서 패키지</b><p className={`text-xs ${docState === "failed" ? "text-warning-ink" : muted}`}>{docState === "failed" ? "문서 생성에 실패했어요 · 완료 기록은 정상 보존됨" : docState === "preparing" ? "견적서·변경 기록·완료 기록을 묶는 중..." : "견적서 v3 · 변경 승인 기록 · 완료 확인 기록"}</p></div><Button disabled={docState === "preparing"} onClick={() => docState === "ready" ? notify("현재 확정 버전 기준 PDF를 열었어요.") : prepareDocuments()} size="chip" variant="outline">{docState === "preparing" ? <LoaderCircle className="demo-spin" size={15} /> : docState === "failed" ? <><AlertTriangle size={15} /> 재시도</> : <><Download size={15} /> PDF</>}</Button></div>
-        {requested && <div className="demo-pop mt-4 rounded-2xl bg-success-bg p-4"><p className="text-[13px] font-bold text-success-ink">고객 완료 확인 요청 전송 완료</p><p className={`mt-1 text-xs ${muted}`}>고객은 완료 사진·최종 금액·변경 기록을 확인한 뒤 완료 확인 또는 문제 신고를 할 수 있어요.</p><Link className="mt-3 flex h-11 items-center justify-center rounded-xl bg-ink-900 text-[13px] font-bold text-white" href="/?screen=7">고객 완료 확인으로 이어보기</Link></div>}
+          {requested && <div className="demo-pop mt-4 rounded-2xl bg-success-bg p-4"><p className="text-[13px] font-bold text-success-ink">고객 완료 확인 요청 전송 완료</p><p className={`mt-1 text-xs ${muted}`}>고객은 완료 사진·최종 금액·변경 기록을 확인한 뒤 완료 확인 또는 문제 신고를 할 수 있어요.</p></div>}
       </main>
       <MobileBottom sub="고객의 완료 확인은 작업 종료 사실을 기록하는 기능이에요"><Button className="w-full" disabled={requested || requesting} onClick={() => { if (requested || requesting) return; setRequesting(true); window.setTimeout(() => { setRequesting(false); setRequested(true); notify("고객 완료 확인 요청을 보냈어요."); }, 550); }} size="cta">{requesting ? <><LoaderCircle className="demo-spin" size={18} /> 요청 전송 중...</> : requested ? '완료 확인 요청 보냄' : '완료 확인 요청 보내기'}</Button></MobileBottom>
     </div>
@@ -301,6 +331,7 @@ function Completion({ back, demoState = "" }: { back: () => void; demoState?: st
 
 export function ProviderMobileDemo() {
   const [screen, setScreen] = useState(0);
+  const [quoteItemIds, setQuoteItemIds] = useState<QuoteItemId[]>(["piano"]);
   const requestedScreen = useDemoQuery("screen");
   const demoState = useDemoQuery("state");
   useEffect(() => {
@@ -314,8 +345,8 @@ export function ProviderMobileDemo() {
     <DemoFeedbackProvider><MobileFrame><StatusBar />
       {linkState ? <DemoLinkState roleLabel="업체" state={linkState} /> : <div key={screen} className="demo-screen-enter">
         {screen === 0 && <Invite jump={setScreen} next={() => setScreen(1)} />}
-        {screen === 1 && <Quote back={() => setScreen(0)} next={() => setScreen(2)} />}
-        {screen === 2 && <Revision back={() => setScreen(1)} next={() => setScreen(3)} />}
+        {screen === 1 && <Quote back={() => setScreen(0)} itemIds={quoteItemIds} next={() => setScreen(2)} setItemIds={setQuoteItemIds} />}
+        {screen === 2 && <Revision back={() => setScreen(1)} itemIds={quoteItemIds} next={() => setScreen(3)} />}
         {screen === 3 && <Assignment back={() => setScreen(2)} demoState={demoState} next={() => setScreen(4)} />}
         {screen === 4 && <Operation back={() => setScreen(3)} demoState={demoState} next={() => setScreen(5)} />}
         {screen === 5 && <Completion back={() => setScreen(4)} demoState={demoState} />}
@@ -401,7 +432,7 @@ function FieldIssueView({ demoState = "" }: { demoState?: string }) {
         <Card className="overflow-hidden"><div className="border-b border-line p-5"><h2 className="text-[17px] font-bold">변경 작업</h2></div><div className="grid grid-cols-[1fr_80px_1fr_110px] gap-3 px-5 py-4 text-[12px] text-ink-400"><span>항목</span><span>수량</span><span>작업</span><span>상태</span></div><div className="grid grid-cols-[1fr_80px_1fr_110px] items-center gap-3 border-t border-line px-5 py-4 text-[13px]"><b>사다리차</b><span>1</span><span>하차 추가</span><Badge variant="warning">업체 확정</Badge></div><div className="grid grid-cols-[1fr_80px_1fr_110px] items-center gap-3 border-t border-line px-5 py-4 text-[13px]"><b>확정 범위</b><span>21개</span><span>기존 작업 유지</span><Badge variant="primary">v3 최신</Badge></div></Card>
       </div>
       <div className="space-y-5">
-        <Card className="border-primary-400 p-5"><h2 className="text-[17px] font-bold">변경 편집</h2><div className="mt-5 flex justify-between text-[13px]"><span className={muted}>기존 금액</span><b>1,280,000원</b></div><label className="mt-4 block text-[13px] font-bold">증감 금액<input className="mt-2 h-12 w-full rounded-xl bg-canvas px-4 text-right text-[16px] font-bold outline-none" disabled={sent} min="0" onChange={(event) => setDelta(event.target.value)} type="number" value={delta} /></label><label className="mt-4 block text-[13px] font-bold">변경 사유<textarea className="mt-2 h-24 w-full resize-none rounded-xl bg-canvas p-4 text-[13px] outline-none" defaultValue="엘리베이터 고장으로 사다리차 하차 방법이 필요합니다." disabled={sent} /></label><div className="my-5 h-px bg-line" /><div className="flex items-end justify-between"><b>변경 후 총액</b><strong className="text-2xl text-primary-800">{total.toLocaleString()}원</strong></div><Button className="mt-6 w-full" disabled={blocked || sent || sending || !Number(delta)} onClick={() => { setSending(true); window.setTimeout(() => { setSending(false); setSent(true); notify("변경안 v4를 고객에게 보냈어요."); }, 500); }} size="cta">{sending ? <><LoaderCircle className="demo-spin" size={18} /> 전송 중...</> : sent ? "고객 전송 완료" : blocked ? "문제를 먼저 해결해 주세요" : "변경안 고객에게 보내기"}</Button>{sent && <Link className="mt-3 flex h-11 items-center justify-center rounded-xl bg-ink-900 text-[13px] font-bold text-white" href="/?screen=6">고객 변경 승인으로 이어보기</Link>}</Card>
+        <Card className="border-primary-400 p-5"><h2 className="text-[17px] font-bold">변경 편집</h2><div className="mt-5 flex justify-between text-[13px]"><span className={muted}>기존 금액</span><b>1,280,000원</b></div><label className="mt-4 block text-[13px] font-bold">증감 금액<input className="mt-2 h-12 w-full rounded-xl bg-canvas px-4 text-right text-[16px] font-bold outline-none" disabled={sent} min="0" onChange={(event) => setDelta(event.target.value)} type="number" value={delta} /></label><label className="mt-4 block text-[13px] font-bold">변경 사유<textarea className="mt-2 h-24 w-full resize-none rounded-xl bg-canvas p-4 text-[13px] outline-none" defaultValue="엘리베이터 고장으로 사다리차 하차 방법이 필요합니다." disabled={sent} /></label><div className="my-5 h-px bg-line" /><div className="flex items-end justify-between"><b>변경 후 총액</b><strong className="text-2xl text-primary-800">{total.toLocaleString()}원</strong></div><Button className="mt-6 w-full" disabled={blocked || sent || sending || !Number(delta)} onClick={() => { setSending(true); window.setTimeout(() => { setSending(false); setSent(true); notify("변경안 v4를 고객에게 보냈어요."); }, 500); }} size="cta">{sending ? <><LoaderCircle className="demo-spin" size={18} /> 전송 중...</> : sent ? "고객 전송 완료" : blocked ? "문제를 먼저 해결해 주세요" : "변경안 고객에게 보내기"}</Button></Card>
         <Card className="p-5"><h2 className="font-bold">추가 확인</h2><div className="mt-4 flex justify-between text-[13px]"><b>현장기사</b><Badge variant="success">전달 완료</Badge></div><div className="mt-3 flex justify-between text-[13px]"><b>고객</b><Badge variant={sent ? "warning" : "neutral"}>{sent ? "응답 대기" : "전송 전"}</Badge></div></Card>
       </div>
     </div>
@@ -436,7 +467,7 @@ function OperateView({ demoState = "" }: { demoState?: string }) {
       notify("문서 패키지를 다시 만들었어요.");
     }, 650);
   };
-  return <><Badge variant="primary">작업 중</Badge><h1 className="mt-4 text-[26px] font-extrabold leading-[34px]">당일 운영 · 완료</h1><div className="mt-5 grid gap-5 xl:grid-cols-[2fr_1fr]"><div className="space-y-5"><Card className="p-5"><h2 className="text-[17px] font-bold">실시간 타임라인</h2><div className="mt-6 space-y-7">{[['08:02 · 팀 체크인 · 안전확인 3종 통과','done'],['09:40 · 출발지 상차 완료 · 사진 6장','done'],['10:55 · 변경요청 CR-01 (사다리차 +150,000원)','wait'],['11:02 · 고객 승인 → v4 확정 · 총액 1,430,000원','done'],['도착지 하차 · 진행 중','next'],['완료 기록 · 대기','next']].map(([label,state]) => <button onClick={() => notify(`${label} 이벤트 상세를 열었어요.`)} className="demo-interactive-card flex min-h-11 w-full items-center gap-4 rounded-xl px-2 text-left" key={label}><span className={`size-4 rounded-full ${state === 'done' ? 'bg-success' : state === 'wait' ? 'bg-warning' : 'bg-[#E4E6ED]'}`} /><b className={`text-[13px] ${state === 'next' ? muted : ink}`}>{label}</b>{state === 'wait' && <Badge className="ml-auto" variant="warning">처리 기록</Badge>}</button>)}</div></Card><Card className="p-5"><h2 className="font-bold">완료 증빙 수신 현황</h2><div className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-4">{[['거실 전/후','완료'],['침실 전/후','완료'],['주방·베란다','대기'],['차량 적재','완료']].map(([label,state]) => <button onClick={() => notify(`${label}: ${state} 상태를 확인했어요.`)} className={`demo-interactive-card grid h-24 place-items-center rounded-xl ${state === '대기' ? 'bg-warning-bg text-warning-ink' : 'bg-canvas text-success-ink'}`} key={label}><ShieldCheck size={22} /><b className="text-[13px]">{label} · {state}</b></button>)}</div></Card></div><div className="space-y-5"><Card className="border-primary-400 p-5"><h2 className="font-bold">금액 요약</h2><div className="mt-5 flex justify-between text-[13px]"><span className={muted}>기본 합의 (v3)</span><b>1,280,000원</b></div><div className="mt-4 flex justify-between text-[13px]"><span className={muted}>승인 변경 CR-01</span><b>+150,000원</b></div><div className="my-5 h-px bg-line" /><div className="flex justify-between"><b>최종 확정액 (v4)</b><strong className="text-2xl text-primary-800">1,430,000원</strong></div></Card><Card className="p-5"><h2 className="font-bold">완료 확인</h2><div className="mt-4 flex justify-between text-[13px]"><b>한빛이사 (나)</b><Badge variant="success">확인함</Badge></div><div className="mt-3 flex justify-between text-[13px]"><b>박민서 (고객)</b><Badge variant={requested ? 'warning' : 'neutral'}>{requested ? '요청 보냄' : '대기'}</Badge></div><Button disabled={requested || requesting} className="mt-4 w-full" onClick={() => { if (requested || requesting) return; setRequesting(true); window.setTimeout(() => { setRequesting(false); setRequested(true); notify("고객 완료 확인 요청을 보냈어요."); }, 550); }}>{requesting ? <><LoaderCircle className="demo-spin" size={16} /> 요청 중...</> : requested ? "완료 확인 요청 보냄" : "완료 확인 요청 보내기"}</Button>{requested && <Link className="mt-3 flex h-10 items-center justify-center rounded-xl bg-ink-900 text-[12px] font-bold text-white" href="/?screen=7">고객 완료 확인으로 이어보기</Link>}</Card><Card className={docState === "failed" ? "border-warning bg-warning-bg p-5" : "p-5"}><h2 className="font-bold">문서 패키지</h2><p className={`mt-3 text-[13px] ${docState === "failed" ? "text-warning-ink" : muted}`}>{docState === "failed" ? "문서 생성 실패 · 작업 및 감사 기록은 정상 보존됨" : docState === "preparing" ? "문서 패키지 준비 중..." : "견적서 v3 · 변경 승인 기록 CR-01 · 완료 확인 기록 · 근무기록"}</p><Button disabled={docState === "preparing"} onClick={() => docState === "ready" ? notify("현재 확정 상태 기준 문서 패키지를 열었어요.") : retryDocuments()} className="mt-4" variant="outline">{docState === "preparing" ? <><LoaderCircle className="demo-spin" size={16} /> 준비 중</> : docState === "failed" ? <><AlertTriangle size={16} /> 문서 재시도</> : <><Download size={16} /> PDF 일괄 내려받기</>}</Button></Card></div></div></>;
+  return <><Badge variant="primary">작업 중</Badge><h1 className="mt-4 text-[26px] font-extrabold leading-[34px]">당일 운영 · 완료</h1><div className="mt-5 grid gap-5 xl:grid-cols-[2fr_1fr]"><div className="space-y-5"><Card className="p-5"><h2 className="text-[17px] font-bold">실시간 타임라인</h2><div className="mt-6 space-y-7">{[['08:02 · 팀 체크인 · 안전확인 3종 통과','done'],['09:40 · 출발지 상차 완료 · 사진 6장','done'],['10:55 · 변경요청 CR-01 (사다리차 +150,000원)','wait'],['11:02 · 고객 승인 → v4 확정 · 총액 1,430,000원','done'],['도착지 하차 · 진행 중','next'],['완료 기록 · 대기','next']].map(([label,state]) => <button onClick={() => notify(`${label} 이벤트 상세를 열었어요.`)} className="demo-interactive-card flex min-h-11 w-full items-center gap-4 rounded-xl px-2 text-left" key={label}><span className={`size-4 rounded-full ${state === 'done' ? 'bg-success' : state === 'wait' ? 'bg-warning' : 'bg-[#E4E6ED]'}`} /><b className={`text-[13px] ${state === 'next' ? muted : ink}`}>{label}</b>{state === 'wait' && <Badge className="ml-auto" variant="warning">처리 기록</Badge>}</button>)}</div></Card><Card className="p-5"><h2 className="font-bold">완료 증빙 수신 현황</h2><div className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-4">{[['거실 전/후','완료'],['침실 전/후','완료'],['주방·베란다','대기'],['차량 적재','완료']].map(([label,state]) => <button onClick={() => notify(`${label}: ${state} 상태를 확인했어요.`)} className={`demo-interactive-card grid h-24 place-items-center rounded-xl ${state === '대기' ? 'bg-warning-bg text-warning-ink' : 'bg-canvas text-success-ink'}`} key={label}><ShieldCheck size={22} /><b className="text-[13px]">{label} · {state}</b></button>)}</div></Card></div><div className="space-y-5"><Card className="border-primary-400 p-5"><h2 className="font-bold">금액 요약</h2><div className="mt-5 flex justify-between text-[13px]"><span className={muted}>기본 합의 (v3)</span><b>1,280,000원</b></div><div className="mt-4 flex justify-between text-[13px]"><span className={muted}>승인 변경 CR-01</span><b>+150,000원</b></div><div className="my-5 h-px bg-line" /><div className="flex justify-between"><b>최종 확정액 (v4)</b><strong className="text-2xl text-primary-800">1,430,000원</strong></div></Card><Card className="p-5"><h2 className="font-bold">완료 확인</h2><div className="mt-4 flex justify-between text-[13px]"><b>한빛이사 (나)</b><Badge variant="success">확인함</Badge></div><div className="mt-3 flex justify-between text-[13px]"><b>박민서 (고객)</b><Badge variant={requested ? 'warning' : 'neutral'}>{requested ? '요청 보냄' : '대기'}</Badge></div><Button disabled={requested || requesting} className="mt-4 w-full" onClick={() => { if (requested || requesting) return; setRequesting(true); window.setTimeout(() => { setRequesting(false); setRequested(true); notify("고객 완료 확인 요청을 보냈어요."); }, 550); }}>{requesting ? <><LoaderCircle className="demo-spin" size={16} /> 요청 중...</> : requested ? "완료 확인 요청 보냄" : "완료 확인 요청 보내기"}</Button></Card><Card className={docState === "failed" ? "border-warning bg-warning-bg p-5" : "p-5"}><h2 className="font-bold">문서 패키지</h2><p className={`mt-3 text-[13px] ${docState === "failed" ? "text-warning-ink" : muted}`}>{docState === "failed" ? "문서 생성 실패 · 작업 및 감사 기록은 정상 보존됨" : docState === "preparing" ? "문서 패키지 준비 중..." : "견적서 v3 · 변경 승인 기록 CR-01 · 완료 확인 기록 · 근무기록"}</p><Button disabled={docState === "preparing"} onClick={() => docState === "ready" ? notify("현재 확정 상태 기준 문서 패키지를 열었어요.") : retryDocuments()} className="mt-4" variant="outline">{docState === "preparing" ? <><LoaderCircle className="demo-spin" size={16} /> 준비 중</> : docState === "failed" ? <><AlertTriangle size={16} /> 문서 재시도</> : <><Download size={16} /> PDF 일괄 내려받기</>}</Button></Card></div></div></>;
 }
 
 export function ProviderWebDemo() {

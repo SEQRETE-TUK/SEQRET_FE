@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/native-link";
 import {
   AlertCircle,
   ArrowLeft,
@@ -31,6 +31,7 @@ const colors = [
 ];
 
 const patterns = [
+  ["역할 진입", "역할 1개 선택 + 단일 로그인 CTA"],
   ["작업/상태 홈", "상태 히어로 + 다음 행동 목록"],
   ["이사 조건", "경로/조건 행 · 카드 3개 요약 금지"],
   ["촬영/완료", "미디어 작업 영역 + 미디어 레일"],
@@ -58,7 +59,7 @@ export default function DesignSystemPage() {
         <div className="mx-auto flex max-w-[1440px] items-center justify-between px-5 py-4 lg:px-7">
           <Link className="flex min-h-11 items-center gap-2 text-[13px] font-bold text-ink-600" href="/">
             <ArrowLeft aria-hidden="true" className="size-4" />
-            데모로 돌아가기
+            서비스로 돌아가기
           </Link>
           <Badge variant="primary">Product UI v0.2</Badge>
         </div>
@@ -129,7 +130,7 @@ export default function DesignSystemPage() {
                 ["Tokens", "src/app/globals.css", "색·공간·타이포 값"],
                 ["UI primitives", "src/components/ui", "Button · Badge · Card · Sheet"],
                 ["Product patterns", "Figma Product UI v0.2", "역할별 정보 구조와 패턴"],
-                ["Usage proof", "실제 데모 화면", "소비자 · 업체 · PWA · 작업자"],
+                ["Usage proof", "실제 서비스 화면", "소비자 · 업체 · PWA · 작업자"],
               ].map(([type, source, role]) => (
                 <div
                   className="grid gap-1 border-b border-line px-5 py-4 last:border-b-0 sm:grid-cols-[140px_240px_1fr] sm:items-center"
@@ -245,7 +246,7 @@ export default function DesignSystemPage() {
           </section>
 
           <section className="scroll-mt-8 pt-16" id="components">
-            <SectionHeading eyebrow="04" title="Components" description="현재 데모가 공통으로 사용하는 shadcn 기반 UI입니다." />
+            <SectionHeading eyebrow="04" title="Components" description="현재 서비스가 공통으로 사용하는 shadcn 기반 UI입니다." />
 
             <div className="mt-7 overflow-hidden rounded-2xl border border-line bg-white">
               {[
@@ -375,14 +376,14 @@ export default function DesignSystemPage() {
           <section className="scroll-mt-8 pt-16" id="rules">
             <SectionHeading eyebrow="07" title="Usage rules" description="디자인 선택을 빠르게 검토하는 최소 체크리스트입니다." />
             <div className="mt-7 grid gap-4 lg:grid-cols-2">
-              <RuleChecklist title="Do" tone="success" items={["큰 질문형 타이틀은 화면당 1개", "한 화면의 핵심 결정과 Primary CTA는 1개", "상태에 맞는 semantic color 사용", "오버레이 뒤에 이전 화면 맥락 유지"]} />
-              <RuleChecklist title="Avoid" tone="danger" items={["장식용 상태색과 3색 이상 혼용", "모든 섹션을 카드로 감싸기", "임의 그림자 · 그라데이션 · 오프셋 레이어", "placeholder 사각형과 텍스트 아이콘"]} />
+              <RuleChecklist title="Do" tone="success" items={["핵심 문구와 상태는 가능한 한 한 줄", "작은 본문도 15px 이상, 핵심 질문은 24px 이상", "한 화면의 핵심 결정과 Primary CTA는 1개", "버튼처럼 보이면 반드시 실제 상태가 바뀜", "단계 완료 후 탭·뒤로가기에서도 완료 상태와 다음 행동 유지"]} />
+              <RuleChecklist title="Avoid" tone="danger" items={["문장을 억지로 나눠 만든 여백", "가시성 낮은 텍스트 링크와 토스트만 뜨는 가짜 버튼", "모호한 내부 용어: 승인본·지난 버전·잠김", "화면 문구에 제작자 관점의 내부 작업 용어 사용", "장식용 상태색과 placeholder 이미지"]} />
             </div>
 
             <div className="mt-8 rounded-3xl bg-ink-900 p-6 text-white sm:flex sm:items-center sm:justify-between sm:gap-6">
               <div><p className="text-[17px] leading-6 font-bold">실제 화면에서 확인하기</p><p className="mt-1 text-[13px] leading-5 text-white/65">역할별 화면에 같은 규칙이 어떻게 적용됐는지 비교할 수 있습니다.</p></div>
               <div className="mt-5 flex flex-wrap gap-2 sm:mt-0">
-                {[['소비자','/'],['업체','/provider'],['업체 PWA','/provider/web'],['작업자','/crew']].map(([label, href]) => (
+                {[['소비자','/?role=consumer'],['업체','/provider'],['업체 PWA','/provider/web'],['작업자','/crew']].map(([label, href]) => (
                   <Link className="inline-flex min-h-11 items-center gap-1 rounded-xl bg-white px-4 text-[12px] font-bold text-ink-900 hover:bg-primary-50" href={href} key={href}>{label}<ArrowRight aria-hidden="true" className="size-4" /></Link>
                 ))}
               </div>

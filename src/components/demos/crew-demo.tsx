@@ -1,20 +1,16 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useState } from "react";
+import Image from "@/components/native-image";
+import { useEffect, useState, type ReactNode } from "react";
 import {
   AlertTriangle,
   ArrowLeft,
-  Building2,
   Camera,
   Check,
   ChevronRight,
-  ImagePlus,
   LoaderCircle,
   Phone,
   ShieldCheck,
-  Truck,
-  Video,
   X,
 } from "lucide-react";
 import { MobileFrame, StatusBar } from "@/components/demo-ui";
@@ -24,6 +20,14 @@ import { useDemoQuery } from "@/components/demos/use-demo-query";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 
 function Header({
   title,
@@ -37,11 +41,11 @@ function Header({
   badge?: string;
 }) {
   return (
-    <header className="flex h-14 items-center gap-3 px-5">
+    <header className="sticky top-0 z-10 flex h-14 items-center gap-3 bg-canvas/95 px-5 backdrop-blur">
       {(back || close) && (
         <button
           aria-label={close ? "닫기" : "이전 화면"}
-          className="-ml-2 grid size-11 place-items-center rounded-full text-ink-900"
+          className="-ml-2 grid size-11 place-items-center text-ink-900"
           onClick={close ?? back}
           type="button"
         >
@@ -49,9 +53,7 @@ function Header({
         </button>
       )}
       <h1 className="text-[18px] font-bold leading-6 tracking-[-0.3px] text-ink-900">{title}</h1>
-      {badge && (
-        <Badge className="ml-auto" variant="success">{badge}</Badge>
-      )}
+      {badge && <Badge className="ml-auto" variant="success">{badge}</Badge>}
     </header>
   );
 }
@@ -62,7 +64,7 @@ function Action({
   disabled,
   secondary,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
   onClick?: () => void;
   disabled?: boolean;
   secondary?: boolean;
@@ -81,65 +83,73 @@ function Action({
   );
 }
 
-function Panel({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return (
-    <Card className={`rounded-2xl p-4 ${className}`}>{children}</Card>
-  );
+function Panel({ children, className = "" }: { children: ReactNode; className?: string }) {
+  return <Card className={`rounded-2xl p-4 ${className}`}>{children}</Card>;
 }
 
-function Bottom({ children }: { children: React.ReactNode }) {
-  return <footer className="mt-auto space-y-3 bg-white px-5 pb-6 pt-4">{children}</footer>;
+function Bottom({ children }: { children: ReactNode }) {
+  return <footer className="sticky bottom-0 mt-auto space-y-2 border-t border-line bg-white px-5 pb-6 pt-4">{children}</footer>;
 }
 
 function Assignment({ next }: { next: () => void }) {
-  const [notice, setNotice] = useState(false);
   const [starting, setStarting] = useState(false);
+  const notify = useDemoFeedback();
 
   return (
     <div className="flex min-h-[calc(100dvh-48px)] flex-col md:min-h-[832px]">
-      <div className="px-5 pt-4">
-        <div className="flex items-center gap-4">
-          <strong className="text-2xl font-black tracking-[-1px] text-primary-600">SEQRET</strong>
+      <main className="px-5 pb-6 pt-5">
+        <div className="flex items-center justify-between">
+          <strong className="text-[20px] font-black tracking-[-0.8px] text-primary-600">SEQRET</strong>
           <Badge variant="neutral">작업자용</Badge>
         </div>
 
-        <h1 className="mt-7 text-[22px] font-extrabold leading-[30px] tracking-[-0.5px] text-ink-900">
-          김철수님, 오늘 작업<br />링크로 초대됐어요
+        <p className="mt-8 text-[13px] font-bold text-primary-600">오늘 배정된 작업</p>
+        <h1 className="mt-2 text-[25px] font-extrabold leading-[34px] tracking-[-0.5px] text-ink-900">
+          9월 12일 작업에<br />배정됐어요
         </h1>
-        <p className="mt-1 text-[13px] font-medium text-ink-400">한빛이사 · 김도윤 팀장이 배정 · 가입 없이 바로 시작</p>
+        <p className="mt-2 text-[14px] leading-5 text-ink-600">한빛이사 · 김도윤 팀장 · 김철수 작업자</p>
 
-        <Panel className="mt-5 border-primary-400 p-4">
+        <Panel className="mt-6 border-primary-400 p-5">
           <div className="flex items-center justify-between">
-            <h2 className="text-[16px] font-bold text-ink-900">9월 12일 (토) 08:00 출발</h2>
-            <Badge variant="primary">D-DAY</Badge>
+            <div>
+              <p className="text-[12px] font-bold text-ink-400">출발 예정</p>
+              <h2 className="mt-1 text-[18px] font-extrabold text-ink-900">9월 12일 토요일 · 오전 8시</h2>
+            </div>
+            <Badge variant="primary">오늘</Badge>
           </div>
-          <p className="mt-2 text-[13px] text-ink-600">마포 월드컵북로 ** → 성동 왕십리로 **</p>
-          <p className="mt-3 rounded-lg bg-canvas px-3 py-2 text-xs text-ink-400">
-            동·호수는 현장 도착 후 팀장이 안내해요
-          </p>
-          <div className="mt-3 flex items-center justify-between">
-            <span className="text-[13px] text-ink-400">5톤 12가3456 · 작업자 4명 · 예상 6시간</span>
-            <Badge variant="warning">피아노</Badge>
+          <div className="my-4 h-px bg-line" />
+          <div className="grid grid-cols-[72px_1fr] gap-y-3 text-[13px]">
+            <span className="text-ink-400">이동</span><b className="text-ink-900">마포구 성산동 → 성동구 행당동</b>
+            <span className="text-ink-400">차량·인원</span><b className="text-ink-900">5톤 1대 · 작업자 4명</b>
+            <span className="text-ink-400">예상 시간</span><b className="text-ink-900">약 6시간</b>
           </div>
         </Panel>
 
-        <div className="mt-4 rounded-2xl bg-canvas p-4">
-          <h2 className="text-[13px] font-bold text-ink-900">내 역할과 권한</h2>
-          <p className="mt-2 text-[13px] text-ink-600">승인된 작업범위 확인 · 현장 변경 보고 · 완료 사진 제출</p>
-          <p className="mt-1 text-[13px] font-medium text-danger-ink">금액 확정과 고객 승인 대행은 할 수 없어요</p>
-        </div>
-
-        <div className="mt-4 rounded-xl bg-primary-50 px-4 py-3.5 text-[12px] font-bold text-primary-600">
-          이 링크는 본인 전용이에요 · 작업 종료 후 자동 만료
-        </div>
-        {notice && <p className="mt-3 text-center text-xs font-semibold text-ink-600">팀장에게 전화 연결을 요청했어요.</p>}
-      </div>
+        <section className="mt-6">
+          <h2 className="text-[17px] font-bold text-ink-900">내가 할 일</h2>
+          <div className="mt-2 divide-y divide-line rounded-2xl border border-line bg-white px-4">
+            {["승인된 작업범위 확인", "현장 조건이 다르면 바로 보고", "구역별 완료 사진 제출"].map((item) => (
+              <div className="flex min-h-12 items-center gap-3 text-[14px] font-semibold text-ink-900" key={item}>
+                <span className="grid size-6 place-items-center rounded-full bg-primary-50 text-primary-600"><Check size={15} strokeWidth={3} /></span>
+                {item}
+              </div>
+            ))}
+          </div>
+          <p className="mt-3 text-[13px] font-semibold text-danger-ink">금액 변경과 고객 승인 처리는 업체 담당자가 진행해요.</p>
+        </section>
+      </main>
 
       <Bottom>
-        <Action disabled={starting} onClick={() => { if (starting) return; setStarting(true); window.setTimeout(next, 450); }}>{starting ? <span className="inline-flex items-center gap-2"><LoaderCircle className="demo-spin" size={18} />작업 준비 중...</span> : "오늘 작업 시작하기"}</Action>
-        <Action secondary onClick={() => setNotice(true)}>
-          <span className="inline-flex items-center gap-2"><Phone size={18} /> 팀장에게 전화</span>
+        <Action disabled={starting} onClick={() => {
+          if (starting) return;
+          setStarting(true);
+          window.setTimeout(next, 350);
+        }}>
+          {starting ? <><LoaderCircle className="demo-spin" size={18} /> 작업 내용 불러오는 중</> : "작업 내용 확인하기"}
         </Action>
+        <button className="flex min-h-11 w-full items-center justify-center gap-2 text-[14px] font-bold text-ink-600" onClick={() => notify("김도윤 팀장에게 전화 연결을 요청했어요.")} type="button">
+          <Phone size={18} /> 팀장에게 전화
+        </button>
       </Bottom>
     </div>
   );
@@ -148,376 +158,361 @@ function Assignment({ next }: { next: () => void }) {
 function CheckIn({ next, back }: { next: () => void; back: () => void }) {
   const [checks, setChecks] = useState([true, true, false]);
   const [checkingIn, setCheckingIn] = useState(false);
-  const labels = ["보호장비 착용 (안전화·장갑)", "차량·리프트 점검", "작업 통로·엘리베이터 확인"];
+  const labels = ["안전화와 장갑을 착용했어요", "차량과 리프트를 점검했어요", "팀원에게 현장 조건을 공유했어요"];
   const ready = checks.every(Boolean);
-
-  const toggle = (index: number) =>
-    setChecks((current) => current.map((checked, item) => (item === index ? !checked : checked)));
 
   return (
     <div className="flex min-h-[calc(100dvh-48px)] flex-col md:min-h-[832px]">
-      <Header title="현장 도착 · 체크인" back={back} />
-      <main className="space-y-6 px-5 pt-2">
-        <div className="rounded-2xl bg-primary-50 p-4">
-          <p className="text-[13px] font-bold text-primary-600">고객이 확정한 범위 v3 기준으로 작업해요</p>
-          <p className="mt-1 text-xs text-ink-600">범위 미확정이면 체크인이 막혀요 (SCOPE_NOT_LOCKED)</p>
-        </div>
+      <Header title="현장 도착" back={back} />
+      <main className="px-5 pb-6 pt-3">
+        <p className="text-[13px] font-bold text-primary-600">작업 시작 전</p>
+        <h2 className="mt-2 text-[22px] font-extrabold leading-[30px] tracking-[-0.5px] text-ink-900">3가지만 확인해 주세요</h2>
+        <p className="mt-2 text-[13px] text-ink-600">체크 기록은 오늘 작업 기록에 남아요.</p>
 
-        <section>
-          <h2 className="mb-2 text-[15px] font-bold text-ink-900">출발 전 안전 확인 (필수 3종)</h2>
-          <Panel className="space-y-1 p-4">
-            {labels.map((label, index) => (
-              <button
-                aria-pressed={checks[index]}
-                className="flex min-h-12 w-full items-center gap-3 text-left text-[14px] font-semibold text-ink-900"
-                key={label}
-                onClick={() => toggle(index)}
-                type="button"
-              >
-                <span className={`grid size-5 shrink-0 place-items-center rounded-md border ${checks[index] ? "border-primary-600 bg-primary-600 text-white" : "border-ink-400 bg-white"}`}>
-                  {checks[index] && <Check size={14} strokeWidth={3} />}
-                </span>
-                {label}
-              </button>
-            ))}
-            <p className="pt-2 text-xs text-ink-400">3종 모두 체크해야 시작할 수 있어요 · 체크 기록이 남아요</p>
-          </Panel>
-        </section>
+        <Panel className="mt-6 p-2">
+          {labels.map((label, index) => (
+            <button
+              aria-pressed={checks[index]}
+              className="flex min-h-14 w-full items-center gap-3 rounded-xl px-3 text-left text-[14px] font-semibold text-ink-900 hover:bg-canvas"
+              key={label}
+              onClick={() => setChecks((current) => current.map((checked, item) => item === index ? !checked : checked))}
+              type="button"
+            >
+              <span className={`grid size-6 shrink-0 place-items-center rounded-md border ${checks[index] ? "border-primary-600 bg-primary-600 text-white" : "border-ink-400 bg-white"}`}>
+                {checks[index] && <Check size={15} strokeWidth={3} />}
+              </span>
+              {label}
+            </button>
+          ))}
+        </Panel>
 
-        <section>
-          <h2 className="mb-2 text-[15px] font-bold text-ink-900">현장 조건 확인</h2>
-          <Panel className="space-y-3 text-[13px]">
-            <div className="flex justify-between"><span className="text-ink-400">도착지 3층 · 엘리베이터</span><b className="text-danger-ink">고장 확인됨</b></div>
-            <div className="flex justify-between"><span className="text-ink-400">사다리차</span><b className="text-warning">미정 → 보고 필요</b></div>
-            <div className="flex justify-between"><span className="text-ink-400">주차·상하차</span><b className="text-success-ink">건물 앞 가능</b></div>
-            <Badge variant="warning">달라진 조건은 현장 보고로 올려주세요</Badge>
-          </Panel>
+        <section className="mt-6 rounded-2xl border border-warning bg-white p-4">
+          <div className="flex gap-3">
+            <span className="grid size-9 shrink-0 place-items-center rounded-full bg-warning-bg text-warning"><AlertTriangle size={20} /></span>
+            <div>
+              <p className="text-[13px] font-bold text-warning-ink">도착지 엘리베이터 고장 확인</p>
+              <p className="mt-1 text-[13px] leading-5 text-ink-600">사다리차 사용 여부는 아직 미정이에요. 작업 시작 뒤 현장 보고로 알려주세요.</p>
+            </div>
+          </div>
         </section>
       </main>
 
       <Bottom>
-        <Action disabled={!ready || checkingIn} onClick={() => { if (!ready || checkingIn) return; setCheckingIn(true); window.setTimeout(next, 500); }}>{checkingIn ? <span className="inline-flex items-center gap-2"><LoaderCircle className="demo-spin" size={18} />체크인 기록 중...</span> : "체크인 · 작업 시작"}</Action>
-        <p className="text-center text-xs text-ink-400">
-          {ready ? "안전 확인을 완료했어요" : `안전 확인 ${checks.filter(Boolean).length === 2 ? "1건" : `${3 - checks.filter(Boolean).length}건`}이 남았어요`}
-        </p>
+        <Action disabled={!ready || checkingIn} onClick={() => {
+          if (!ready || checkingIn) return;
+          setCheckingIn(true);
+          window.setTimeout(next, 400);
+        }}>
+          {checkingIn ? <><LoaderCircle className="demo-spin" size={18} /> 체크인 기록 중</> : "체크인하고 작업 시작"}
+        </Action>
+        {!ready && <p className="text-center text-xs text-ink-400">확인할 항목이 {3 - checks.filter(Boolean).length}개 남았어요.</p>}
       </Bottom>
     </div>
   );
 }
 
+const rooms = [
+  {
+    name: "거실",
+    count: 7,
+    summary: "3인 소파 · TV 65인치 · 대형 화분 2개",
+    image: "/room-after-evidence.png",
+    note: "TV는 보호 포장하고 화분은 세워서 운반해 주세요.",
+  },
+  {
+    name: "침실",
+    count: 6,
+    summary: "퀸 침대 · 피아노 · 붙박이장 제외",
+    image: "/upright-piano-evidence.png",
+    note: "피아노는 전문 인력과 함께 운반해 주세요.",
+  },
+  {
+    name: "주방·베란다",
+    count: 8,
+    summary: "냉장고 · 식탁 · 책장 · 러그",
+    image: "/large-plant-evidence.png",
+    note: "냉장고 문 분리 후 보호 포장해 주세요.",
+  },
+] as const;
+
 function Scope({ next, back, demoState = "" }: { next: () => void; back: () => void; demoState?: string }) {
-  const [videoSeen, setVideoSeen] = useState(false);
-  const notify = useDemoFeedback();
+  const [selectedRoom, setSelectedRoom] = useState<(typeof rooms)[number] | null>(null);
   const latestApproved = demoState === "latest-v4";
-  const rooms = [
-    ["거실 7", "소파 · TV · 화분 · 책장…"],
-    ["침실 6", "피아노 · 붙박이장 제외 확정…"],
-    ["주방 5 · 베란다 3", "냉장고 문 분리 · 잔짐 포장…"],
-  ];
 
   return (
     <div className="flex min-h-[calc(100dvh-48px)] flex-col md:min-h-[832px]">
-      <Header title="승인 범위 확인" back={back} badge={latestApproved ? "v4 · 변경 승인" : "v3 · 양측 확정"} />
-      <main className="space-y-6 px-5 pt-2">
-        <div className="rounded-xl bg-canvas p-4 text-[13px] font-semibold text-ink-600">
-          읽기 전용 · 이 목록에 없는 작업은 하기 전에 보고해 주세요
-        </div>
-        {latestApproved && (
-          <div className="demo-pop rounded-2xl bg-success-bg p-4 text-[13px] text-success-ink">
-            <p className="font-bold">최신 승인범위 v4 · 11:02 반영</p>
-            <p className="mt-1 text-xs">CR-01 사다리차 하차가 고객 승인 후 추가됐어요.</p>
-          </div>
-        )}
+      <Header title="작업범위" back={back} badge={latestApproved ? "v4 양측 수락" : "v3 양측 수락"} />
+      <main className="px-5 pb-6 pt-3">
+        <h2 className="text-[22px] font-extrabold leading-[30px] tracking-[-0.5px] text-ink-900">오늘 할 작업을<br />확인해 주세요</h2>
+        <p className="mt-2 text-[13px] leading-5 text-ink-600">목록에 없는 작업은 시작하기 전에 보고해 주세요.</p>
 
-        <section>
-          <h2 className="mb-2 text-[15px] font-bold text-ink-900">오늘 할 작업</h2>
-          <Panel className="space-y-2 text-[13px] font-semibold text-ink-900">
-            {["전체 포장·운반·정리 (21개 품목)", "냉장고 문 분리 · TV 보호 포장", "피아노 전문 운반 (김도윤·최민석)"].map((item) => (
-              <p className="flex items-start gap-1.5" key={item}><Check className="mt-0.5 shrink-0" size={14} strokeWidth={2.5} />{item}</p>
-            ))}
-            {latestApproved && <p className="flex items-start gap-1.5 text-success-ink"><Check className="mt-0.5 shrink-0" size={14} strokeWidth={2.5} />사다리차 하차 · 승인 변경 CR-01</p>}
-            <p className="flex items-start gap-1.5 text-danger-ink"><X className="mt-0.5 shrink-0" size={14} />제외: 폐기물 처리 · 입주청소</p>
-          </Panel>
-        </section>
+        <Panel className="mt-5 p-4">
+          <p className="flex items-start gap-2 text-[14px] font-bold text-ink-900"><Check className="mt-0.5 text-success-ink" size={17} />전체 포장·운반·정리 · 21개 품목</p>
+          <p className="mt-3 flex items-start gap-2 text-[13px] text-ink-600"><Check className="mt-0.5 text-success-ink" size={16} />냉장고 문 분리 · TV 보호 포장</p>
+          <p className="mt-3 flex items-start gap-2 text-[13px] text-ink-600"><Check className="mt-0.5 text-success-ink" size={16} />피아노 전문 운반 · 김도윤, 최민석</p>
+          <div className="my-3 h-px bg-line" />
+          <p className="flex items-start gap-2 text-[13px] font-semibold text-danger-ink"><X className="mt-0.5" size={16} />폐기물 처리와 입주청소는 제외</p>
+        </Panel>
 
-        <section>
-          <h2 className="mb-2 text-[15px] font-bold text-ink-900">공간별 짐 (근거 영상 연결)</h2>
-          <div className="space-y-2">
-            {rooms.map(([room, detail]) => (
-              <button onClick={() => notify(`${room} 상세 품목과 주의사항을 열었어요.`)} className="flex h-14 w-full items-center rounded-2xl border border-line bg-white px-4 text-left" key={room} type="button">
-                <b className="w-[84px] text-[13px] text-ink-900">{room}</b>
-                <span className="truncate text-xs text-ink-400">{detail}</span>
-                <ChevronRight className="ml-auto text-ink-400" size={18} />
+        <section className="mt-6">
+          <h3 className="text-[17px] font-bold text-ink-900">공간별 짐</h3>
+          <div className="mt-2 space-y-2">
+            {rooms.map((room) => (
+              <button className="flex min-h-[68px] w-full items-center rounded-2xl border border-line bg-white px-4 text-left" key={room.name} onClick={() => setSelectedRoom(room)} type="button">
+                <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-canvas text-[13px] font-extrabold text-ink-900">{room.count}</span>
+                <span className="ml-3 min-w-0 flex-1">
+                  <b className="block text-[14px] text-ink-900">{room.name}</b>
+                  <small className="mt-1 block truncate text-[12px] text-ink-400">{room.summary}</small>
+                </span>
+                <ChevronRight className="text-ink-400" size={19} />
               </button>
             ))}
           </div>
         </section>
 
-        <div className="rounded-2xl border border-warning bg-warning-bg p-4">
-          <h2 className="text-[13px] font-bold text-ink-600">특이사항 · 주의</h2>
-          <p className="mt-1 text-[12px] text-ink-600">피아노 이동 전 바닥 보강 · 도착지 엘리베이터 상태 확인</p>
-        </div>
-        {videoSeen && <p className="text-center text-xs font-semibold text-success-ink">근거 영상 3개를 확인했어요.</p>}
+        <p className="mt-5 text-[13px] font-semibold text-warning-ink">주의 · 도착지 엘리베이터 상태를 다시 확인해 주세요.</p>
       </main>
 
       <Bottom>
-        <div className="grid grid-cols-2 gap-3">
-          <Action secondary onClick={() => setVideoSeen(true)}><span className="inline-flex items-center gap-2"><Video size={18} /> 근거 영상 보기</span></Action>
-          <Action onClick={next}>{latestApproved ? "작업 완료 기록" : "변경·이슈 보고"}</Action>
-        </div>
+        <Action onClick={next}>{latestApproved ? "완료 기록으로 이동" : "현장 변경·이슈 보고"}</Action>
       </Bottom>
+
+      <Sheet open={Boolean(selectedRoom)} onOpenChange={(open) => !open && setSelectedRoom(null)}>
+        <SheetContent>
+          <SheetHeader>
+            <SheetTitle>{selectedRoom?.name} 짐 {selectedRoom?.count}개</SheetTitle>
+            <SheetDescription>승인된 수량과 운반 주의사항이에요.</SheetDescription>
+          </SheetHeader>
+          {selectedRoom && (
+            <div className="px-5">
+              <div className="relative h-44 overflow-hidden rounded-2xl bg-canvas">
+                <Image alt={`${selectedRoom.name} 근거 사진`} className="object-cover" fill sizes="350px" src={selectedRoom.image} />
+              </div>
+              <Panel className="mt-4">
+                <p className="text-[14px] font-bold text-ink-900">{selectedRoom.summary}</p>
+                <p className="mt-2 text-[13px] leading-5 text-ink-600">{selectedRoom.note}</p>
+              </Panel>
+            </div>
+          )}
+          <SheetFooter><Button className="w-full" onClick={() => setSelectedRoom(null)} size="cta">확인했어요</Button></SheetFooter>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
 
 function IssueReport({ next, back, demoState = "" }: { next: () => void; back: () => void; demoState?: string }) {
   const [category, setCategory] = useState("현장 장애");
-  const [details, setDetails] = useState("도착지 엘리베이터 고장으로 사다리차가 필요합니다.\n5층 창측 진입 가능 확인했습니다.");
-  const [photos, setPhotos] = useState(2);
-  const [amount, setAmount] = useState("150000");
+  const [details, setDetails] = useState("도착지 엘리베이터 고장으로 사다리차가 필요합니다.");
+  const [hasEvidence, setHasEvidence] = useState(true);
   const [paused, setPaused] = useState(false);
   const [uploadFailed, setUploadFailed] = useState(demoState === "upload-failed");
   const [retrying, setRetrying] = useState(false);
   const [sending, setSending] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const notify = useDemoFeedback();
-  const total = 1_280_000 + Number(amount || 0);
-  useEffect(() => {
-    if (demoState !== "upload-failed") return;
-    const timer = window.setTimeout(() => setUploadFailed(true), 0);
-    return () => window.clearTimeout(timer);
-  }, [demoState]);
+
   const retryUpload = () => {
     if (retrying) return;
     setRetrying(true);
     window.setTimeout(() => {
       setRetrying(false);
       setUploadFailed(false);
-      notify("실패한 고장 안내문 사진 1장만 다시 업로드했어요. 작성한 설명은 그대로 유지됐어요.");
-    }, 650);
+      setHasEvidence(true);
+      notify("현장 사진을 다시 업로드했어요.");
+    }, 500);
   };
+
+  if (submitted) {
+    return (
+      <div className="flex min-h-[calc(100dvh-48px)] flex-col md:min-h-[832px]">
+        <Header title="보고 완료" close={back} badge="업체 전달됨" />
+        <main className="flex flex-1 flex-col items-center justify-center px-7 text-center">
+          <span className="grid size-16 place-items-center rounded-full bg-success-bg text-success-ink"><Check size={32} strokeWidth={3} /></span>
+          <h2 className="mt-5 text-[24px] font-extrabold text-ink-900">현장 이슈를 전달했어요</h2>
+          <p className="mt-3 text-[14px] leading-6 text-ink-600">한빛이사가 내용을 검토한 뒤<br />고객에게 변경안을 보내요.</p>
+          <Panel className="mt-6 w-full text-left">
+            <p className="text-[12px] font-bold text-ink-400">보고 내용</p>
+            <p className="mt-1 text-[14px] font-bold text-ink-900">{category} · 엘리베이터 고장</p>
+            <p className="mt-1 text-[13px] text-ink-600">현장 사진 1장 첨부</p>
+          </Panel>
+        </main>
+        <Bottom><Action onClick={next}>작업 완료 기록하기</Action></Bottom>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-[calc(100dvh-48px)] flex-col md:min-h-[832px]">
-      <Header title="변경 · 이슈 보고" close={back} />
-      <main className="space-y-5 px-5 pt-2">
-        <div className="rounded-2xl bg-primary-50 p-4">
-          <p className="text-[13px] font-bold text-primary-600">작업자는 금액을 확정할 수 없어요</p>
-          <p className="mt-1 text-xs text-ink-600">보고만 올리면 승인은 고객이 앱에서 직접 해요</p>
-        </div>
-        {paused && <div className="rounded-2xl bg-warning-bg p-4 text-[13px] font-bold text-warning-ink">작업 일시 중지 기록됨 · 업체가 현장 이슈를 검토할 때까지 기존 승인 범위 밖 작업은 진행하지 않아요.</div>}
-        {submitted && <div className="demo-pop rounded-2xl bg-success-bg p-4"><p className="text-[13px] font-bold text-success-ink">현장 이슈를 업체에 전달했어요</p><p className="mt-1 text-xs text-ink-600">업체가 증빙을 검토하고 금액이 있는 변경안을 만든 뒤 고객에게 보냅니다.</p><Link className="mt-3 flex h-11 items-center justify-center rounded-xl bg-ink-900 text-[13px] font-bold text-white" href="/provider/web?view=quote&state=field-issue">업체 PWA 현장 이슈 견적으로 이어보기</Link></div>}
+      <Header title="현장 이슈 보고" close={back} />
+      <main className="px-5 pb-6 pt-3">
+        <h2 className="text-[22px] font-extrabold leading-[30px] tracking-[-0.5px] text-ink-900">무슨 일이 생겼나요?</h2>
+        <p className="mt-2 text-[13px] text-ink-600">작업자는 상황만 보고해요. 금액은 업체가 검토합니다.</p>
 
-        <section>
-          <h2 className="mb-2 text-[15px] font-bold text-ink-900">무슨 일인가요?</h2>
-          <div className="grid grid-cols-3 gap-2">
+        {paused && <p className="mt-4 rounded-xl bg-warning-bg px-4 py-3 text-[13px] font-bold text-warning-ink">작업 일시 중지 상태로 기록했어요.</p>}
+
+        <section className="mt-6">
+          <h3 className="text-[15px] font-bold text-ink-900">이슈 유형</h3>
+          <div className="mt-2 grid grid-cols-3 gap-2">
             {["범위 밖 작업", "파손 위험", "현장 장애"].map((item) => (
-              <Button
-                aria-pressed={category === item}
-                className="w-full px-2"
-                key={item}
-                onClick={() => setCategory(item)}
-                size="chip"
-                type="button"
-                variant={category === item ? "default" : "ghost"}
-              >
-                {item}
-              </Button>
+              <Button aria-pressed={category === item} className="w-full px-2" key={item} onClick={() => setCategory(item)} size="chip" variant={category === item ? "default" : "outline"}>{item}</Button>
             ))}
           </div>
         </section>
 
-        <label className="block">
-          <span className="mb-2 block text-[15px] font-bold text-ink-900">상세 내용</span>
-          <textarea
-            className="h-[74px] w-full resize-none rounded-xl border border-line bg-white px-4 py-3 text-[13px] leading-6 text-ink-600 outline-none focus:border-primary-600"
-            onChange={(event) => setDetails(event.target.value)}
-            value={details}
-          />
+        <label className="mt-6 block">
+          <span className="text-[15px] font-bold text-ink-900">상세 내용</span>
+          <textarea className="mt-2 h-24 w-full resize-none rounded-xl border border-line bg-white px-4 py-3 text-[14px] leading-6 text-ink-900 outline-none focus:border-primary-600" onChange={(event) => setDetails(event.target.value)} value={details} />
         </label>
 
-        <section>
-          <h2 className="mb-2 text-[15px] font-bold text-ink-900">현장 증빙 (최소 1건 필수)</h2>
-          <div className="grid grid-cols-3 gap-3">
-            {Array.from({ length: photos }, (_, index) => (
-              <button
-                aria-label={`증빙 사진 ${index + 1} 삭제`}
-                className={`grid h-20 place-items-center rounded-xl border border-dashed ${uploadFailed && index === 1 ? "border-warning bg-warning-bg text-warning-ink" : "border-line bg-canvas text-ink-400"}`}
-                key={index}
-                onClick={() => uploadFailed && index === 1 ? retryUpload() : setPhotos((value) => Math.max(0, value - 1))}
-                type="button"
-              >
-                {uploadFailed && index === 1 ? (retrying ? <LoaderCircle className="demo-spin" size={24} /> : <AlertTriangle size={24} />) : index === 0 ? <Camera size={24} /> : <Building2 size={24} />}
-                <span className="-mt-3 text-[11px]">{uploadFailed && index === 1 ? (retrying ? "재시도 중" : "업로드 실패 · 재시도") : index === 0 ? "현장 사진" : "고장 안내문"}</span>
-              </button>
-            ))}
-            {photos < 3 && (
-              <button
-                className="grid h-20 place-items-center rounded-xl border border-dashed border-line bg-canvas text-ink-400"
-                onClick={() => setPhotos((value) => value + 1)}
-                type="button"
-              >
-                <ImagePlus size={24} />
-                <span className="-mt-3 text-[11px]">추가</span>
-              </button>
-            )}
-          </div>
+        <section className="mt-6">
+          <div className="flex items-center justify-between"><h3 className="text-[15px] font-bold text-ink-900">현장 증빙</h3><span className="text-xs text-ink-400">최소 1장</span></div>
+          {hasEvidence ? (
+            <div className={`relative mt-2 h-40 overflow-hidden rounded-2xl border ${uploadFailed ? "border-warning" : "border-line"}`}>
+              <Image alt="고장 난 엘리베이터 현장 사진" className="object-cover" fill sizes="350px" src="/elevator-outage-evidence.png" />
+              <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-ink-900/75 px-4 py-3 text-white">
+                <span className="text-[13px] font-bold">고장 안내문 · 10:55</span>
+                <button className="min-h-11 px-2 text-[13px] font-bold" onClick={() => uploadFailed ? retryUpload() : setHasEvidence(false)} type="button">
+                  {uploadFailed ? retrying ? "재시도 중" : "업로드 재시도" : "삭제"}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button className="mt-2 flex h-28 w-full flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-primary-400 bg-primary-50 text-[13px] font-bold text-primary-600" onClick={() => setHasEvidence(true)} type="button"><Camera size={24} />현장 사진 추가</button>
+          )}
         </section>
-
-        <label className="block">
-          <span className="mb-2 block text-[15px] font-bold text-ink-900">필요한 금액 (예상)</span>
-          <span className="flex h-[52px] items-center rounded-xl border border-line bg-white px-4">
-            <input
-              aria-label="예상 추가 금액"
-              className="h-full min-w-0 flex-1 bg-transparent text-[17px] font-bold text-ink-900 outline-none"
-              min="0"
-              onChange={(event) => setAmount(event.target.value)}
-              type="number"
-              value={amount}
-            />
-            <span className="text-xs text-ink-400">원</span>
-          </span>
-        </label>
-
-        <div className="rounded-xl bg-canvas p-4 text-xs text-ink-400">
-          <b className="block pb-1 text-ink-900">고객에게 이렇게 보여요</b>
-          기존 1,280,000원 + {Number(amount || 0).toLocaleString("ko-KR")}원 → 승인 시 {total.toLocaleString("ko-KR")}원
-        </div>
       </main>
 
       <Bottom>
-        {submitted ? <Action secondary onClick={next}>데모: 변경 처리 완료 후 완료 기록</Action> : <Action disabled={!category || !details.trim() || photos < 1 || uploadFailed || sending} onClick={() => { if (sending) return; setSending(true); window.setTimeout(() => { setSending(false); setSubmitted(true); notify("현장 이슈를 업체에 보고했어요. 업체가 금액과 변경안을 검토합니다."); }, 550); }}>{sending ? <span className="inline-flex items-center gap-2"><LoaderCircle className="demo-spin" size={18} />보고 중...</span> : uploadFailed ? "증빙 업로드를 먼저 재시도해 주세요" : "업체에 이슈 보고"}</Action>}
-        <Action secondary onClick={() => { setPaused(!paused); notify(paused ? "작업 재개 상태로 변경했어요." : "작업 일시 중지를 기록했어요."); }}>{paused ? "작업 재개" : "작업 일시 중지"}</Action>
+        <Action disabled={!category || !details.trim() || !hasEvidence || uploadFailed || sending} onClick={() => {
+          if (sending) return;
+          setSending(true);
+          window.setTimeout(() => { setSending(false); setSubmitted(true); }, 450);
+        }}>
+          {sending ? <><LoaderCircle className="demo-spin" size={18} /> 보고하는 중</> : uploadFailed ? "사진 업로드를 다시 시도해 주세요" : "업체에 이슈 보고"}
+        </Action>
+        <button className="min-h-11 w-full text-[14px] font-bold text-ink-600" onClick={() => setPaused((value) => !value)} type="button">{paused ? "작업 다시 시작" : "작업 일시 중지"}</button>
       </Bottom>
     </div>
   );
 }
 
+const completionAreas = [
+  { name: "거실", detail: "완료 사진 5장", image: "/room-after-evidence.png" },
+  { name: "침실", detail: "완료 사진 6장", image: "/upright-piano-evidence.png" },
+  { name: "주방·베란다", detail: "사진을 촬영해 주세요", image: "/large-plant-evidence.png" },
+] as const;
+
+function Progress({ current }: { current: number }) {
+  return <div className="flex gap-1.5" aria-label={`완료 기록 ${current + 1}단계`}>
+    {[0, 1, 2].map((step) => <span className={`h-1.5 rounded-full ${step <= current ? "w-7 bg-primary-600" : "w-2 bg-line"}`} key={step} />)}
+  </div>;
+}
+
 function Completion({ back, demoState = "" }: { back: () => void; demoState?: string }) {
+  const [stage, setStage] = useState(0);
   const [done, setDone] = useState([true, true, false]);
-  const [truckPhoto, setTruckPhoto] = useState(false);
   const [checks, setChecks] = useState([true, false, false]);
   const [endConfirmed, setEndConfirmed] = useState(false);
   const [customerConfirmed, setCustomerConfirmed] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [uploadRetried, setUploadRetried] = useState(false);
-  const [uploadRetrying, setUploadRetrying] = useState(false);
-  const [offlineRecovered, setOfflineRecovered] = useState(false);
+  const [uploadRecovered, setUploadRecovered] = useState(demoState !== "completion-upload-failed");
+  const [online, setOnline] = useState(demoState !== "completion-offline");
   const notify = useDemoFeedback();
-  const areas = [
-    ["거실", "완료 5장 · 14:02 업로드"],
-    ["침실 (피아노 포함)", "완료 6장 · 14:08 업로드"],
-    ["주방 · 베란다", "지금 촬영해 주세요"],
-  ];
-  const checklist = ["승인 범위의 짐을 모두 하차했어요", "포장재·작업 도구를 회수했어요", "고객과 공간별 완료 상태를 확인했어요"];
-  const uploadFailed = demoState === "completion-upload-failed" && !uploadRetried;
-  const offline = demoState === "completion-offline" && !offlineRecovered;
-  const ready = done.every(Boolean) && checks.every(Boolean) && endConfirmed && customerConfirmed && !uploadFailed && !offline;
 
-  const capture = (index: number) => setDone((current) => current.map((item, area) => (area === index ? true : item)));
+  const completePhoto = (index: number) => {
+    if (index === 2 && !uploadRecovered) {
+      setUploadRecovered(true);
+      notify("주방·베란다 사진을 다시 업로드했어요.");
+    }
+    setDone((current) => current.map((item, area) => area === index ? true : item));
+  };
+
+  if (stage === 3) {
+    return (
+      <div className="flex min-h-[calc(100dvh-48px)] flex-col md:min-h-[832px]">
+        <Header title="작업 완료" badge="제출 완료" />
+        <main className="flex flex-1 flex-col items-center justify-center px-7 text-center">
+          <span className="grid size-16 place-items-center rounded-full bg-success-bg text-success-ink"><ShieldCheck size={32} /></span>
+          <h2 className="mt-5 text-[24px] font-extrabold text-ink-900">오늘 작업을 마무리했어요</h2>
+          <p className="mt-3 text-[14px] leading-6 text-ink-600">완료 사진과 체크 기록이<br />한빛이사에 전달됐어요.</p>
+          <Panel className="mt-6 w-full text-left">
+            <div className="flex justify-between text-[13px]"><span className="text-ink-400">작업 시간</span><b>07:46–14:20</b></div>
+            <div className="mt-3 flex justify-between text-[13px]"><span className="text-ink-400">완료 사진</span><b>12장</b></div>
+            <div className="mt-3 flex justify-between text-[13px]"><span className="text-ink-400">승인된 변경</span><b>사다리차 1대</b></div>
+          </Panel>
+        </main>
+      </div>
+    );
+  }
+
+  const titles = ["구역별 완료 사진", "마지막 확인", "작업 종료 확인"];
+  const subtitles = ["남은 구역 사진만 촬영해 주세요.", "작업 도구와 공간 상태를 확인해 주세요.", "기록을 확인하고 작업을 종료해 주세요."];
 
   return (
     <div className="flex min-h-[calc(100dvh-48px)] flex-col md:min-h-[832px]">
-      <Header title="작업 완료 기록" back={back} badge="작업 마무리" />
-      <main className="space-y-5 px-5 pt-2">
-        <div className="rounded-xl bg-canvas p-4 text-[13px] font-semibold text-ink-600">
-          MOVE-240912 · 체크인 07:46 · 최신 승인 범위 v4
-        </div>
-        {offline && <div className="demo-pop rounded-2xl border border-warning bg-warning-bg p-4"><div className="flex gap-3"><AlertTriangle className="shrink-0 text-warning" size={20} /><div><p className="text-[13px] font-bold text-warning-ink">현재 네트워크 연결이 불안정해요</p><p className="mt-1 text-xs leading-5 text-ink-600">촬영·체크리스트·고객 현장 확인 입력은 이 화면에 그대로 보존돼요. 연결이 복구된 뒤 제출할 수 있어요.</p></div></div><button className="mt-3 inline-flex min-h-11 items-center text-[12px] font-bold text-primary-600" onClick={() => { setOfflineRecovered(true); notify("네트워크 연결을 다시 확인했어요. 입력한 완료 기록은 그대로 유지됐어요."); }} type="button">연결 다시 확인</button></div>}
+      <Header title="작업 완료 기록" back={back} badge={`${stage + 1}/3`} />
+      <main className="px-5 pb-6 pt-3">
+        <Progress current={stage} />
+        <h2 className="mt-5 text-[22px] font-extrabold leading-[30px] tracking-[-0.5px] text-ink-900">{titles[stage]}</h2>
+        <p className="mt-2 text-[13px] text-ink-600">{subtitles[stage]}</p>
 
-        <section>
-          <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-[15px] font-bold text-ink-900">구역별 완료 사진</h2>
-            <Badge variant={done.every(Boolean) ? "success" : "warning"}>
-              {done.every(Boolean) ? "모든 구역 완료" : `${done.filter((item) => !item).length}개 구역 남음`}
-            </Badge>
+        {!online && (
+          <div className="mt-5 rounded-2xl border border-warning bg-warning-bg p-4">
+            <p className="text-[13px] font-bold text-warning-ink">인터넷 연결을 확인해 주세요</p>
+            <p className="mt-1 text-xs text-ink-600">입력한 내용은 이 화면에 그대로 남아 있어요.</p>
+            <button className="mt-2 min-h-11 text-[13px] font-bold text-primary-600" onClick={() => setOnline(true)} type="button">연결 다시 확인</button>
           </div>
-          <div className="space-y-2">
-            {areas.map(([area, detail], index) => {
-              const failedArea = uploadFailed && index === 2;
-              return (
-              <div className={`flex min-h-[76px] items-center rounded-2xl border px-4 ${failedArea ? "border-warning bg-warning-bg" : done[index] ? "border-line bg-white" : "border-primary-400 bg-primary-50"}`} key={area}>
-                <span className={`grid size-8 place-items-center rounded-full text-white ${failedArea ? "bg-warning" : done[index] ? "bg-success" : "bg-primary-600"}`}>
-                  {failedArea ? (uploadRetrying ? <LoaderCircle className="demo-spin" size={18} /> : <AlertTriangle size={18} />) : done[index] ? <Check size={18} strokeWidth={3} /> : <Camera size={18} />}
-                </span>
-                <span className="ml-3 min-w-0 flex-1">
-                  <b className="block text-[13px] text-ink-900">{area}</b>
-                  <small className={`block text-xs ${failedArea ? "font-semibold text-warning-ink" : done[index] ? "text-ink-400" : "font-semibold text-primary-600"}`}>{failedArea ? "업로드 실패 · 다른 입력은 그대로 유지됨" : detail}</small>
-                </span>
-                <button
-                  className={`min-h-11 rounded-full px-4 text-xs font-bold ${failedArea ? "bg-warning text-white" : done[index] ? "bg-canvas text-ink-600" : "bg-primary-600 text-white"}`}
-                  disabled={uploadRetrying}
-                  onClick={() => {
-                    if (failedArea) {
-                      if (uploadRetrying) return;
-                      setUploadRetrying(true);
-                      window.setTimeout(() => {
-                        setUploadRetrying(false);
-                        setUploadRetried(true);
-                        capture(index);
-                        notify(`${area} 실패 사진만 다시 업로드했어요. 체크리스트와 현장 확인 입력은 유지됐어요.`);
-                      }, 650);
-                      return;
-                    }
-                    if (done[index]) notify(`${area} 완료 사진을 열었어요.`);
-                    else capture(index);
-                  }}
-                  type="button"
-                >
-                  {failedArea ? uploadRetrying ? "재시도 중" : "재시도" : done[index] ? "보기" : "촬영"}
-                </button>
-              </div>
-            )})}
-          </div>
-        </section>
+        )}
 
-        <section>
-          <div className="mb-2 flex items-center justify-between"><h2 className="text-[15px] font-bold text-ink-900">완료 체크리스트</h2><Badge variant={checks.every(Boolean) ? "success" : "warning"}>{checks.filter(Boolean).length}/3</Badge></div>
-          <Panel className="space-y-1 p-4">
-            {checklist.map((label, index) => <button aria-pressed={checks[index]} className="flex min-h-11 w-full items-center gap-3 text-left text-[13px] font-semibold text-ink-900" key={label} onClick={() => setChecks((current) => current.map((checked, item) => item === index ? !checked : checked))} type="button"><span className={`grid size-5 shrink-0 place-items-center rounded-md border ${checks[index] ? "border-primary-600 bg-primary-600 text-white" : "border-ink-400"}`}>{checks[index] && <Check size={13} strokeWidth={3} />}</span>{label}</button>)}
+        {stage === 0 && (
+          <div className="mt-6 space-y-3">
+            {completionAreas.map((area, index) => (
+              <button className={`flex min-h-[84px] w-full items-center rounded-2xl border p-3 text-left ${done[index] ? "border-line bg-white" : "border-primary-400 bg-primary-50"}`} key={area.name} onClick={() => completePhoto(index)} type="button">
+                <span className="relative h-14 w-20 shrink-0 overflow-hidden rounded-xl bg-canvas"><Image alt={`${area.name} 완료 사진`} className="object-cover" fill sizes="80px" src={area.image} /></span>
+                <span className="ml-3 min-w-0 flex-1"><b className="block text-[14px] text-ink-900">{area.name}</b><small className={`mt-1 block text-[12px] ${done[index] ? "text-ink-400" : "font-bold text-primary-600"}`}>{index === 2 && !uploadRecovered ? "업로드 실패 · 눌러서 재시도" : area.detail}</small></span>
+                <span className={`grid size-8 place-items-center rounded-full ${done[index] ? "bg-success-bg text-success-ink" : "bg-primary-600 text-white"}`}>{done[index] ? <Check size={18} strokeWidth={3} /> : <Camera size={18} />}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {stage === 1 && (
+          <Panel className="mt-6 p-2">
+            {["승인된 짐을 모두 하차했어요", "포장재와 작업 도구를 회수했어요", "고객과 공간별 완료 상태를 확인했어요"].map((label, index) => (
+              <button aria-pressed={checks[index]} className="flex min-h-16 w-full items-center gap-3 rounded-xl px-3 text-left text-[14px] font-semibold text-ink-900 hover:bg-canvas" key={label} onClick={() => setChecks((current) => current.map((checked, item) => item === index ? !checked : checked))} type="button">
+                <span className={`grid size-6 shrink-0 place-items-center rounded-md border ${checks[index] ? "border-primary-600 bg-primary-600 text-white" : "border-ink-400 bg-white"}`}>{checks[index] && <Check size={15} strokeWidth={3} />}</span>{label}
+              </button>
+            ))}
           </Panel>
-        </section>
+        )}
 
-        <section>
-          <h2 className="mb-2 text-[15px] font-bold text-ink-900">현장 변경 요약</h2>
-          <Panel className="space-y-2 text-[13px]"><div className="flex justify-between"><b>CR-01 · 사다리차 하차</b><Badge variant="success">고객 승인</Badge></div><p className="text-xs text-ink-400">11:02 승인 · 결과 범위 v4 · 기존 승인본 v3 보존</p><div className="flex justify-between"><span className="text-ink-400">미처리 현장 이슈</span><b className="text-success-ink">0건</b></div></Panel>
-        </section>
-
-        <button
-          className="flex min-h-[76px] w-full items-center rounded-2xl border border-line bg-white px-4 text-left"
-          onClick={() => setTruckPhoto(true)}
-          type="button"
-        >
-          <Truck className="text-ink-600" size={24} />
-          <span className="ml-3 flex-1">
-            <b className="block text-[13px] text-ink-900">차량 적재 상태 (권장)</b>
-            <small className="text-xs text-ink-400">분쟁 예방에 도움돼요 · 상차 완료 시점 1장</small>
-          </span>
-          <Badge variant={truckPhoto ? "success" : "neutral"}>
-            {truckPhoto ? "추가됨" : "추가"}
-          </Badge>
-        </button>
-
-        <div className="rounded-2xl bg-canvas p-4"><div className="flex items-center justify-between"><div><h2 className="text-[13px] font-bold text-ink-900">작업자 근무 기록</h2><p className="mt-2 text-xs text-ink-600">07:46 시작 → 14:20 종료 · 실제 6시간 34분</p></div><button onClick={() => setEndConfirmed(!endConfirmed)} className={`min-h-11 rounded-full px-4 text-xs font-bold ${endConfirmed ? "bg-success-bg text-success-ink" : "bg-white text-primary-600"}`}>{endConfirmed ? "종료 확인됨" : "종료 시각 확인"}</button></div><p className="mt-2 text-xs text-ink-400">김도윤 · 최민석 · 박진호 · 이현수 근무 기록에 함께 반영돼요</p></div>
-
-        <div className={`rounded-2xl border p-4 ${customerConfirmed ? "border-success bg-success-bg" : "border-line bg-white"}`}><div className="flex items-center gap-3"><span className={`grid size-9 place-items-center rounded-full ${customerConfirmed ? "bg-success text-white" : "bg-canvas text-ink-400"}`}><ShieldCheck size={20} /></span><div className="flex-1"><h2 className="text-[13px] font-bold text-ink-900">고객 현장 확인</h2><p className="text-xs text-ink-400">작업 종료 사실 확인 · 계약 서명이나 파손 없음 확인이 아니에요</p></div><button onClick={() => { setCustomerConfirmed(true); notify("고객 현장 확인을 14:21로 기록했어요."); }} disabled={customerConfirmed} className="min-h-11 rounded-full bg-primary-600 px-4 text-xs font-bold text-white disabled:bg-success">{customerConfirmed ? "14:21 확인" : "현장 확인 받기"}</button></div></div>
-
-        <div className="rounded-xl bg-primary-50 px-4 py-3 text-xs text-ink-600">제출한 완료 기록은 감사 이력에 남아요. 완료 사진은 전후 기록을 사람이 확인하기 위한 자료이며 파손·원인·책임을 자동 판단하지 않아요.</div>
-
-        {submitted && (
-          <div className="demo-pop rounded-2xl bg-success-bg p-4 text-[13px] font-bold text-success-ink">
-            <div className="flex items-center gap-3"><ShieldCheck size={22} /> 작업 완료 기록을 제출했고 업체 완료 요약에 반영됐어요.</div>
-            <Link className="mt-3 flex h-11 items-center justify-center rounded-xl bg-ink-900 text-[13px] font-bold text-white" href="/provider?screen=5">업체 완료 요약으로 이어보기</Link>
+        {stage === 2 && (
+          <div className="mt-6 space-y-3">
+            <Panel>
+              <div className="flex items-center justify-between"><div><p className="text-[12px] font-bold text-ink-400">현장 변경</p><h3 className="mt-1 text-[14px] font-bold text-ink-900">사다리차 1대 추가</h3></div><Badge variant="success">고객 승인</Badge></div>
+            </Panel>
+            <button className={`flex min-h-[72px] w-full items-center rounded-2xl border p-4 text-left ${endConfirmed ? "border-success bg-success-bg" : "border-line bg-white"}`} onClick={() => setEndConfirmed((value) => !value)} type="button">
+              <span className={`grid size-8 place-items-center rounded-full ${endConfirmed ? "bg-success text-white" : "bg-canvas text-ink-400"}`}><Check size={18} /></span>
+              <span className="ml-3"><b className="block text-[14px] text-ink-900">14:20 작업 종료</b><small className="mt-1 block text-xs text-ink-400">실제 작업 6시간 34분</small></span>
+            </button>
+            <button className={`flex min-h-[72px] w-full items-center rounded-2xl border p-4 text-left ${customerConfirmed ? "border-success bg-success-bg" : "border-line bg-white"}`} onClick={() => setCustomerConfirmed((value) => !value)} type="button">
+              <span className={`grid size-8 place-items-center rounded-full ${customerConfirmed ? "bg-success text-white" : "bg-canvas text-ink-400"}`}><ShieldCheck size={18} /></span>
+              <span className="ml-3"><b className="block text-[14px] text-ink-900">고객과 완료 상태 확인</b><small className="mt-1 block text-xs text-ink-400">완료 사실만 기록해요</small></span>
+            </button>
+            <p className="text-[12px] leading-5 text-ink-400">완료 기록은 사실 확인 자료이며 파손·책임을 자동 판단하지 않아요.</p>
           </div>
         )}
       </main>
 
       <Bottom>
-        <Action disabled={!ready || submitted || submitting} onClick={() => { if (submitting || submitted) return; setSubmitting(true); window.setTimeout(() => { setSubmitting(false); setSubmitted(true); notify("작업 완료 기록을 제출했어요."); }, 550); }}>
-          {submitting ? <span className="inline-flex items-center gap-2"><LoaderCircle className="demo-spin" size={18} />제출 중...</span> : submitted ? "제출 완료" : "작업 완료 기록 제출"}
-        </Action>
-        {!ready && <p className="text-center text-xs text-ink-400">{offline ? "연결 복구 후 현재 입력 그대로 제출할 수 있어요" : uploadFailed ? "실패한 완료 사진만 재시도해 주세요" : "필수 사진 · 체크리스트 · 종료 시각 · 고객 현장 확인을 모두 완료해 주세요"}</p>}
+        {stage === 0 && <Action disabled={!done.every(Boolean) || !online || !uploadRecovered} onClick={() => setStage(1)}>다음 · 마지막 확인</Action>}
+        {stage === 1 && <Action disabled={!checks.every(Boolean)} onClick={() => setStage(2)}>다음 · 작업 종료 확인</Action>}
+        {stage === 2 && <Action disabled={!endConfirmed || !customerConfirmed || !online || submitting} onClick={() => {
+          if (submitting) return;
+          setSubmitting(true);
+          window.setTimeout(() => { setSubmitting(false); setStage(3); }, 450);
+        }}>{submitting ? <><LoaderCircle className="demo-spin" size={18} /> 제출하는 중</> : "작업 완료 기록 제출"}</Action>}
       </Bottom>
     </div>
   );
@@ -527,25 +522,31 @@ export function CrewDemo() {
   const [screen, setScreen] = useState(0);
   const requestedScreen = useDemoQuery("screen");
   const demoState = useDemoQuery("state");
+
   useEffect(() => {
     const parsed = Number(requestedScreen);
     if (!Number.isInteger(parsed) || parsed < 0 || parsed > 4) return;
     const timer = window.setTimeout(() => setScreen(parsed), 0);
     return () => window.clearTimeout(timer);
   }, [requestedScreen]);
+
   const linkState = demoState === "link-expired" || demoState === "link-revoked" || demoState === "link-invalid" ? demoState : null;
 
   return (
-    <DemoFeedbackProvider><MobileFrame>
-      <StatusBar />
-      {linkState ? <DemoLinkState roleLabel="작업자" state={linkState} /> : <div key={screen} className="demo-screen-enter">
-        {screen === 0 && <Assignment next={() => setScreen(1)} />}
-        {screen === 1 && <CheckIn back={() => setScreen(0)} next={() => setScreen(2)} />}
-        {screen === 2 && <Scope back={() => setScreen(1)} demoState={demoState} next={() => setScreen(demoState === "latest-v4" ? 4 : 3)} />}
-        {screen === 3 && <IssueReport back={() => setScreen(2)} demoState={demoState} next={() => setScreen(4)} />}
-        {screen === 4 && <Completion back={() => setScreen(3)} demoState={demoState} />}
-      </div>}
-    </MobileFrame></DemoFeedbackProvider>
+    <DemoFeedbackProvider>
+      <MobileFrame>
+        <StatusBar />
+        {linkState ? <DemoLinkState roleLabel="작업자" state={linkState} /> : (
+          <div className="demo-screen-enter" key={screen}>
+            {screen === 0 && <Assignment next={() => setScreen(1)} />}
+            {screen === 1 && <CheckIn back={() => setScreen(0)} next={() => setScreen(2)} />}
+            {screen === 2 && <Scope back={() => setScreen(1)} demoState={demoState} next={() => setScreen(demoState === "latest-v4" ? 4 : 3)} />}
+            {screen === 3 && <IssueReport back={() => setScreen(2)} demoState={demoState} next={() => setScreen(4)} />}
+            {screen === 4 && <Completion back={() => setScreen(3)} demoState={demoState} />}
+          </div>
+        )}
+      </MobileFrame>
+    </DemoFeedbackProvider>
   );
 }
 
