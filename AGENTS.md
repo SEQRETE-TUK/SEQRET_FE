@@ -7,13 +7,14 @@
 
 | 영역 | 기술 | 비고 |
 |------|------|------|
-| Framework | Next.js 16 (App Router) | RSC 기본 활성 |
-| UI Library | React 19 | |
+| Build Tool | Vite 7 | SPA 개발·빌드 |
+| UI Library | React 19 | Client-rendered SPA |
 | Language | TypeScript 5 (strict) | `allowJs: false` |
 | Styling | TailwindCSS v4 | PostCSS 통합 |
 | Component Library | shadcn/ui (base-nova) | `@/components/ui` |
 | Icon | Lucide React | |
 | Font | Pretendard (`@fontsource/pretendard`) | |
+| Server State | TanStack Query 5 | 조회 캐시와 요청 수명주기 |
 | Package Manager | pnpm 11 | workspace 활성 |
 | Path Alias | `@/*` → `./src/*` | |
 
@@ -21,18 +22,21 @@
 
 ```text
 src/
-├── app/                # Next.js App Router (page, layout, route handler)
+├── app.tsx             # SPA 루트와 화면 라우팅
+├── main.tsx            # React·전역 provider 진입점
+├── app/
 │   ├── globals.css     # TailwindCSS 전역 스타일
-│   ├── layout.tsx      # Root Layout
-│   ├── page.tsx        # Root Page
-│   ├── manifest.ts     # PWA manifest
-│   ├── provider/       # Context Provider
-│   └── [feature]/      # 기능별 라우트 그룹
+│   └── design-system/  # 디자인 시스템 확인 화면
 ├── components/
 │   ├── ui/             # shadcn/ui 기본 컴포넌트 (자동 생성, 직접 수정 최소화)
 │   └── demos/          # 데모·프로토타입용 컴포넌트
 └── lib/
+    ├── api-client.ts   # Bearer API·서명 업로드 클라이언트
+    ├── query-client.ts # TanStack Query 공통 정책
     └── utils.ts        # cn() 등 공용 유틸리티
+
+public/
+└── manifest.webmanifest
 ```
 
 ## 작업 시작 전 필수 절차
@@ -49,8 +53,8 @@ src/
 
 ### 컴포넌트
 
-- Server Component를 기본으로 사용하고, 상호작용이 필요한 경우에만 `'use client'`를 선언한다.
-- `'use client'`는 가능한 한 트리 하단(leaf)에 배치하여 Server Component 비율을 높인다.
+- 이 저장소는 Vite 기반 client-rendered SPA다. Next.js 전용 지시어인 `'use client'`를 추가하지 않는다.
+- 브라우저 전역과 hook은 컴포넌트 또는 전용 hook 안에서 사용하고 render 중 부수 효과를 만들지 않는다.
 - 컴포넌트 파일명은 kebab-case(`my-component.tsx`)를 사용한다.
 - 한 파일에 하나의 export 컴포넌트만 둔다. 내부 하위 컴포넌트는 같은 파일에 선언할 수 있다.
 - Props 타입은 컴포넌트 파일 상단에 `interface`로 정의한다. 공용 타입은 `src/types/`에 분리한다.
@@ -77,7 +81,17 @@ src/
 ### 상태 관리
 
 - 로컬 상태는 `useState`, `useReducer`를 사용한다.
+- API에서 가져온 server state는 TanStack Query를 사용한다.
+- 조회는 일시적 네트워크 오류에 한해 최대 1회만 재시도하고, mutation은 중복 업무 처리를 막기 위해 기본적으로 자동 재시도하지 않는다.
 - 전역 상태가 필요하면 React Context를 우선 사용한다.
+
+### API와 보안
+
+- 현재 백엔드 OpenAPI의 `/api/v1` 계약만 구현 근거로 사용한다. 제안 문서의 미구현 endpoint를 호출하지 않는다.
+- 백엔드 origin은 비밀값이 아닌 `VITE_API_BASE_URL`로 주입하며 코드에 고정하지 않는다.
+- access token은 요청 시 명시적으로 전달하고 메모리에서만 보유한다. `localStorage`, `sessionStorage`, URL query, 빌드 환경 변수에 저장하지 않는다.
+- token, signed upload URL과 signed header를 로그·오류 메시지·분석 이벤트에 남기지 않는다.
+- signed upload URL은 opaque capability로 취급한다. URL을 파싱·재조합·정렬하지 않고 백엔드가 준 header를 추가·변형 없이 업로드 요청에 전달한다.
 
 ## 공용 파일 규칙
 
@@ -87,14 +101,16 @@ src/
 package.json
 pnpm-lock.yaml
 pnpm-workspace.yaml
-next.config.ts
+vite.config.ts
 tsconfig.json
 components.json
 postcss.config.mjs
 eslint.config.mjs
+index.html
+src/main.tsx
 src/app/globals.css
-src/app/layout.tsx
 src/lib/utils.ts
+.github/workflows/**
 ```
 
 - 공용 파일은 동시에 두 branch에서 수정하지 않는다.
@@ -104,10 +120,10 @@ src/lib/utils.ts
 
 ## 성능과 접근성
 
-- 이미지는 `next/image`를 사용하고, 적절한 `width`, `height`, `alt`를 반드시 지정한다.
-- 링크는 `next/link`를 사용한다.
+- 이미지는 native `<img>` 또는 공용 이미지 래퍼를 사용하고, 가능한 경우 `width`, `height`, `loading`과 적절한 `alt`를 지정한다.
+- 내부·외부 링크는 semantic `<a>`를 사용하며 새 창 링크에는 필요한 보안 속성을 추가한다.
 - 폰트는 `@fontsource/pretendard`를 통해 로드한다. 외부 CDN 폰트를 추가하지 않는다.
-- 동적 import(`next/dynamic`)로 초기 번들 크기를 줄인다.
+- 큰 화면 단위 코드는 필요할 때 `React.lazy`와 dynamic import로 분할한다.
 - Semantic HTML을 사용하고 ARIA 속성을 적절히 추가한다.
 - 색상 대비, 키보드 네비게이션, 스크린 리더 호환을 고려한다.
 
