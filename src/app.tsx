@@ -1,6 +1,7 @@
 import DesignSystemPage from "@/app/design-system/page";
 import { ConsumerDemo } from "@/components/demos/consumer-demo";
 import { CrewDemo } from "@/components/demos/crew-demo";
+import { LiveCaptureFlow } from "@/components/demos/live-capture-flow";
 import { ProviderMobileDemo, ProviderWebDemo } from "@/components/demos/provider-demo";
 import { RoleEntry } from "@/components/demos/role-entry";
 
@@ -9,6 +10,7 @@ export function App() {
   const query = new URLSearchParams(window.location.search);
 
   if (path === "/design-system") return <DesignSystemPage />;
+  if (path === "/consumer/capture") return <div className="mobile-stage"><LiveCaptureFlow /></div>;
   if (path === "/provider/web") return <ProviderWebDemo />;
   if (path === "/provider") return <div className="mobile-stage"><ProviderMobileDemo /></div>;
   if (path === "/crew") return <div className="mobile-stage"><CrewDemo /></div>;

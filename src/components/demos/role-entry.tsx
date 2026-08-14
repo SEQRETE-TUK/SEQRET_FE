@@ -62,6 +62,11 @@ export function RoleEntry() {
         <Button className="w-full" onClick={() => window.location.assign(role.href)} size="cta">
           {role.label}로 로그인
         </Button>
+        {role.id === "consumer" && (
+          <a className="mt-3 flex min-h-11 items-center justify-center text-[12px] font-bold text-primary-700" href="/consumer/capture">
+            초대 정보로 실제 촬영 이어가기
+          </a>
+        )}
         <p className="mt-3 text-center text-[12px] leading-4 text-ink-400">역할은 다음 로그인에서 다시 선택할 수 있어요.</p>
         <div className="home-indicator" />
       </div>
