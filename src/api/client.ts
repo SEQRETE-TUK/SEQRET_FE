@@ -15,13 +15,20 @@ export interface SignedUploadRequest {
 export class ApiError extends Error {
   readonly detail: unknown;
   readonly requestId: string | null;
+  readonly retryAfterSeconds: number | null;
   readonly status: number;
 
-  constructor(status: number, detail: unknown, requestId: string | null) {
+  constructor(
+    status: number,
+    detail: unknown,
+    requestId: string | null,
+    retryAfterSeconds: number | null,
+  ) {
     super(`API request failed with status ${status}`);
     this.name = "ApiError";
     this.detail = detail;
     this.requestId = requestId;
+    this.retryAfterSeconds = retryAfterSeconds;
     this.status = status;
   }
 }
@@ -102,22 +109,33 @@ async function parseResponseBody(response: Response): Promise<unknown> {
   return text;
 }
 
-export async function apiRequest<T>(
-  path: string,
-  { accessToken, headers: providedHeaders, ...requestInit }: ApiRequestOptions,
-): Promise<T> {
-  const normalizedToken = accessToken.trim();
-  if (!normalizedToken) {
-    throw new Error("An access token is required");
+function retryAfterSeconds(response: Response): number | null {
+  const value = response.headers.get("retry-after");
+  if (!value) {
+    return null;
   }
+  const seconds = Number(value);
+  return Number.isFinite(seconds) && seconds >= 0 ? seconds : null;
+}
 
-  const headers = new Headers(providedHeaders);
+async function request<T>(
+  path: string,
+  requestInit: RequestInit,
+  accessToken?: string,
+): Promise<T> {
+  const headers = new Headers(requestInit.headers);
   headers.set("Accept", "application/json");
-  headers.set("Authorization", `Bearer ${normalizedToken}`);
+  if (accessToken !== undefined) {
+    const normalizedToken = accessToken.trim();
+    if (!normalizedToken) {
+      throw new Error("An access token is required");
+    }
+    headers.set("Authorization", `Bearer ${normalizedToken}`);
+  }
 
   const response = await fetch(resolveApiUrl(path), {
     ...requestInit,
-    cache: requestInit.cache ?? "no-store",
+    cache: "no-store",
     credentials: "omit",
     headers,
     redirect: "error",
@@ -129,10 +147,52 @@ export async function apiRequest<T>(
       response.status,
       responseBody,
       response.headers.get("x-request-id"),
+      retryAfterSeconds(response),
     );
   }
 
   return responseBody as T;
+}
+
+export async function apiRequest<T>(
+  path: string,
+  { accessToken, headers: providedHeaders, ...requestInit }: ApiRequestOptions,
+): Promise<T> {
+  return request<T>(path, { ...requestInit, headers: providedHeaders }, accessToken);
+}
+
+export async function publicApiRequest<T>(
+  path: string,
+  requestInit: RequestInit,
+): Promise<T> {
+  return request<T>(path, requestInit);
+}
+
+export async function downloadApiFile(
+  path: string,
+  accessToken: string,
+): Promise<{ blob: Blob; filename: string }> {
+  const normalizedToken = accessToken.trim();
+  if (!normalizedToken) {
+    throw new Error("An access token is required");
+  }
+  const response = await fetch(resolveApiUrl(path), {
+    cache: "no-store",
+    credentials: "omit",
+    headers: { Authorization: `Bearer ${normalizedToken}` },
+    redirect: "error",
+  });
+  if (!response.ok) {
+    throw new ApiError(
+      response.status,
+      await parseResponseBody(response),
+      response.headers.get("x-request-id"),
+      retryAfterSeconds(response),
+    );
+  }
+  const disposition = response.headers.get("content-disposition") ?? "";
+  const filename = disposition.match(/filename="?([^";]+)"?/i)?.[1] ?? "seqret-documents.zip";
+  return { blob: await response.blob(), filename };
 }
 
 export async function uploadToSignedUrl({

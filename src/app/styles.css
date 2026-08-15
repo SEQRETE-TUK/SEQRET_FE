@@ -1,29 +1,7 @@
+/* Hallmark · pre-emit critique: P5 H5 E4 S5 R5 V4 */
+/* Hallmark · genre: modern-minimal · tone: utilitarian/reassuring · anchor: indigo · macrostructure: workbench + long-document · contrast: pass (40–41) · slop: pass */
 @import "tailwindcss";
-
-:root {
-  --primary-50: #eef2ff;
-  --primary-100: #e0e7ff;
-  --primary-400: #818cf8;
-  --primary-600: #4f46e5;
-  --primary-700: #4338ca;
-  --primary-800: #3730a3;
-  --ink-900: #191927;
-  --ink-600: #4b4b5c;
-  --ink-400: #8e90a0;
-  --line: #e9eaf2;
-  --bg: #f4f5f9;
-  --surface: #ffffff;
-  --success: #17a46b;
-  --success-bg: #e6f7ef;
-  --success-ink: #176b4a;
-  --warning: #f5a623;
-  --warning-bg: #fff6e5;
-  --warning-ink: #9a6200;
-  --danger: #e5484d;
-  --danger-bg: #fdecec;
-  --danger-ink: #b4232b;
-  --kakao: #fee500;
-}
+@import "../../tokens.css";
 
 @theme inline {
   --color-primary-50: var(--primary-50);
@@ -46,7 +24,17 @@
   --color-danger: var(--danger);
   --color-danger-bg: var(--danger-bg);
   --color-danger-ink: var(--danger-ink);
-  --font-sans: "Pretendard", Inter, ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-body);
+  --font-code: var(--font-outlier);
+  --radius-control: var(--radius-input);
+  --radius-panel: var(--radius-card);
+  --text-ui-support: var(--text-support);
+  --text-ui-section: var(--text-xl);
+  --text-ui-step-title: var(--text-step-title);
+  --text-ui-title: var(--text-2xl);
+  --text-ui-title-lg: var(--text-title-lg);
+  --text-ui-screen: var(--text-screen);
+  --text-ui-display: var(--text-display-lg);
 }
 
 * {
@@ -56,16 +44,18 @@
 html {
   background: var(--bg);
   color: var(--ink-900);
+  overflow-x: clip;
 }
 
 body {
   margin: 0;
-  min-width: 320px;
   min-height: 100dvh;
   background: var(--bg);
-  font-family: "Pretendard", Inter, ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-body);
   font-weight: 500;
-  letter-spacing: -0.2px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: var(--tracking-body);
+  overflow-x: clip;
 }
 
 button,
@@ -78,6 +68,7 @@ select {
 button,
 a {
   -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 button:not(:disabled),
@@ -85,24 +76,69 @@ button:not(:disabled),
   cursor: pointer;
 }
 
+button:not(:disabled),
+a {
+  transition:
+    transform var(--dur-micro) var(--ease-out),
+    opacity var(--dur-micro) var(--ease-out),
+    background-color var(--dur-micro) var(--ease-out),
+    border-color var(--dur-micro) var(--ease-out);
+}
+
+button:not(:disabled):active,
+a:active {
+  transform: scale(0.98);
+}
+
 button:focus-visible,
 a:focus-visible,
 input:focus-visible,
-textarea:focus-visible {
-  outline: 3px solid var(--primary-400);
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--primary-400);
   outline-offset: 2px;
+}
+
+h1,
+h2,
+h3 {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+.skip-link {
+  position: fixed;
+  top: var(--space-xs);
+  left: var(--space-xs);
+  z-index: var(--z-tooltip);
+  transform: translateY(calc(-100% - var(--space-lg)));
+  border-radius: var(--radius-input);
+  background: var(--ink-900);
+  color: white;
+  padding: var(--space-xs) var(--space-sm);
+  font-weight: 700;
+  transition: transform var(--dur-micro) var(--ease-out);
+}
+
+.skip-link:focus-visible {
+  transform: translateY(0);
 }
 
 .mobile-stage {
   min-height: 100dvh;
   display: grid;
   place-items: start center;
-  background: #dcdde4;
+  background: var(--color-stage);
 }
 
 .mobile-frame {
   position: relative;
-  width: min(100%, 390px);
+  width: min(100%, 440px);
   min-height: 100dvh;
   overflow-x: hidden;
   background: var(--bg);
@@ -129,19 +165,113 @@ textarea:focus-visible {
   background: var(--ink-900);
 }
 
+@keyframes demo-screen-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.995);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes demo-toast-enter {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 12px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+
+@keyframes demo-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  70% {
+    transform: scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 @keyframes demo-spin {
   to {
     transform: rotate(360deg);
   }
 }
 
+@keyframes demo-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.demo-screen-enter {
+  animation: demo-screen-enter var(--dur-short) var(--ease-out) both;
+}
+
+.demo-toast-enter {
+  animation: demo-toast-enter var(--dur-short) var(--ease-out) both;
+}
+
+.demo-pop {
+  animation: demo-pop var(--dur-short) var(--ease-out) both;
+}
+
 .demo-spin {
   animation: demo-spin 900ms linear infinite;
 }
 
+.demo-pulse {
+  animation: demo-pulse 1.4s var(--ease-in-out) infinite;
+}
+
+.demo-interactive-card {
+  transition:
+    transform var(--dur-micro) var(--ease-out),
+    border-color var(--dur-micro) var(--ease-out);
+}
+
+.demo-interactive-card:hover {
+  transform: translateY(-1px);
+}
+
+.demo-sheet-backdrop {
+  transition: opacity var(--dur-short) var(--ease-out);
+}
+
+.demo-sheet-backdrop[data-starting-style],
+.demo-sheet-backdrop[data-ending-style] {
+  opacity: 0;
+}
+
+.demo-sheet-popup {
+  transform-origin: bottom center;
+  transition:
+    transform var(--dur-long) var(--ease-out),
+    opacity var(--dur-short) var(--ease-out);
+}
+
+.demo-sheet-popup[data-starting-style],
+.demo-sheet-popup[data-ending-style] {
+  opacity: 0;
+  transform: translateY(28px) scale(0.985);
+}
+
 @media (min-width: 768px) {
   .mobile-frame {
-    min-height: 844px;
+    min-height: 880px;
     margin-block: 24px;
     border: 1px solid var(--line);
     border-radius: 32px;

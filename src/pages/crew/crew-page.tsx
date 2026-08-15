@@ -1,9 +1,9 @@
-import { CrewScopeFlow } from "@/features/scope/ui/crew-scope-flow";
+import { useAuth } from "@/features/auth/model/auth-context";
+import { LiveCrewWorkflow } from "@/features/workflow/ui/live-crew-workflow";
+import { SessionRequired } from "@/features/workflow/ui/workflow-shell";
 
 export function CrewPage() {
-  return (
-    <div className="mobile-stage">
-      <CrewScopeFlow />
-    </div>
-  );
+  const { session } = useAuth();
+  if (session?.actor.role !== "field_worker") return <SessionRequired role="field_worker" />;
+  return <LiveCrewWorkflow />;
 }

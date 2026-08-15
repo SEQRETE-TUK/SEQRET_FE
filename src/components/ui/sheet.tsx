@@ -11,19 +11,19 @@ const SheetClose = Dialog.Close;
 function SheetContent({ className, children, ...props }: Dialog.Popup.Props) {
   return (
     <Dialog.Portal>
-      <Dialog.Backdrop className="fixed inset-0 z-50 bg-[rgba(25,25,39,0.35)]" />
-      <Dialog.Viewport className="fixed inset-0 z-50 flex items-end justify-center">
+      <Dialog.Backdrop className="demo-sheet-backdrop fixed inset-0 z-[var(--z-modal)] bg-ink-900/35" />
+      <Dialog.Viewport className="fixed inset-0 z-[var(--z-modal)] flex items-end justify-center">
         <Dialog.Popup
           className={cn(
-            "relative max-h-[calc(100dvh-96px)] w-full max-w-[390px] overflow-y-auto rounded-t-[28px] bg-white pt-5 text-ink-900 outline-none",
+            "demo-sheet-popup relative max-h-[calc(100dvh-96px)] w-full max-w-[440px] overflow-y-auto rounded-t-[var(--radius-sheet)] bg-white pt-5 text-ink-900 outline-none",
             className,
           )}
           {...props}
         >
-          <div className="mx-auto mb-4 h-1 w-12 rounded-full bg-[#E1E3EC]" aria-hidden="true" />
+          <div className="mx-auto mb-4 h-1 w-12 rounded-full bg-line" aria-hidden="true" />
           {children}
           <Dialog.Close
-            className="absolute top-5 right-5 flex size-10 items-center justify-center rounded-full text-ink-600 hover:bg-canvas focus-visible:outline-3 focus-visible:outline-primary-400"
+            className="absolute top-5 right-5 flex size-11 items-center justify-center rounded-full text-ink-600 hover:bg-canvas focus-visible:outline-3 focus-visible:outline-primary-400"
             aria-label="닫기"
           >
             <X aria-hidden="true" />

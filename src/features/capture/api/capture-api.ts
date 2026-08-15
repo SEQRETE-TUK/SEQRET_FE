@@ -133,6 +133,7 @@ export interface CreateMediaUploadRequest extends AuthorizedRequest {
   captureSessionId: string;
   contentLength: number;
   contentType: SupportedCaptureContentType;
+  mediaPurpose?: MediaAsset["media_purpose"];
   roomZoneId: string;
 }
 
@@ -246,6 +247,7 @@ export async function createMediaUpload({
   contentLength,
   contentType,
   jobId,
+  mediaPurpose = "inventory",
   roomZoneId,
   signal,
 }: CreateMediaUploadRequest): Promise<MediaUploadTarget> {
@@ -255,7 +257,7 @@ export async function createMediaUpload({
       accessToken,
       body: JSON.stringify({
         room_zone_id: roomZoneId,
-        media_purpose: "inventory",
+        media_purpose: mediaPurpose,
         content_type: contentType,
         content_length: contentLength,
       }),

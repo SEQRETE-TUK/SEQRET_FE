@@ -1,5 +1,9 @@
-import { ProviderWebScopeFlow } from "@/features/scope/ui/provider-scope-flow";
+import { useAuth } from "@/features/auth/model/auth-context";
+import { LiveProviderWorkflow } from "@/features/workflow/ui/live-provider-workflow";
+import { SessionRequired } from "@/features/workflow/ui/workflow-shell";
 
 export function ProviderWebPage() {
-  return <ProviderWebScopeFlow />;
+  const { session } = useAuth();
+  if (session?.actor.role !== "company_manager") return <SessionRequired role="company_manager" />;
+  return <LiveProviderWorkflow wide />;
 }

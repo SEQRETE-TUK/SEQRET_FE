@@ -15,7 +15,7 @@ export default defineConfig({
       manifest: {
         name: "짐싸 · 이사 작업범위 공동확인",
         short_name: "짐싸 작업범위",
-        description: "고객, 이사업체, 작업자가 같은 작업범위를 확인하는 설치형 데모",
+        description: "고객, 이사업체, 작업자가 같은 작업범위와 현장 상태를 확인하는 서비스",
         start_url: "/",
         display: "standalone",
         background_color: "#F4F5F9",

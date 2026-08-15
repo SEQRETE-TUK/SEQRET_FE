@@ -1,27 +1,27 @@
 ---
 name: SEQRET
-description: 소비자·이사업체·현장기사가 작업범위, 버전, 금액과 다음 행동을 빠르게 이해하도록 만든 라이트 모드 기반의 모바일 우선 디자인 시스템.
+description: 소비자·이사업체·현장 작업자가 범위, 근거, 버전, 금액과 다음 행동을 같은 기록으로 이해하는 모바일 우선 업무형 디자인 시스템.
 
 colors:
-  background: "#F4F5F9"
-  foreground: "#191927"
-  card: "#FFFFFF"
-  card-foreground: "#191927"
-  primary: "#4F46E5"
-  primary-hover: "#4338CA"
-  primary-soft: "#EEF2FF"
-  primary-muted: "#E0E7FF"
-  muted-foreground: "#8E90A0"
-  secondary-foreground: "#4B4B5C"
-  border: "#E9EAF2"
-  success: "#17A46B"
-  success-background: "#E6F7EF"
-  warning: "#F5A623"
-  warning-background: "#FFF6E5"
-  destructive: "#E5484D"
-  destructive-background: "#FDECEC"
-  kakao: "#FEE500"
-  focus-ring: "#818CF8"
+  background: "oklch(0.964 0.006 277)"
+  foreground: "oklch(0.218 0.024 285)"
+  card: "oklch(1 0 0)"
+  card-foreground: "oklch(0.218 0.024 285)"
+  primary: "oklch(0.511 0.262 276.966)"
+  primary-hover: "oklch(0.457 0.24 277.023)"
+  primary-soft: "oklch(0.962 0.018 272.314)"
+  primary-muted: "oklch(0.93 0.034 272.788)"
+  muted-foreground: "oklch(0.52 0.02 285)"
+  secondary-foreground: "oklch(0.395 0.025 285)"
+  border: "oklch(0.925 0.009 277)"
+  success: "oklch(0.642 0.15 157)"
+  success-background: "oklch(0.966 0.035 157)"
+  warning: "oklch(0.75 0.17 75)"
+  warning-background: "oklch(0.974 0.04 82)"
+  destructive: "oklch(0.61 0.21 25)"
+  destructive-background: "oklch(0.965 0.035 22)"
+  kakao: "oklch(0.91 0.19 101)"
+  focus-ring: "oklch(0.673 0.182 276.935)"
 
 typography:
   font-sans:
@@ -70,7 +70,7 @@ utilities:
     className: "mobile-frame"
   focus-ring:
     description: "키보드 포커스 표시"
-    css: "3px solid #818CF8; outline-offset: 2px"
+    css: "3px solid oklch(0.673 0.182 276.935); outline-offset: 2px"
 
 components:
   button-primary:
@@ -99,6 +99,8 @@ components:
 
 # SEQRET 디자인 시스템
 
+> 단일 원본: `tokens.css`(값) → `src/app/styles.css`(Tailwind 연결) → `src/components/ui`(컴포넌트 계약)
+
 ## Overview
 
 SEQRET은 거래 상태를 오해 없이 전달하는 것을 시각적 장식보다 우선한다.
@@ -114,7 +116,7 @@ SEQRET은 거래 상태를 오해 없이 전달하는 것을 시각적 장식보
 - 밝은 회색 canvas와 흰색 surface를 사용하는 라이트 모드
 - Indigo 기반의 primary action과 version 강조
 - 성공·대기·위험을 구분하는 semantic color
-- 390px mobile frame을 기준으로 한 역할별 흐름
+- 440px mobile frame을 기준으로 한 역할별 흐름
 - border와 surface 차이를 중심으로 한 낮은 elevation
 - Pretendard 기반의 한국어 우선 typography
 
@@ -122,22 +124,22 @@ SEQRET은 거래 상태를 오해 없이 전달하는 것을 시각적 장식보
 
 ### Brand Accent
 
-- **Primary** (`{colors.primary}` — `#4F46E5`): 주요 CTA, 현재 단계, 선택 상태
-- **Primary Hover** (`{colors.primary-hover}` — `#4338CA`): 주요 CTA hover
-- **Primary Soft** (`{colors.primary-soft}` — `#EEF2FF`): 선택 영역과 약한 강조 배경
-- **Primary Muted** (`{colors.primary-muted}` — `#E0E7FF`): primary badge와 보조 강조
+- **Primary** (`{colors.primary}` — `oklch(0.511 0.262 276.966)`): 주요 CTA, 현재 단계, 선택 상태
+- **Primary Hover** (`{colors.primary-hover}` — `oklch(0.457 0.24 277.023)`): 주요 CTA hover
+- **Primary Soft** (`{colors.primary-soft}` — `oklch(0.962 0.018 272.314)`): 선택 영역과 약한 강조 배경
+- **Primary Muted** (`{colors.primary-muted}` — `oklch(0.93 0.034 272.788)`): primary badge와 보조 강조
 
 ### Surface
 
-- **Background** (`{colors.background}` — `#F4F5F9`): 화면 전체 canvas
-- **Card** (`{colors.card}` — `#FFFFFF`): 카드, 입력 영역, sheet와 고정 CTA
-- **Border** (`{colors.border}` — `#E9EAF2`): 카드·입력·구분선
+- **Background** (`{colors.background}` — `oklch(0.964 0.006 277)`): 화면 전체 canvas
+- **Card** (`{colors.card}` — `oklch(1 0 0)`): 카드, 입력 영역, sheet와 고정 CTA
+- **Border** (`{colors.border}` — `oklch(0.925 0.009 277)`): 카드·입력·구분선
 
 ### Text
 
-- **Foreground** (`{colors.foreground}` — `#191927`): 제목과 핵심 본문
-- **Secondary Foreground** (`{colors.secondary-foreground}` — `#4B4B5C`): 설명과 보조 행동
-- **Muted Foreground** (`{colors.muted-foreground}` — `#8E90A0`): 시간, metadata, 비활성 설명
+- **Foreground** (`{colors.foreground}` — `oklch(0.218 0.024 285)`): 제목과 핵심 본문
+- **Secondary Foreground** (`{colors.secondary-foreground}` — `oklch(0.395 0.025 285)`): 설명과 보조 행동
+- **Muted Foreground** (`{colors.muted-foreground}` — `oklch(0.52 0.02 285)`): 시간, metadata, 비활성 설명
 
 ### Semantic
 
@@ -178,7 +180,7 @@ semantic color는 장식용으로 사용하지 않는다. 금액 증가와 오�
 
 ### Spacing System
 
-- **Base unit**: Tailwind 기본 4px
+- **Base unit**: `tokens.css`의 4pt semantic spacing scale
 - **Screen padding**: 20~24px
 - **Card padding**: 16~20px
 - **Control gap**: 8~12px
@@ -187,9 +189,9 @@ semantic color는 장식용으로 사용하지 않는다. 금액 증가와 오�
 ### Mobile Frame
 
 - 최소 지원 너비는 320px이다.
-- 소비자, 업체 mobile과 현장기사 화면은 최대 390px을 기준으로 한다.
+- 소비자, 업체 mobile과 현장기사 화면은 최대 440px을 기준으로 한다.
 - 실제 mobile에서는 viewport 전체를 사용한다.
-- 768px 이상 demo 환경에서는 390×844px frame과 32px radius를 사용한다.
+- 768px 이상 demo 환경에서는 440×880px frame과 32px radius를 사용한다.
 - 하단 CTA는 safe area를 고려한 sticky 영역에 둔다.
 
 ### Provider Desktop
@@ -202,9 +204,9 @@ semantic color는 장식용으로 사용하지 않는다. 금액 증가와 오�
 
 | Level | Treatment | Use |
 | --- | --- | --- |
-| Canvas | `#F4F5F9` | 화면 배경 |
+| Canvas | `oklch(0.964 0.006 277)` | 화면 배경 |
 | Surface | 흰색 배경 | 카드, 입력, CTA 영역 |
-| Bordered | `1px solid #E9EAF2` | 정보 단위와 입력 경계 |
+| Bordered | `1px solid oklch(0.925 0.009 277)` | 정보 단위와 입력 경계 |
 | Selected | primary border + soft background | 선택된 항목과 현재 단계 |
 | Overlay | 반투명 backdrop + white sheet | modal, bottom sheet |
 
@@ -214,8 +216,8 @@ semantic color는 장식용으로 사용하지 않는다. 금액 증가와 오�
 
 | Token | Value | Use |
 | --- | --- | --- |
-| `rounded-2xl` | 16px | Button, 입력, 작은 정보 영역 |
-| `rounded-3xl` | 24px | 기본 Card |
+| `--radius-input` | 12px | Button, 입력, 작은 정보 영역 |
+| `--radius-card` | 16px | 기본 Card |
 | `rounded-t-[28px]` | 상단 28px | Sheet |
 | `rounded-full` | 9999px | Badge, icon button, 진행 표시 |
 
@@ -253,6 +255,12 @@ Badge만으로 상태를 설명하지 않는다. 가까운 제목이나 본문�
 - 한 card에는 하나의 판단 대상이나 정보 단위만 담는다.
 - 제목과 설명은 `CardHeader`, 실제 값은 `CardContent`, 행동은 `CardFooter`에 배치한다.
 - card 전체가 눌리는 것처럼 보이면 전체를 실제 interactive element로 만든다.
+
+### Form controls
+
+- `Label`, `Input`, `Select`, `Textarea`를 사용해 label, focus, invalid, disabled 상태를 통일한다.
+- 모든 입력에는 고유한 `name`과 목적에 맞는 `type`, `inputMode`, `autoComplete`를 제공한다.
+- placeholder는 label을 대신하지 않는다.
 
 ### Sheet
 
@@ -307,13 +315,13 @@ Badge만으로 상태를 설명하지 않는다. 가까운 제목이나 본문�
 | 구간 | 기준 | Key Changes |
 | --- | --- | --- |
 | Small mobile | 320~389px | 한 열, 고정 CTA, 정보 요약 우선 |
-| Mobile baseline | 390~767px | 소비자·기사·업체 mobile 전체 흐름 |
+| Mobile baseline | 440px 이하 | 소비자·현장 작업자·업체 mobile 전체 흐름 |
 | Tablet/Desktop | 768px 이상 | mobile demo frame 또는 업체 업무 layout |
 | Wide desktop | 1280px 이상 | 업체 table과 summary card 다열 배치 |
 
 ## Iteration Guide
 
-- 색상을 바꿀 때는 `src/app/styles.css`의 token부터 수정한다.
+- 색상을 바꿀 때는 루트 `tokens.css`의 token부터 수정한다.
 - 새 상태를 추가할 때는 의미, 문구, Badge variant와 복구 행동을 함께 정의한다.
 - 새 component를 만들기 전에 `src/components/ui`의 조합과 variant로 해결 가능한지 확인한다.
 - feature에서 반복되는 입력과 상태 표현은 공통 component로 승격한다.

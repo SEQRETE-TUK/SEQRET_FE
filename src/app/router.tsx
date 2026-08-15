@@ -1,14 +1,26 @@
 import { createBrowserRouter } from "react-router-dom";
 
+import { RouteLoading } from "@/components/layout/route-loading";
+
 export const router = createBrowserRouter([
   {
+    HydrateFallback: RouteLoading,
     path: "/",
+    lazy: async () => {
+      const { RoleEntryPage } = await import("@/pages/role-entry/role-entry-page");
+      return { Component: RoleEntryPage };
+    },
+  },
+  {
+    HydrateFallback: RouteLoading,
+    path: "/consumer",
     lazy: async () => {
       const { ConsumerPage } = await import("@/pages/consumer/consumer-page");
       return { Component: ConsumerPage };
     },
   },
   {
+    HydrateFallback: RouteLoading,
     path: "/consumer/capture",
     lazy: async () => {
       const { CapturePage } = await import("@/pages/consumer/capture-page");
@@ -16,6 +28,7 @@ export const router = createBrowserRouter([
     },
   },
   {
+    HydrateFallback: RouteLoading,
     path: "/provider",
     lazy: async () => {
       const { ProviderPage } = await import("@/pages/provider/provider-page");
@@ -23,6 +36,7 @@ export const router = createBrowserRouter([
     },
   },
   {
+    HydrateFallback: RouteLoading,
     path: "/provider/web",
     lazy: async () => {
       const { ProviderWebPage } = await import("@/pages/provider/provider-web-page");
@@ -30,6 +44,7 @@ export const router = createBrowserRouter([
     },
   },
   {
+    HydrateFallback: RouteLoading,
     path: "/crew",
     lazy: async () => {
       const { CrewPage } = await import("@/pages/crew/crew-page");
@@ -37,6 +52,15 @@ export const router = createBrowserRouter([
     },
   },
   {
+    HydrateFallback: RouteLoading,
+    path: "/design-system",
+    lazy: async () => {
+      const { DesignSystemPage } = await import("@/pages/design-system/design-system-page");
+      return { Component: DesignSystemPage };
+    },
+  },
+  {
+    HydrateFallback: RouteLoading,
     path: "*",
     lazy: async () => {
       const { NotFoundPage } = await import("@/pages/not-found/not-found-page");
