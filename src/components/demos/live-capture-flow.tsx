@@ -18,6 +18,11 @@ import {
 import { useState, type FormEvent } from "react";
 
 import { MobileFrame, StatusBar } from "@/components/demo-ui";
+import {
+  ANALYSIS_REVIEW_FORM_ID,
+  AnalysisReviewPanel,
+  type AnalysisReviewDraftItem,
+} from "@/components/demos/analysis-review-panel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -51,6 +56,11 @@ interface ZoneRowProps {
   onFile: (file: File, roomZoneId: string) => void;
   resumableAssetId: string | null;
   zone: RoomZone;
+}
+
+interface ReviewDraftState {
+  key: string;
+  items: AnalysisReviewDraftItem[];
 }
 
 const ACTIVE_ANALYSIS = new Set(["pending", "dispatching", "queued", "running"]);
@@ -174,14 +184,14 @@ function ConnectionForm({ onConnect }: ConnectionFormProps) {
   );
 }
 
-function StageRail({ stage }: { stage: 1 | 2 | 3 }) {
-  const labels = ["구역 촬영", "파일 확인", "AI 분석"];
+function StageRail({ complete, stage }: { complete: boolean; stage: 1 | 2 | 3 | 4 }) {
+  const labels = ["구역 촬영", "파일 확인", "AI 분석", "초안 검토"];
   return (
-    <ol aria-label="촬영 진행 단계" className="mt-5 grid grid-cols-3 gap-2">
+    <ol aria-label="촬영 진행 단계" className="mt-5 grid grid-cols-4 gap-1.5">
       {labels.map((label, index) => {
-        const step = (index + 1) as 1 | 2 | 3;
-        const active = step === stage;
-        const done = step < stage;
+        const step = (index + 1) as 1 | 2 | 3 | 4;
+        const active = step === stage && !complete;
+        const done = step < stage || (complete && step === stage);
         return (
           <li
             className={`rounded-xl border px-2 py-3 text-center text-[11px] font-bold ${
@@ -193,7 +203,7 @@ function StageRail({ stage }: { stage: 1 | 2 | 3 }) {
             }`}
             key={label}
           >
-            <span className="mb-1 block text-[10px]">{done ? "완료" : `${step}/3`}</span>
+            <span className="mb-1 block text-[10px]">{done ? "완료" : `${step}/4`}</span>
             {label}
           </li>
         );
@@ -300,7 +310,7 @@ function AnalysisState({ analysis }: { analysis: CaptureAnalysis }) {
           <div>
             <h2 className="text-[17px] font-bold text-success-ink">AI 초안이 준비됐어요</h2>
             <p className="mt-2 text-[13px] leading-5 text-ink-600">
-              촬영 결과가 수정 가능한 작업범위 초안으로 저장됐어요. 세부 항목 조회·편집은 다음 FE 연동에서 이어집니다.
+              촬영 결과를 작업범위 초안으로 저장했어요. 아래에서 설명을 고치거나 빠진 항목을 추가해 주세요.
             </p>
           </div>
         </div>
@@ -346,6 +356,7 @@ function AnalysisState({ analysis }: { analysis: CaptureAnalysis }) {
 function ConnectedCapture({ connection, onDisconnect }: ConnectedCaptureProps) {
   const workflow = useCaptureWorkflow(connection);
   const [localError, setLocalError] = useState<string | null>(null);
+  const [reviewDraftState, setReviewDraftState] = useState<ReviewDraftState | null>(null);
   const job = workflow.jobQuery.data;
   const sessions = workflow.sessionsQuery.data;
   const session = sessions?.[0] ?? null;
@@ -374,17 +385,40 @@ function ConnectedCapture({ connection, onDisconnect }: ConnectedCaptureProps) {
     );
   const analysis = session?.analysis ?? null;
   const analysisActive = analysis !== null && ACTIVE_ANALYSIS.has(analysis.status);
-  const stage: 1 | 2 | 3 = analysis ? 3 : validating || allReady ? 2 : 1;
+  const review = workflow.reviewQuery.data;
+  const reviewKey = review
+    ? `${review.source_scope_version_id}:${review.review_scope_version_id ?? "draft"}`
+    : "";
+  const reviewDraftItems =
+    reviewDraftState?.key === reviewKey
+      ? reviewDraftState.items
+      : (review?.items.map((item) => ({
+          itemKey: item.item_key,
+          roomZoneId: item.room_zone_id,
+          description: item.description,
+        })) ?? []);
+  const reviewCompleted = review?.review_scope_version_id !== null && review !== undefined;
+  const reviewValid =
+    reviewDraftItems.length > 0 &&
+    reviewDraftItems.every(
+      (item) =>
+        item.description.trim().length > 0 &&
+        review?.zones.some((zone) => zone.room_zone_id === item.roomZoneId),
+    );
+  const stage: 1 | 2 | 3 | 4 =
+    analysis?.status === "completed" ? 4 : analysis ? 3 : validating || allReady ? 2 : 1;
   const busy =
     workflow.createSessionMutation.isPending ||
     workflow.uploadMutation.isPending ||
-    workflow.submitMutation.isPending;
+    workflow.submitMutation.isPending ||
+    workflow.reviewMutation.isPending;
   const requestError =
     workflow.jobQuery.error ??
     workflow.sessionsQuery.error ??
     workflow.createSessionMutation.error ??
     workflow.uploadMutation.error ??
-    workflow.submitMutation.error;
+    workflow.submitMutation.error ??
+    workflow.reviewMutation.error;
 
   if (workflow.jobQuery.isPending || workflow.sessionsQuery.isPending) {
     return (
@@ -453,6 +487,53 @@ function ConnectedCapture({ connection, onDisconnect }: ConnectedCaptureProps) {
     workflow.submitMutation.mutate(session.id);
   };
 
+  const setReviewDraft = (items: AnalysisReviewDraftItem[]) => {
+    if (!review) return;
+    setReviewDraftState({ key: reviewKey, items });
+  };
+
+  const addReviewItem = () => {
+    const firstZone = review?.zones[0];
+    if (!firstZone) return;
+    setReviewDraft([
+      ...reviewDraftItems,
+      {
+        itemKey: `customer-${crypto.randomUUID()}`,
+        roomZoneId: firstZone.room_zone_id,
+        description: "",
+      },
+    ]);
+  };
+
+  const changeReviewItem = (
+    itemKey: string,
+    changes: Partial<AnalysisReviewDraftItem>,
+  ) => {
+    setReviewDraft(
+      reviewDraftItems.map((item) =>
+        item.itemKey === itemKey ? { ...item, ...changes } : item,
+      ),
+    );
+  };
+
+  const removeReviewItem = (itemKey: string) => {
+    setReviewDraft(reviewDraftItems.filter((item) => item.itemKey !== itemKey));
+  };
+
+  const completeReview = () => {
+    if (!review || reviewCompleted || !reviewValid) return;
+    setLocalError(null);
+    workflow.reviewMutation.reset();
+    workflow.reviewMutation.mutate({
+      sourceScopeVersionId: review.source_scope_version_id,
+      items: reviewDraftItems.map((item) => ({
+        item_key: item.itemKey,
+        room_zone_id: item.roomZoneId,
+        description: item.description.trim(),
+      })),
+    });
+  };
+
   return (
     <div className="flex min-h-dvh flex-col bg-canvas text-ink-900">
       <StatusBar />
@@ -470,14 +551,20 @@ function ConnectedCapture({ connection, onDisconnect }: ConnectedCaptureProps) {
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-[12px] font-bold text-primary-700">실제 서버와 연결됨</p>
-            <h1 className="mt-2 text-[24px] font-extrabold leading-8">출발지 구역을 촬영해 주세요</h1>
+            <h1 className="mt-2 text-[24px] font-extrabold leading-8">
+              {analysis?.status === "completed"
+                ? "AI 초안을 확인해 주세요"
+                : "출발지 구역을 촬영해 주세요"}
+            </h1>
           </div>
-          {workflow.sessionsQuery.isFetching && <LoaderCircle aria-label="상태 확인 중" className="demo-spin mt-1 shrink-0 text-primary-700" size={21} />}
+          {(workflow.sessionsQuery.isFetching || workflow.reviewQuery.isFetching) && <LoaderCircle aria-label="상태 확인 중" className="demo-spin mt-1 shrink-0 text-primary-700" size={21} />}
         </div>
         <p className="mt-2 text-[13px] leading-5 text-ink-600">
-          파일은 비공개 저장소로 직접 전송하고, 서버 확인이 끝난 자료만 AI 분석에 사용해요.
+          {analysis?.status === "completed"
+            ? "AI 제안은 확정 범위가 아니에요. 내가 확인한 내용만 다음 단계로 전달해요."
+            : "파일은 비공개 저장소로 직접 전송하고, 서버 확인이 끝난 자료만 AI 분석에 사용해요."}
         </p>
-        <StageRail stage={stage} />
+        <StageRail complete={reviewCompleted} stage={stage} />
 
         {!session && (
           <Card className="mt-6 p-5 text-center">
@@ -514,6 +601,38 @@ function ConnectedCapture({ connection, onDisconnect }: ConnectedCaptureProps) {
         )}
 
         {analysis && <AnalysisState analysis={analysis} />}
+
+        {analysis?.status === "completed" && workflow.reviewQuery.isPending && (
+          <Card className="mt-4 p-6 text-center">
+            <LoaderCircle className="demo-spin mx-auto text-primary-700" size={28} />
+            <p className="mt-3 text-[14px] font-bold">검토할 항목을 불러오고 있어요</p>
+          </Card>
+        )}
+
+        {analysis?.status === "completed" && workflow.reviewQuery.isError && (
+          <Card className="mt-4 border-warning bg-warning-bg p-4">
+            <div className="flex gap-3">
+              <AlertTriangle className="shrink-0 text-warning" size={21} />
+              <div>
+                <p className="text-[13px] font-bold">AI 초안 상태를 다시 확인해 주세요</p>
+                <p className="mt-1 text-[12px] leading-5 text-ink-600">
+                  {friendlyError(workflow.reviewQuery.error)}
+                </p>
+              </div>
+            </div>
+          </Card>
+        )}
+
+        {analysis?.status === "completed" && review && (
+          <AnalysisReviewPanel
+            draftItems={reviewDraftItems}
+            onAdd={addReviewItem}
+            onChange={changeReviewItem}
+            onRemove={removeReviewItem}
+            onSubmit={completeReview}
+            review={review}
+          />
+        )}
 
         {workflow.resumableUpload && workflow.uploadMutation.isError && (
           <Card className="mt-4 border-warning bg-warning-bg p-4">
@@ -554,10 +673,42 @@ function ConnectedCapture({ connection, onDisconnect }: ConnectedCaptureProps) {
             {workflow.createSessionMutation.isPending ? <LoaderCircle className="demo-spin" size={18} /> : <Video size={18} />}
             {unrecoverable ? "새 촬영 세션 시작" : "촬영 시작"}
           </Button>
+        ) : analysis?.status === "completed" ? (
+          workflow.reviewQuery.isPending ? (
+            <Button className="w-full" disabled size="cta">
+              <LoaderCircle className="demo-spin" size={18} /> 검토 항목 불러오는 중
+            </Button>
+          ) : workflow.reviewQuery.isError ? (
+            <Button
+              className="w-full"
+              disabled={workflow.reviewQuery.isFetching}
+              onClick={() => void workflow.reviewQuery.refetch()}
+              size="cta"
+              variant="outline"
+            >
+              {workflow.reviewQuery.isFetching ? <LoaderCircle className="demo-spin" size={18} /> : <RefreshCw size={18} />}
+              검토 내용 다시 불러오기
+            </Button>
+          ) : reviewCompleted ? (
+            <Button className="w-full" disabled size="cta">
+              <Check size={18} /> AI 초안 검토 완료
+            </Button>
+          ) : (
+            <Button
+              className="w-full"
+              disabled={!review || !reviewValid || workflow.reviewMutation.isPending}
+              form={ANALYSIS_REVIEW_FORM_ID}
+              size="cta"
+              type="submit"
+            >
+              {workflow.reviewMutation.isPending ? <LoaderCircle className="demo-spin" size={18} /> : <Check size={18} />}
+              {reviewValid ? "검토 내용 확정" : "항목 내용을 확인해 주세요"}
+            </Button>
+          )
         ) : analysis ? (
           <Button className="w-full" disabled size="cta">
-            {analysisActive ? <LoaderCircle className="demo-spin" size={18} /> : analysis.status === "completed" ? <Check size={18} /> : <AlertTriangle size={18} />}
-            {analysisActive ? "AI 분석 진행 중" : analysis.status === "completed" ? "AI 초안 생성 완료" : "분석 실패 · 촬영 보존됨"}
+            {analysisActive ? <LoaderCircle className="demo-spin" size={18} /> : <AlertTriangle size={18} />}
+            {analysisActive ? "AI 분석 진행 중" : "분석 실패 · 촬영 보존됨"}
           </Button>
         ) : allReady ? (
           <Button className="w-full" disabled={busy || zones.length === 0} onClick={submit} size="cta">
@@ -571,7 +722,11 @@ function ConnectedCapture({ connection, onDisconnect }: ConnectedCaptureProps) {
           </Button>
         )}
         <p className="mt-3 text-center text-[11px] text-ink-400">
-          {terminalJob ? "종료된 작업에는 새 촬영을 추가할 수 없어요." : "업로드 URL과 secret은 브라우저에 저장하지 않아요."}
+          {reviewCompleted
+            ? "검토 완료본은 변경 이력으로 보존돼요."
+            : terminalJob
+              ? "종료된 작업에는 새 촬영을 추가할 수 없어요."
+              : "업로드 URL과 secret은 브라우저에 저장하지 않아요."}
         </p>
       </div>
     </div>

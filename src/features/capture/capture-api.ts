@@ -77,6 +77,43 @@ export interface CaptureSessionCreated {
   created_at: string;
 }
 
+export interface AnalysisReviewZone {
+  room_zone_id: string;
+  name: string;
+  sort_order: number;
+  total_media_count: number;
+  ready_media_count: number;
+  failed_media_count: number;
+}
+
+export interface AnalysisReviewItem {
+  item_key: string;
+  room_zone_id: string;
+  description: string;
+  source: "ai" | "customer";
+  confidence: number | null;
+  review_required: boolean;
+  source_media_asset_ids: string[];
+}
+
+export interface AnalysisReview {
+  job_id: string;
+  analysis_run_id: string;
+  capture_session_id: string;
+  source_scope_version_id: string;
+  review_scope_version_id: string | null;
+  analysis_completed_at: string;
+  review_completed_at: string | null;
+  zones: AnalysisReviewZone[];
+  items: AnalysisReviewItem[];
+}
+
+export interface AnalysisReviewItemInput {
+  item_key: string;
+  room_zone_id: string;
+  description: string;
+}
+
 export interface MediaUploadTarget {
   asset: MediaAsset;
   upload_url: string;
@@ -106,6 +143,11 @@ export interface CompleteMediaUploadRequest extends AuthorizedRequest {
 
 export interface SubmitCaptureRequest extends AuthorizedRequest {
   captureSessionId: string;
+}
+
+export interface CompleteAnalysisReviewRequest extends AuthorizedRequest {
+  sourceScopeVersionId: string;
+  items: AnalysisReviewItemInput[];
 }
 
 const UUID_PATTERN =
@@ -268,4 +310,35 @@ export async function submitCapture({
       signal,
     },
   );
+}
+
+export async function getAnalysisReview({
+  accessToken,
+  jobId,
+  signal,
+}: AuthorizedRequest): Promise<AnalysisReview> {
+  return apiRequest<AnalysisReview>(`${jobPath(jobId)}/analysis-review`, {
+    accessToken,
+    method: "GET",
+    signal,
+  });
+}
+
+export async function completeAnalysisReview({
+  accessToken,
+  items,
+  jobId,
+  signal,
+  sourceScopeVersionId,
+}: CompleteAnalysisReviewRequest): Promise<AnalysisReview> {
+  return apiRequest<AnalysisReview>(`${jobPath(jobId)}/analysis-review/complete`, {
+    accessToken,
+    body: JSON.stringify({
+      source_scope_version_id: sourceScopeVersionId,
+      items,
+    }),
+    headers: jsonHeaders(),
+    method: "POST",
+    signal,
+  });
 }
