@@ -41,3 +41,6 @@ Desktop.ini
 
 # Product Design verification artifacts
 design-qa.md
+
+# AI-assisted development artifacts
+.chatgpt2codex/

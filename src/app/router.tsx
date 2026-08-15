@@ -9,6 +9,13 @@ export const router = createBrowserRouter([
     },
   },
   {
+    path: "/consumer/capture",
+    lazy: async () => {
+      const { CapturePage } = await import("@/pages/consumer/capture-page");
+      return { Component: CapturePage };
+    },
+  },
+  {
     path: "/provider",
     lazy: async () => {
       const { ProviderPage } = await import("@/pages/provider/provider-page");

@@ -132,6 +132,9 @@ function ConsumerHome({ next, go }: { next: () => void; go: (screen: number) => 
         <section className={`${card} flex items-center gap-3 p-4`}><span className="grid size-8 place-items-center rounded-full bg-[#E6F7EF] text-[#17A46B]"><ShieldCheck size={19} /></span><div><p className="text-[15px] font-bold">안심+ 보호가 적용 중이에요</p><p className={`text-[12px] ${muted}`}>승인 없는 추가금은 청구되지 않아요</p></div><ChevronRight className="ml-auto text-[#B7B9C5]" size={16} /></section>
         <p className={`mb-2 mt-6 text-[13px] font-semibold ${muted}`}>새 이사를 준비하시나요?</p>
         <Outline onClick={next}><Plus className="mr-1 inline" size={17} /> 새 작업 만들기</Outline>
+        <a className="mt-3 flex min-h-11 items-center justify-center text-[12px] font-bold text-primary-700" href="/consumer/capture">
+          초대 정보로 실제 촬영 이어가기
+        </a>
       </main>
       <nav className="grid grid-cols-4 border-t border-[#E9EAF2] bg-white pb-6 pt-3 text-center text-[10px] text-[#8E90A0]">
         {([[Home, "홈"], [Truck, "내 이사"], [ClipboardList, "기록"], [UserRound, "내 정보"]] as const).map(([Icon, label], i) => <button key={label} className={`grid justify-items-center gap-1 ${i === 0 ? "font-bold text-[#191927]" : ""}`}><Icon size={21} />{label}</button>)}
