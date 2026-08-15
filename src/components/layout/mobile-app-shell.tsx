@@ -76,7 +76,7 @@ export function MobileAppShell<T extends string>({
                 onClick={() => onChange(id)}
                 type="button"
               >
-                <Icon aria-hidden="true" size="var(--icon-md)" weight="fill" />
+                <Icon aria-hidden="true" size="var(--icon-md)" weight={active ? "fill" : "regular"} />
                 <span className="truncate">{label}</span>
               </button>
             );

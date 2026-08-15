@@ -2,21 +2,18 @@ import {
   ImageIcon as Image,
   PlusIcon as Plus,
   ArrowCounterClockwiseIcon as RotateCcw,
-  SparkleIcon as Sparkles,
   TrashIcon as Trash2,
 } from "@phosphor-icons/react";
 import {
   WarningStatusIcon as AlertTriangle,
-  SuccessStatusIcon as CheckCircle2,
 } from "@/components/icons";
 import type { FormEvent } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import type { AnalysisReview } from "@/features/capture/api/capture-api";
+import type { AnalysisReview, RoomZone } from "@/features/capture/api/capture-api";
 
 export interface AnalysisReviewDraftItem {
   itemKey: string;
@@ -38,6 +35,83 @@ interface AnalysisReviewPanelProps {
 }
 
 export const ANALYSIS_REVIEW_FORM_ID = "analysis-review-form";
+export const MANUAL_SCOPE_FORM_ID = "manual-scope-form";
+
+export function ManualScopeEditor({
+  draftItems,
+  onAdd,
+  onChange,
+  onRemove,
+  onSubmit,
+  zones,
+}: {
+  draftItems: AnalysisReviewDraftItem[];
+  onAdd: () => void;
+  onChange: (itemKey: string, changes: Partial<AnalysisReviewDraftItem>) => void;
+  onRemove: (itemKey: string) => void;
+  onSubmit: () => void;
+  zones: RoomZone[];
+}) {
+  return (
+    <form id={MANUAL_SCOPE_FORM_ID} onSubmit={(event) => { event.preventDefault(); onSubmit(); }}>
+      <section className="mt-6 border-t border-line pt-5">
+        <h2 className="text-xl font-extrabold">짐 목록을 직접 작성해요</h2>
+        <p className="mt-1 text-ui-support leading-5 text-ink-600">
+          AI 분석 없이 공간과 짐 설명을 입력해 업체 검토용 초안을 만들 수 있어요.
+        </p>
+        <div className="mt-4 divide-y divide-line border-y border-line">
+          {draftItems.map((draft, index) => (
+            <article className="py-5" key={draft.itemKey}>
+              <div className="flex items-center justify-between gap-3">
+                <Badge variant="neutral">직접 입력 {index + 1}</Badge>
+                {draftItems.length > 1 ? (
+                  <button
+                    aria-label={`${index + 1}번 항목 삭제`}
+                    className="grid size-9 place-items-center rounded-full text-ink-400 hover:bg-danger-bg hover:text-danger-ink"
+                    onClick={() => onRemove(draft.itemKey)}
+                    type="button"
+                  >
+                    <Trash2 aria-hidden="true" size={17} />
+                  </button>
+                ) : null}
+              </div>
+              <label className="mt-4 block text-sm font-bold text-ink-400">
+                공간
+                <Select
+                  autoComplete="off"
+                  className="mt-1.5 h-11 px-3 text-base font-bold"
+                  name={`manual-item-${index + 1}-room`}
+                  onChange={(event) => onChange(draft.itemKey, { roomZoneId: event.target.value })}
+                  value={draft.roomZoneId}
+                >
+                  {zones.map((zone) => <option key={zone.id} value={zone.id}>{zone.name}</option>)}
+                </Select>
+              </label>
+              <label className="mt-3 block text-sm font-bold text-ink-400">
+                짐 또는 작업 설명
+                <Textarea
+                  aria-invalid={draft.description.trim().length === 0}
+                  autoComplete="off"
+                  className="mt-1.5 min-h-20 resize-none px-3 py-3 text-lg font-semibold leading-5"
+                  maxLength={2000}
+                  name={`manual-item-${index + 1}-description`}
+                  onChange={(event) => onChange(draft.itemKey, { description: event.target.value })}
+                  placeholder="예: 3인용 소파 1개"
+                  required
+                  value={draft.description}
+                />
+              </label>
+            </article>
+          ))}
+          <Button className="my-4 w-full" onClick={onAdd} size="chip" type="button" variant="secondary">
+            <Plus aria-hidden="true" size={17} />
+            항목 추가
+          </Button>
+        </div>
+      </section>
+    </form>
+  );
+}
 
 export function AnalysisReviewPanel({
   canAdd,
@@ -59,23 +133,16 @@ export function AnalysisReviewPanel({
 
   return (
     <form id={ANALYSIS_REVIEW_FORM_ID} onSubmit={submit}>
-      <Card className="mt-5 overflow-hidden border-primary-100">
-        <div className="bg-primary-50 p-5">
-          <div className="flex items-start gap-3">
-            <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-surface text-primary-700">
-              {completed ? <CheckCircle2 size={22} /> : <Sparkles size={22} />}
-            </span>
-            <div>
-              <h2 className="text-xl font-extrabold">
-                {completed ? "AI 초안 검토를 마쳤어요" : "AI가 찾은 항목을 확인해요"}
-              </h2>
-              <p className="mt-1 text-ui-support leading-5 text-ink-600">
-                {completed
-                  ? "확정한 내용은 변경 이력으로 안전하게 보존돼요."
-                  : "틀린 설명은 고치고, 빠진 짐은 직접 추가해 주세요."}
-              </p>
-            </div>
-          </div>
+      <section className="mt-6">
+        <div className="border-b border-line pb-5">
+          <h2 className="text-xl font-extrabold">
+            {completed ? "AI 초안 검토를 마쳤어요" : "AI가 찾은 항목을 확인해요"}
+          </h2>
+          <p className="mt-1 text-ui-support leading-5 text-ink-600">
+            {completed
+              ? "확정한 내용은 변경 이력으로 안전하게 보존돼요."
+              : "틀린 설명은 고치고, 빠진 짐은 직접 추가해 주세요."}
+          </p>
 
           {!completed && hasUnsavedChanges && (
             <p
@@ -86,27 +153,27 @@ export function AnalysisReviewPanel({
             </p>
           )}
 
-          <div className="mt-4 grid grid-cols-2 gap-2">
+          <ul className="mt-4 border-y border-line">
             {review.zones.map((zone) => (
-              <div className="rounded-xl border border-primary-100 bg-surface px-3 py-3" key={zone.room_zone_id}>
-                <div className="flex items-center gap-2">
-                  <Image className="text-primary-700" size={16} />
+              <li className="flex min-h-14 items-center justify-between gap-3 border-b border-line py-2 last:border-b-0" key={zone.room_zone_id}>
+                <div className="flex min-w-0 items-center gap-2">
+                  <Image aria-hidden="true" className="text-primary-700" size={16} />
                   <p className="truncate text-ui-support font-bold">{zone.name}</p>
                 </div>
-                <p className="mt-1 text-sm text-ink-400">
+                <p className="shrink-0 text-sm text-ink-400">
                   확인 {zone.ready_media_count}/{zone.total_media_count}
                   {zone.failed_media_count > 0 && ` · 실패 ${zone.failed_media_count}`}
                 </p>
-              </div>
+              </li>
             ))}
-          </div>
+          </ul>
         </div>
 
-        <div className="space-y-3 p-4">
+        <div className="divide-y divide-line border-b border-line">
           {!completed && removedItemDescription && (
             <div
               aria-live="polite"
-              className="flex items-center gap-3 rounded-2xl border border-line bg-canvas px-4 py-3"
+              className="flex items-center gap-3 bg-canvas px-4 py-3"
               role="status"
             >
               <div className="min-w-0 flex-1">
@@ -121,14 +188,14 @@ export function AnalysisReviewPanel({
                 type="button"
                 variant="outline"
               >
-                <RotateCcw size={15} /> 되돌리기
+                <RotateCcw aria-hidden="true" size={15} /> 되돌리기
               </Button>
             </div>
           )}
 
           {draftItems.length === 0 && (
-            <div className="rounded-2xl bg-warning-bg p-4 text-center">
-              <AlertTriangle className="mx-auto text-warning" size={22} />
+            <div className="bg-warning-bg p-4 text-center">
+              <AlertTriangle aria-hidden="true" className="mx-auto text-warning" size={22} />
               <p className="mt-2 text-base font-bold">최소 한 개의 항목이 필요해요</p>
             </div>
           )}
@@ -136,7 +203,7 @@ export function AnalysisReviewPanel({
           {draftItems.map((draft, index) => {
             const source = review.items.find((item) => item.item_key === draft.itemKey);
             return (
-              <article className="rounded-2xl border border-line bg-surface p-4" key={draft.itemKey}>
+              <article className="py-5" key={draft.itemKey}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex flex-wrap gap-1.5">
                     <Badge variant={source?.source === "customer" ? "neutral" : "primary"}>
@@ -154,7 +221,7 @@ export function AnalysisReviewPanel({
                       onClick={() => onRemove(draft.itemKey)}
                       type="button"
                     >
-                      <Trash2 size={17} />
+                      <Trash2 aria-hidden="true" size={17} />
                     </button>
                   )}
                 </div>
@@ -209,19 +276,19 @@ export function AnalysisReviewPanel({
 
           {!completed && (
             <Button
-              className="w-full"
+              className="my-4 w-full"
               disabled={!canAdd}
               onClick={onAdd}
               size="chip"
               type="button"
               variant="secondary"
             >
-              <Plus size={17} />
+              <Plus aria-hidden="true" size={17} />
               {canAdd ? "빠진 항목 직접 추가" : "항목은 최대 500개까지 추가할 수 있어요"}
             </Button>
           )}
         </div>
-      </Card>
+      </section>
     </form>
   );
 }

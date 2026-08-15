@@ -11,6 +11,7 @@ import {
 import { useRef, useState, type ChangeEvent } from "react";
 
 import { ApiError } from "@/api/client";
+import { HandoffStatus, StatusTag, WorkContext } from "@/components/layout/app-primitives";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -41,6 +42,8 @@ import {
 import { useAuthFailure } from "@/features/workflow/model/use-auth-failure";
 import { useRetryAfter } from "@/features/workflow/model/use-retry-after";
 import { ApiNotice, EmptyState, WorkflowShell } from "@/features/workflow/ui/workflow-shell";
+
+const eventTimeFormatter = new Intl.DateTimeFormat("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
 
 export function LiveCrewWorkflow({ embedded = false }: { embedded?: boolean }) {
   const { session } = useAuth();
@@ -169,7 +172,15 @@ export function LiveCrewWorkflow({ embedded = false }: { embedded?: boolean }) {
 
   return (
     <WorkflowShell
-      currentStep={brief?.completion_submission_id ? 4 : brief?.checked_in_at ? 3 : 2}
+      context={brief ? <WorkContext
+        code={brief.job.job_code}
+        route={`${brief.masked_origin ?? "출발지 미정"} → ${brief.masked_destination ?? "도착지 미정"}`}
+        scheduledAt={brief.start_at}
+        status={<StatusTag tone={brief.checked_in_at ? "success" : "warning"}>{brief.checked_in_at ? "현장 진행" : "체크인 전"}</StatusTag>}
+        title={brief.job.title}
+        version={brief.scope_version_label}
+      /> : undefined}
+      currentStep={brief?.completion_submission_id ? 4 : 3}
       retryAfter={retryAfter}
       summary="현장에서는 체크인, 이슈 보고, 완료 기록만 순서대로 처리합니다."
       title="오늘 현장 작업"
@@ -185,7 +196,7 @@ export function LiveCrewWorkflow({ embedded = false }: { embedded?: boolean }) {
       >
         {briefQuery.isLoading ? <EmptyState>확정된 배차와 작업범위를 불러오는 중입니다.</EmptyState> : null}
         <ApiNotice error={briefQuery.error} title="배차 정보가 아직 준비되지 않았어요" />
-        {brief ? <><div className="mt-4 rounded-xl bg-canvas p-4"><p className="font-bold"><MapPin className="mr-1 inline size-4" /> {brief.masked_origin ?? "출발지"} → {brief.masked_destination ?? "도착지"}</p><p className="mt-2 text-sm text-ink-600">{brief.scope_version_label} · {brief.assigned_vehicle.display_name} · {brief.assigned_worker_count}명</p><p className="mt-2 text-sm font-bold text-warning-ink">{brief.safety_notice}</p></div><div className="mt-4 space-y-2">{brief.check_in_items.map((item) => <label className="flex min-h-12 items-center gap-3 rounded-xl border border-line p-3" key={item.key}><input checked={item.confirmed || checkInKeys.includes(item.key)} disabled={Boolean(brief.checked_in_at)} name="checkInItems" onChange={(event) => setCheckInKeys((current) => event.target.checked ? [...current, item.key] : current.filter((key) => key !== item.key))} type="checkbox" value={item.key} /><span className="font-bold">{item.label}</span></label>)}</div><Button className="mt-4 w-full" disabled={Boolean(brief.checked_in_at) || !allCheckIn || checkInMutation.isPending} onClick={() => checkInMutation.mutate()} size="cta">{brief.checked_in_at ? <><Check /> 체크인 완료</> : "현장 도착 체크인"}</Button></> : null}
+        {brief ? <><HandoffStatus action="배차와 승인 범위를 확인해 주세요" actor="현장기사" updatedAt={brief.checked_in_at}>체크인은 도착 사실과 사전 확인 항목을 기록합니다. 고객이나 업체 대신 범위·금액을 확정하지 않습니다.</HandoffStatus><div className="mt-4 rounded-xl bg-canvas p-4"><p className="font-bold"><MapPin aria-hidden="true" className="mr-1 inline size-4" /> {brief.masked_origin ?? "출발지"} → {brief.masked_destination ?? "도착지"}</p><p className="mt-2 text-sm text-ink-600">{brief.scope_version_label} · {brief.assigned_vehicle.display_name} · {brief.assigned_worker_count}명</p><p className="mt-2 text-sm font-bold text-warning-ink">{brief.safety_notice}</p></div><div className="mt-4 space-y-2">{brief.check_in_items.map((item) => <label className="flex min-h-12 items-center gap-3 rounded-xl border border-line p-3" key={item.key}><input checked={item.confirmed || checkInKeys.includes(item.key)} disabled={Boolean(brief.checked_in_at)} name="checkInItems" onChange={(event) => setCheckInKeys((current) => event.target.checked ? [...current, item.key] : current.filter((key) => key !== item.key))} type="checkbox" value={item.key} /><span className="font-bold">{item.label}</span></label>)}</div><Button className="mt-4 w-full" disabled={Boolean(brief.checked_in_at) || !allCheckIn || checkInMutation.isPending} onClick={() => checkInMutation.mutate()} size="cta">{brief.checked_in_at ? <><Check aria-hidden="true" /> 체크인 완료</> : "확인 후 현장 체크인"}</Button></> : null}
         <ApiNotice error={checkInMutation.error} title="체크인을 처리하지 못했어요" />
       </WorkflowTask>
 
@@ -200,11 +211,11 @@ export function LiveCrewWorkflow({ embedded = false }: { embedded?: boolean }) {
           <Label htmlFor="issue-type">유형</Label><Select autoComplete="off" id="issue-type" name="issueType" onChange={(event) => setIssueType(event.target.value as FieldIssue["issue_type"])} value={issueType}><option value="out_of_scope">범위 밖 작업</option><option value="damage_risk">파손 위험</option><option value="site_blocker">현장 장애</option></Select>
           <Label htmlFor="issue-title">제목</Label><Input autoComplete="off" id="issue-title" maxLength={200} name="issueTitle" onChange={(event) => setIssueTitle(event.target.value)} value={issueTitle} />
           <Label htmlFor="issue-description">현장 설명</Label><Textarea autoComplete="off" id="issue-description" maxLength={2000} name="issueDescription" onChange={(event) => setIssueDescription(event.target.value)} value={issueDescription} />
-          <Label className="flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-xl border border-line bg-surface px-4 font-bold"><Camera /> {evidenceId ? "증빙 업로드 완료" : uploadMutation.isPending ? "업로드 중…" : "증빙 사진 선택"}<input accept="image/jpeg,image/png,video/mp4" className="sr-only" disabled={uploadMutation.isPending} name="changeEvidence" onChange={uploadFile("change_evidence")} type="file" /></Label>
-          <Button className="w-full" disabled={!brief || !brief.checked_in_at || !evidenceId || !issueTitle.trim() || !issueDescription.trim() || issueMutation.isPending} onClick={() => issueMutation.mutate()} size="cta"><AlertTriangle /> 업체에 이슈 보고</Button>
+          <Label className="flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-xl border border-line bg-surface px-4 font-bold"><Camera aria-hidden="true" /> {evidenceId ? "증빙 업로드 완료" : uploadMutation.isPending ? "업로드 중…" : "증빙 사진 선택"}<input accept="image/jpeg,image/png,video/mp4" className="sr-only" disabled={uploadMutation.isPending} name="changeEvidence" onChange={uploadFile("change_evidence")} type="file" /></Label>
+          <Button className="w-full" disabled={!brief || !brief.checked_in_at || !evidenceId || !issueTitle.trim() || !issueDescription.trim() || issueMutation.isPending} onClick={() => issueMutation.mutate()} size="cta"><AlertTriangle aria-hidden="true" /> 업체에 이슈 보고</Button>
         </div>
         <ApiNotice error={uploadMutation.error ?? issueMutation.error} title="현장 이슈를 처리하지 못했어요" />
-        <div className="mt-4 space-y-2">{issueQuery.data?.map((issue) => <div className="rounded-xl bg-canvas p-3" key={issue.field_issue_id}><b>{issue.title}</b><p className="mt-1 text-xs text-ink-600">{issue.status} · {new Date(issue.reported_at).toLocaleString("ko-KR")}</p></div>)}</div>
+        <div className="mt-4 space-y-2">{issueQuery.data?.map((issue) => <div className="rounded-xl bg-canvas p-3" key={issue.field_issue_id}><b>{issue.title}</b><p className="mt-1 text-xs text-ink-600">{issue.status} · {eventTimeFormatter.format(new Date(issue.reported_at))}</p></div>)}</div>
       </WorkflowTask>
 
       <WorkflowTask
@@ -214,7 +225,7 @@ export function LiveCrewWorkflow({ embedded = false }: { embedded?: boolean }) {
         title="완료 제출"
         tone={brief?.completion_submission_id ? "success" : "neutral"}
       >
-        {brief?.completion_submission_id ? <div className="mt-4 rounded-xl bg-success-bg p-4 font-bold text-success-ink"><Check className="mr-1 inline" /> 완료 기록 제출됨</div> : <><div className="mt-4 space-y-2">{brief?.completion_check_items.map((item) => <label className="flex min-h-12 items-center gap-3 rounded-xl border border-line p-3" key={item.key}><input checked={completionKeys.includes(item.key)} name="completionItems" onChange={(event) => setCompletionKeys((current) => event.target.checked ? [...current, item.key] : current.filter((key) => key !== item.key))} type="checkbox" value={item.key} /><span className="font-bold">{item.label}</span></label>)}</div><label className="mt-4 flex min-h-12 items-center gap-3 rounded-xl border border-line p-3"><input checked={onsiteConfirmed} name="onsiteConfirmed" onChange={(event) => setOnsiteConfirmed(event.target.checked)} type="checkbox" /><span className="font-bold">고객이 현장에서 완료를 확인했어요</span></label><Label className="mt-3 flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-xl border border-line bg-surface px-4 font-bold"><Camera /> {completionMedia?.status === "ready" ? "완료 사진 준비됨" : completionMedia ? `완료 사진 ${completionMedia.status}` : "완료 사진 선택 (선택)"}<input accept="image/jpeg,image/png,video/mp4" className="sr-only" disabled={uploadMutation.isPending} name="completionEvidence" onChange={uploadFile("completion")} type="file" /></Label><p className="mt-2 text-xs text-ink-600">사진 없이도 제출할 수 있으며, 선택한 사진은 READY 이후 포함됩니다.</p><Button className="mt-4 w-full" disabled={!brief?.checked_in_at || !allCompletion || !onsiteConfirmed || completionMutation.isPending || Boolean(completionMedia && completionMedia.status !== "ready")} onClick={() => completionMutation.mutate()} size="cta">{completionMutation.isPending ? <><LoaderCircle className="animate-spin" /> 제출 중…</> : "작업 완료 기록 제출"}</Button></>}
+        {brief?.completion_submission_id ? <div className="mt-4 rounded-xl bg-success-bg p-4 font-bold text-success-ink"><Check aria-hidden="true" className="mr-1 inline" /> 완료 기록 제출됨</div> : <><div className="mt-4 space-y-2">{brief?.completion_check_items.map((item) => <label className="flex min-h-12 items-center gap-3 rounded-xl border border-line p-3" key={item.key}><input checked={completionKeys.includes(item.key)} name="completionItems" onChange={(event) => setCompletionKeys((current) => event.target.checked ? [...current, item.key] : current.filter((key) => key !== item.key))} type="checkbox" value={item.key} /><span className="font-bold">{item.label}</span></label>)}</div><label className="mt-4 flex min-h-12 items-center gap-3 rounded-xl border border-line p-3"><input checked={onsiteConfirmed} name="onsiteConfirmed" onChange={(event) => setOnsiteConfirmed(event.target.checked)} type="checkbox" /><span className="font-bold">고객이 현장에서 완료를 확인했어요</span></label><Label className="mt-3 flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-xl border border-line bg-surface px-4 font-bold"><Camera aria-hidden="true" /> {completionMedia?.status === "ready" ? "완료 사진 준비됨" : completionMedia ? `완료 사진 ${completionMedia.status}` : "완료 사진 선택 (선택)"}<input accept="image/jpeg,image/png,video/mp4" className="sr-only" disabled={uploadMutation.isPending} name="completionEvidence" onChange={uploadFile("completion")} type="file" /></Label><p className="mt-2 text-xs text-ink-600">사진 없이도 제출할 수 있으며, 선택한 사진은 READY 이후 포함됩니다.</p><Button className="mt-4 w-full" disabled={!brief?.checked_in_at || !allCompletion || !onsiteConfirmed || completionMutation.isPending || Boolean(completionMedia && completionMedia.status !== "ready")} onClick={() => completionMutation.mutate()} size="cta">{completionMutation.isPending ? <><LoaderCircle aria-hidden="true" className="animate-spin" /> 제출 중…</> : "작업 완료 기록 제출"}</Button></>}
         <ApiNotice error={completionMutation.error} title="완료 기록을 제출하지 못했어요" />
       </WorkflowTask>
       </div>

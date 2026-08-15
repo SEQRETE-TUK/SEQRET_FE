@@ -3,6 +3,7 @@ import type {
   CaptureSession,
   MediaAsset,
   MediaUploadTarget,
+  ScopeVersionSummary,
 } from "@/features/capture/api/capture-api";
 import type {
   ActorSelf,
@@ -55,6 +56,7 @@ interface MockState {
   job: MoveJob;
   proposals: Record<string, ChangeProposal>;
   scope: ScopeReview;
+  scopeVersions: ScopeVersionSummary[];
   sessions: CaptureSession[];
 }
 
@@ -218,6 +220,17 @@ function createState(): MockState {
     zones: [{ room_zone_id: ORIGIN_ZONE_ID, name: "거실", sort_order: 0, total_media_count: 1, ready_media_count: 1, failed_media_count: 0 }],
     items: scope.scope.room_groups[0].items.map((item) => ({ ...item, source: "ai" as const, confidence: 0.94 })),
   };
+  const scopeVersions: ScopeVersionSummary[] = [{
+    id: SCOPE_ID,
+    parent_version_id: null,
+    sequence_number: 1,
+    content: {
+      schema_version: 1,
+      items: analysisReview.items.map(({ description, item_key, room_zone_id }) => ({ description, item_key, room_zone_id })),
+    },
+    created_at: createdAt,
+    locked_at: null,
+  }];
   return {
     actors: {
       [mockAccessSecrets.customer]: actor("customer", CUSTOMER_ID, "김서큐"),
@@ -238,6 +251,7 @@ function createState(): MockState {
     job,
     proposals: {},
     scope,
+    scopeVersions,
     sessions,
   };
 }
@@ -426,6 +440,21 @@ export async function mockApiRequest<T>(path: string, init: RequestInit, accessT
     state.analysisReview.review_completed_at = now();
     state.analysisReview.review_scope_version_id = SCOPE_ID;
     return result(state.analysisReview) as Promise<T>;
+  }
+  if (path === `${jobPath}/scope-versions` && method === "GET") return result(state.scopeVersions) as Promise<T>;
+  if (path === `${jobPath}/scope-versions` && method === "POST") {
+    const input = jsonBody<{ parent_version_id: string | null; content: ScopeVersionSummary["content"] }>(init);
+    const parent = input.parent_version_id ? state.scopeVersions.find(({ id }) => id === input.parent_version_id) : null;
+    const version: ScopeVersionSummary = {
+      id: crypto.randomUUID(),
+      parent_version_id: input.parent_version_id,
+      sequence_number: parent ? parent.sequence_number + 1 : 1,
+      content: input.content,
+      created_at: now(),
+      locked_at: null,
+    };
+    state.scopeVersions.push(version);
+    return result(version) as Promise<T>;
   }
   throw new Error(`처리되지 않은 Mock API: ${method} ${path}`);
 }

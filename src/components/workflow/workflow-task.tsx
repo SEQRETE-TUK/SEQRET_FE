@@ -19,7 +19,7 @@ type TaskTone = "neutral" | "primary" | "success" | "warning" | "danger";
 
 export function ProgressSteps({
   current,
-  items = ["시작", "범위", "현장", "배차", "완료"],
+  items = ["시작", "범위", "배차", "현장", "완료"],
 }: {
   current: number;
   items?: string[];

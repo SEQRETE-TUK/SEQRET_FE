@@ -19,7 +19,7 @@ function SheetContent({ className, children, presentation = "sheet", ...props }:
         <Dialog.Popup
           data-presentation={presentation}
           className={cn(
-            "demo-sheet-popup app-safe-bottom relative max-h-[calc(100dvh-40px)] w-full max-w-[var(--shell-mobile)] overflow-y-auto overscroll-contain rounded-t-[var(--radius-sheet)] bg-surface pt-5 text-ink-900 outline-2 outline-transparent focus-visible:outline-focus-ring",
+            "demo-sheet-popup no-scrollbar app-safe-bottom relative max-h-[calc(100dvh-40px)] w-full max-w-[var(--shell-mobile)] overflow-y-auto overscroll-contain rounded-t-[var(--radius-sheet)] bg-surface pt-5 text-ink-900 outline-2 outline-transparent focus-visible:outline-focus-ring",
             presentation === "page" && "h-dvh max-h-dvh rounded-none pt-0",
             className,
           )}

@@ -15,9 +15,10 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { mockApiEnabled } from "@/api/mock-api";
 import { ConnectedProfile } from "@/components/layout/connected-profile";
-import { InfoCallout, ListGroup, ListRow, PageIntro, PriorityFacts, PriorityPanel, SectionHeader, StatusTag } from "@/components/layout/app-primitives";
+import { ActivityTimeline, InfoCallout, ListGroup, ListRow, PageIntro, PriorityFacts, PriorityPanel, SectionHeader, StatusTag, WorkContext } from "@/components/layout/app-primitives";
 import { MobileAppShell, type MobileNavItem } from "@/components/layout/mobile-app-shell";
 import { Button } from "@/components/ui/button";
+import { ProgressSteps } from "@/components/workflow/workflow-task";
 import { useAuth } from "@/features/auth/model/auth-context";
 import {
   getCompletionSummary,
@@ -33,6 +34,7 @@ type ConsumerTab = "home" | "work" | "records" | "my";
 const moneyFormatter = new Intl.NumberFormat("ko-KR");
 const dateFormatter = new Intl.DateTimeFormat("ko-KR", { month: "long", day: "numeric", weekday: "short" });
 const money = (value: number | null | undefined) => value == null ? "금액 확인 중" : `${moneyFormatter.format(value)}원`;
+const completionRequestLabel = (status: string) => ({ requested: "고객 확인 대기", confirmed: "완료 확인", issue_reported: "문제 기록", revoked: "요청 철회", expired: "요청 만료", not_requested: "요청 전" })[status] ?? "상태 확인 중";
 
 const tabs: MobileNavItem<ConsumerTab>[] = [
   { id: "home", label: "홈", icon: Home },
@@ -91,7 +93,7 @@ export function ConsumerApp() {
           {tab === "work" ? <LiveConsumerWorkflow embedded /> : null}
           {tab === "records" ? (
             <RecordsTab
-              completionReady={completionQuery.data?.completion_request?.status === "requested"}
+              completion={completionQuery.data}
               onMove={() => setTab("work")}
               scope={scopeQuery.data}
             />
@@ -139,12 +141,25 @@ function HomeTab({
         title={requiresScopeReview ? "업체가 작업 범위를 제안했어요" : completionReady ? "완료 기록을 확인해 주세요" : "확인된 작업 범위를 볼 수 있어요"}
       />
 
+      <section className="mt-8" aria-labelledby="consumer-progress-title">
+        <SectionHeader aside={scopeStatus}><span id="consumer-progress-title">이사 진행</span></SectionHeader>
+        <div className="mt-4 border-y border-line py-4">
+          <ProgressSteps current={requiresScopeReview ? 1 : completionReady ? 4 : scope?.scope.status === "confirmed" ? 2 : 0} />
+        </div>
+      </section>
+
       <section className="mt-8" aria-labelledby="current-standard-title">
         <SectionHeader aside={<StatusTag tone={requiresScopeReview ? "warning" : "success"}>{scopeStatus}</StatusTag>}><span id="current-standard-title">현재 기준</span></SectionHeader>
-        <ListGroup>
+        {scope ? <WorkContext
+          code={scope.job.job_code}
+          route={`${scope.job.origin_summary ?? "출발지 확인 중"} → ${scope.job.destination_summary ?? "도착지 확인 중"}`}
+          scheduledAt={scope.job.scheduled_at}
+          title={scope.job.title}
+          version={scope.scope.version_label}
+        /> : null}
+        <ListGroup className="mt-0 border-t-0" variant="plain">
           <ListRow description={scopeStatus} end={scope?.scope.version_label ?? "–"} onClick={() => onOpenTask("scope")}>작업 범위</ListRow>
           <ListRow end={money(scope?.quote?.total_amount_krw)} onClick={() => onOpenTask("scope")}>확인 금액</ListRow>
-          <ListRow description={scope?.job.destination_summary ?? "도착지 확인 중"} onClick={onMove}>{scope?.job.origin_summary ?? "출발지 확인 중"}</ListRow>
         </ListGroup>
       </section>
 
@@ -166,19 +181,54 @@ function HomeTab({
   );
 }
 
-function RecordsTab({ completionReady, onMove, scope }: { completionReady: boolean; onMove: () => void; scope: ScopeReview | undefined }) {
+function RecordsTab({ completion, onMove, scope }: {
+  completion: Awaited<ReturnType<typeof getCompletionSummary>> | undefined;
+  onMove: () => void;
+  scope: ScopeReview | undefined;
+}) {
+  const completionReady = completion?.completion_request?.status === "requested";
+  const activity = [
+    scope?.company_confirmed_at ? {
+      actor: scope.job.company_display_name ?? "업체",
+      detail: `${scope.scope.item_count}개 작업 · ${money(scope.quote?.total_amount_krw)}`,
+      time: scope.company_confirmed_at,
+      title: `${scope.scope.version_label} 작업 범위와 금액 제안`,
+    } : null,
+    scope?.revision_request ? {
+      actor: "고객",
+      detail: scope.revision_request.reason,
+      time: scope.revision_request.requested_at,
+      title: "작업 범위 수정 요청",
+    } : null,
+    scope?.customer_confirmed_at ? {
+      actor: "고객",
+      detail: "업체와 같은 버전을 확인했습니다.",
+      time: scope.customer_confirmed_at,
+      title: `${scope.scope.version_label} 공동확인 완료`,
+    } : null,
+    ...(completion?.field_changes ?? []).map((change) => ({
+      actor: "고객·업체·현장기사",
+      detail: `${change.amount_delta_krw > 0 ? "+" : ""}${money(change.amount_delta_krw)} · ${change.status}`,
+      time: change.decided_at,
+      title: change.title,
+    })),
+    completion?.completion_request ? {
+      actor: scope?.job.company_display_name ?? "업체",
+      detail: `최종 금액 ${money(completion.final_amount_krw)} · ${completionRequestLabel(completion.completion_request.status)}`,
+      time: completion.completion_request.requested_at,
+      title: "완료 확인 요청",
+    } : null,
+  ].filter((item): item is NonNullable<typeof item> => item !== null);
   return (
     <div className="mobile-screen">
-      <PageIntro description="확인·변경·완료처럼 거래 기준에 영향을 준 기록만 모아봅니다." title="이사 기록" />
+      <PageIntro description="누가 무엇을 요청하고 확인했는지 시간 순서로 남습니다." title="변경과 확인 이력" />
+      {scope ? <WorkContext code={scope.job.job_code} route={`${scope.job.origin_summary ?? "출발지"} → ${scope.job.destination_summary ?? "도착지"}`} scheduledAt={scope.job.scheduled_at} status={<StatusTag tone={scope.scope.status === "confirmed" ? "success" : "warning"}>{scope.scope.status === "confirmed" ? "공동확인 완료" : "확인 진행 중"}</StatusTag>} title={scope.job.title} version={scope.scope.version_label} /> : null}
       <section className="mt-8">
-        <SectionHeader aside={scope?.scope.version_label}>공동확인</SectionHeader>
-        <ListGroup variant="plain">
-          <ListRow description={scope?.scope.status === "customer_review" ? "고객 확인이 필요해요" : "최신 기준으로 사용 중"} end={money(scope?.quote?.total_amount_krw)} onClick={onMove}>작업 범위와 견적</ListRow>
-          <ListRow description="승인된 변경만 새 버전과 금액에 반영됩니다" onClick={onMove}>현장 변경 기록</ListRow>
-          <ListRow description={completionReady ? "고객 확인 요청 도착" : "현장 제출 대기"} onClick={onMove}>완료 기록</ListRow>
-        </ListGroup>
+        <SectionHeader aside={`${activity.length}건`}>상태 변경 이력</SectionHeader>
+        {activity.length > 0 ? <ActivityTimeline items={activity} /> : <p className="mt-3 border-y border-line py-5 text-sm text-ink-600">아직 확인하거나 변경한 기록이 없습니다.</p>}
       </section>
-      <InfoCallout icon={<Bell aria-hidden="true" size={18} weight="fill" />}>결정이 필요한 기록은 홈의 첫 번째 항목으로 다시 표시됩니다.</InfoCallout>
+      {scope?.scope.status === "customer_review" || completionReady ? <Button className="mt-8 w-full" onClick={onMove} size="cta">대기 중인 작업 확인</Button> : null}
+      <InfoCallout icon={<Bell aria-hidden="true" size={18} weight="fill" />}>요청을 보낸 뒤에도 다음 담당자와 기존 기준은 기록에서 계속 확인할 수 있습니다.</InfoCallout>
     </div>
   );
 }

@@ -13,7 +13,16 @@ import { useSearchParams } from "react-router-dom";
 
 import { mockApiEnabled } from "@/api/mock-api";
 import { Button } from "@/components/ui/button";
-import { ListGroup, ListRow, SectionHeader, StatusTag } from "@/components/layout/app-primitives";
+import {
+  ConfirmationStatus,
+  HandoffStatus,
+  ListGroup,
+  ListRow,
+  MoneyBreakdown,
+  SectionHeader,
+  StatusTag,
+  WorkContext,
+} from "@/components/layout/app-primitives";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
@@ -49,7 +58,8 @@ import {
 import { useAuthFailure } from "@/features/workflow/model/use-auth-failure";
 import { useRetryAfter } from "@/features/workflow/model/use-retry-after";
 
-const money = (value: number | null | undefined) => value == null ? "금액 미정" : `${value.toLocaleString("ko-KR")}원`;
+const moneyFormatter = new Intl.NumberFormat("ko-KR");
+const money = (value: number | null | undefined) => value == null ? "금액 미정" : `${moneyFormatter.format(value)}원`;
 
 export function LiveConsumerWorkflow({ embedded = false }: { embedded?: boolean }) {
   const { session } = useAuth();
@@ -141,6 +151,16 @@ export function LiveConsumerWorkflow({ embedded = false }: { embedded?: boolean 
   const canDecideCompletion = completionRequest?.status === "requested";
   return (
     <WorkflowShell
+      context={scopeQuery.data ? (
+        <WorkContext
+          code={scopeQuery.data.job.job_code}
+          route={`${scopeQuery.data.job.origin_summary ?? "출발지 미정"} → ${scopeQuery.data.job.destination_summary ?? "도착지 미정"}`}
+          scheduledAt={scopeQuery.data.job.scheduled_at}
+          status={<StatusTag tone={scopeQuery.data.scope.status === "confirmed" ? "success" : "warning"}>{scopeQuery.data.scope.status === "customer_review" ? "내 확인 대기" : scopeQuery.data.scope.status === "revision_requested" ? "업체 수정 중" : scopeQuery.data.scope.status === "confirmed" ? "공동확인 완료" : "업체 검토 중"}</StatusTag>}
+          title={scopeQuery.data.job.title}
+          version={scopeQuery.data.scope.version_label}
+        />
+      ) : undefined}
       currentStep={scopeQuery.data?.scope.status === "customer_review" ? 1 : canDecideCompletion ? 4 : proposalId ? 2 : 1}
       embedded={embedded}
       retryAfter={retryAfter}
@@ -169,29 +189,69 @@ export function LiveConsumerWorkflow({ embedded = false }: { embedded?: boolean 
                 <span className="text-sm font-bold text-ink-600">버전 {scopeQuery.data.scope.version_label}</span>
               </div>
               <p className="mt-5 text-[17px] leading-6 font-extrabold">{scopeQuery.data.job.origin_summary ?? "출발지 미정"} → {scopeQuery.data.job.destination_summary ?? "도착지 미정"}</p>
+              <HandoffStatus
+                action={scopeQuery.data.scope.status === "customer_review" ? "제안 내용을 검토해 주세요" : scopeQuery.data.scope.status === "revision_requested" ? "업체의 새 제안을 기다리고 있어요" : "최신 기준을 함께 확인했어요"}
+                actor={scopeQuery.data.scope.status === "customer_review" ? "고객" : scopeQuery.data.scope.status === "revision_requested" ? "업체" : "고객·업체"}
+                updatedAt={scopeQuery.data.revision_request?.requested_at ?? scopeQuery.data.company_confirmed_at}
+              >
+                {scopeQuery.data.scope.status === "customer_review"
+                  ? "확인은 결제나 전자서명이 아니며, 수정 요청을 보내면 이 버전은 그대로 남고 업체가 새 버전을 제안합니다."
+                  : scopeQuery.data.scope.status === "revision_requested"
+                    ? "작성한 수정 사유는 보존됐습니다. 새 제안이 오기 전까지 기존 기준과 금액은 바뀌지 않습니다."
+                    : "새 제안이 생기면 양측은 새 버전을 다시 확인합니다."}
+              </HandoffStatus>
               <div className="mt-5 grid grid-cols-2 divide-x divide-line rounded-[var(--radius-input)] bg-primary-50 py-4 text-center">
                 <div><p className="text-xs font-bold text-primary-700">작업 항목</p><strong className="mt-1 block text-[22px]">{scopeQuery.data.scope.item_count}개</strong></div>
                 <div><p className="text-xs font-bold text-primary-700">제안 금액</p><strong className="mt-1 block text-[22px] text-primary-800">{money(scopeQuery.data.quote?.total_amount_krw)}</strong></div>
               </div>
 
               <div className="mt-5 grid grid-cols-2 border-b border-line" role="tablist" aria-label="작업 범위 보기">
-                <button aria-controls="scope-panel" aria-selected={scopeTab === "summary"} className={`relative min-h-12 text-sm font-extrabold ${scopeTab === "summary" ? "text-ink-900 after:absolute after:inset-x-0 after:bottom-[-1px] after:h-0.5 after:bg-primary-600" : "text-ink-600"}`} id="scope-tab-summary" onClick={() => setScopeTab("summary")} role="tab" type="button">변경 요약</button>
-                <button aria-controls="scope-panel" aria-selected={scopeTab === "all"} className={`relative min-h-12 text-sm font-extrabold ${scopeTab === "all" ? "text-ink-900 after:absolute after:inset-x-0 after:bottom-[-1px] after:h-0.5 after:bg-primary-600" : "text-ink-600"}`} id="scope-tab-all" onClick={() => setScopeTab("all")} role="tab" type="button">전체 범위</button>
+                <button aria-controls="scope-panel" aria-selected={scopeTab === "summary"} className={`relative min-h-12 text-sm font-extrabold ${scopeTab === "summary" ? "text-ink-900 after:absolute after:inset-x-0 after:bottom-[-1px] after:h-0.5 after:bg-primary-600" : "text-ink-600"}`} id="scope-tab-summary" onClick={() => setScopeTab("summary")} role="tab" type="button">제안 요약</button>
+                <button aria-controls="scope-panel" aria-selected={scopeTab === "all"} className={`relative min-h-12 text-sm font-extrabold ${scopeTab === "all" ? "text-ink-900 after:absolute after:inset-x-0 after:bottom-[-1px] after:h-0.5 after:bg-primary-600" : "text-ink-600"}`} id="scope-tab-all" onClick={() => setScopeTab("all")} role="tab" type="button">작업 범위</button>
               </div>
 
               <section aria-labelledby={scopeTab === "summary" ? "scope-tab-summary" : "scope-tab-all"} className="mt-6" id="scope-panel" role="tabpanel">
-                <SectionHeader>{scopeTab === "summary" ? "확인할 범위" : "전체 작업 범위"}</SectionHeader>
-                <ListGroup variant="plain">
-                  {scopeQuery.data.scope.room_groups.map((group) => (
-                    <ListRow key={group.room_zone_id} description={group.items.map((item) => item.description).join(" · ")} end={`${group.items.length}개`}>{group.label}</ListRow>
-                  ))}
-                </ListGroup>
+                {scopeTab === "summary" ? (
+                  <>
+                    <SectionHeader>업체 제안</SectionHeader>
+                    <p className="mt-2 text-sm leading-6 text-ink-600">{scopeQuery.data.proposal_reason ?? "제안 사유가 등록되지 않았습니다."}</p>
+                    <div className="mt-6">
+                      <SectionHeader>금액 구성</SectionHeader>
+                      {scopeQuery.data.quote ? <MoneyBreakdown adjustments={scopeQuery.data.quote.adjustments.map(({ amount_krw, label }) => ({ amount: amount_krw, label }))} baseAmount={scopeQuery.data.quote.base_amount_krw} totalAmount={scopeQuery.data.quote.total_amount_krw} /> : <EmptyState>업체가 금액을 제안하면 여기에 구성 내역이 표시됩니다.</EmptyState>}
+                    </div>
+                    <div className="mt-6">
+                      <SectionHeader>양측 확인</SectionHeader>
+                      <ConfirmationStatus companyConfirmedAt={scopeQuery.data.company_confirmed_at} customerConfirmedAt={scopeQuery.data.customer_confirmed_at} />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <SectionHeader>공간별 작업</SectionHeader>
+                    <ListGroup variant="plain">
+                      {scopeQuery.data.scope.room_groups.map((group) => (
+                        <ListRow key={group.room_zone_id} description={group.items.map((item) => item.description).join(" · ")} end={`${group.items.length}개`}>{group.label}</ListRow>
+                      ))}
+                    </ListGroup>
+                    <div className="mt-6">
+                      <SectionHeader>포함 작업</SectionHeader>
+                      <ListGroup variant="plain">
+                        {scopeQuery.data.scope.included_works.length > 0 ? scopeQuery.data.scope.included_works.map((work) => <ListRow key={work}>{work}</ListRow>) : <ListRow>등록된 포함 작업 없음</ListRow>}
+                      </ListGroup>
+                    </div>
+                    <div className="mt-6">
+                      <SectionHeader>제외 작업</SectionHeader>
+                      <ListGroup variant="plain">
+                        {scopeQuery.data.scope.exclusions.length > 0 ? scopeQuery.data.scope.exclusions.map((work) => <ListRow key={work}>{work}</ListRow>) : <ListRow>등록된 제외 작업 없음</ListRow>}
+                      </ListGroup>
+                    </div>
+                  </>
+                )}
               </section>
             </div>
             {scopeQuery.data.scope.status === "customer_review" ? (
               <SheetFooter className="-mx-5 grid grid-cols-[0.8fr_1.2fr] gap-2">
                 <Button disabled={confirmMutation.isPending} onClick={() => setRevisionOpen(true)} variant="outline">수정 요청</Button>
-                <Button disabled={confirmMutation.isPending} onClick={() => confirmMutation.mutate()}><Check /> 이대로 확인</Button>
+                <Button disabled={confirmMutation.isPending} onClick={() => confirmMutation.mutate()}><Check /> 범위 확인 완료</Button>
               </SheetFooter>
             ) : <div className="px-5 pb-5"><EmptyState>현재 상태: {scopeQuery.data.scope.status}</EmptyState></div>}
           </>
@@ -235,10 +295,14 @@ export function LiveConsumerWorkflow({ embedded = false }: { embedded?: boolean 
           <div className="mt-4">
             <h3 className="text-lg font-bold">{changeQuery.data.title}</h3>
             <p className="mt-1 text-sm leading-6 text-ink-600">{changeQuery.data.reason}</p>
-            <div className="mt-3 rounded-xl bg-warning-bg p-4"><p className="text-sm text-warning-ink">변경 후 금액</p><strong className="mt-1 block text-2xl text-warning-ink">{money(changeQuery.data.quote.total_amount_krw)}</strong><p className="mt-2 text-xs text-ink-600">현장 증빙 {changeQuery.data.evidence_media.length}건 · URL은 저장하지 않습니다.</p></div>
+            <HandoffStatus action="현장 변경안을 결정해 주세요" actor="고객" updatedAt={changeQuery.data.requested_at}>설명 요청이나 거절은 기존 승인본과 금액을 바꾸지 않습니다. 승인한 경우에만 새 버전과 총액이 만들어집니다.</HandoffStatus>
+            <p className="mt-5 text-xs font-bold text-ink-600">기준 범위 {changeQuery.data.base_scope_version_label}</p>
+            <MoneyBreakdown adjustments={changeQuery.data.quote.adjustments.map(({ amount_krw, label }) => ({ amount: amount_krw, label }))} baseAmount={changeQuery.data.quote.base_amount_krw} totalAmount={changeQuery.data.quote.total_amount_krw} />
+            <p className="mt-3 text-xs text-ink-600">현장 증빙 {changeQuery.data.evidence_media.length}건 · URL은 저장하지 않습니다.</p>
+            {changeQuery.data.evidence_media.length > 0 ? <div className="mt-3 grid grid-cols-2 gap-2">{changeQuery.data.evidence_media.map((media) => <img alt="현장 변경 근거" className="aspect-[4/3] w-full rounded-[var(--radius-input)] object-cover" height="120" key={media.media_asset_id} loading="lazy" src={media.read_url} width="160" />)}</div> : null}
             {changeQuery.data.status === "pending" ? (
               <>
-                <Button className="mt-4 w-full" disabled={changeMutation.isPending} onClick={() => changeMutation.mutate("approve")} size="cta">승인하기</Button>
+                <Button className="mt-4 w-full" disabled={changeMutation.isPending} onClick={() => changeMutation.mutate("approve")} size="cta">변경안 승인</Button>
                 <div className="mt-2 grid grid-cols-2 gap-2"><Button onClick={() => setChangeMode("request_clarification")} variant="outline">설명 요청</Button><Button onClick={() => setChangeMode("reject")} variant="destructive">거절</Button></div>
               </>
             ) : <EmptyState>처리 상태: {changeQuery.data.status}</EmptyState>}
@@ -260,6 +324,7 @@ export function LiveConsumerWorkflow({ embedded = false }: { embedded?: boolean 
         <ApiNotice error={completionQuery.error} title="완료 기록이 아직 준비되지 않았어요" />
         {completionQuery.data ? (
           <>
+            {canDecideCompletion ? <HandoffStatus action="완료 기록과 최종 금액을 확인해 주세요" actor="고객" updatedAt={completionRequest?.requested_at}>문제가 있다면 완료 확인 대신 사실을 기록할 수 있습니다. 문제 신고는 책임 판정이 아닙니다.</HandoffStatus> : null}
             {mockApiEnabled && completionQuery.data.completion_media_count > 0 ? (
               <figure className="mt-4">
                 <div className="grid grid-cols-2 overflow-hidden rounded-[var(--radius-input)] border border-line bg-canvas">
@@ -280,6 +345,10 @@ export function LiveConsumerWorkflow({ embedded = false }: { embedded?: boolean 
               <div className="rounded-xl bg-canvas p-4"><Clock3 className="text-primary-700" /><p className="mt-2 text-xs text-ink-600">작업시간</p><strong>{completionQuery.data.duration_minutes ?? 0}분</strong></div>
             </div>
             <p className="mt-3 text-sm text-ink-600">체크리스트 {completionQuery.data.checklist.completed_count}/{completionQuery.data.checklist.total_count} · 완료 사진 {completionQuery.data.completion_media_count}장</p>
+            {completionQuery.data.quote ? <div className="mt-6"><SectionHeader>최종 금액 구성</SectionHeader><MoneyBreakdown adjustments={[
+              ...completionQuery.data.quote.adjustments.map(({ amount_krw, label }) => ({ amount: amount_krw, label })),
+              ...completionQuery.data.field_changes.filter(({ status }) => status === "approved").map(({ amount_delta_krw, title }) => ({ amount: amount_delta_krw, label: title })),
+            ]} baseAmount={completionQuery.data.quote.base_amount_krw} totalAmount={completionQuery.data.final_amount_krw ?? completionQuery.data.quote.total_amount_krw} /></div> : null}
             <div className="mt-4 grid grid-cols-2 gap-2"><Button onClick={() => setExtraCharge(false)} variant={extraCharge === false ? "default" : "outline"}>추가금 없음</Button><Button onClick={() => setExtraCharge(true)} variant={extraCharge === true ? "default" : "outline"}>추가금 있었음</Button></div>
             {canDecideCompletion ? (
               <>

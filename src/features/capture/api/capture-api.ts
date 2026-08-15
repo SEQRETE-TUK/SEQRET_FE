@@ -114,6 +114,18 @@ export interface AnalysisReviewItemInput {
   description: string;
 }
 
+export interface ScopeVersionSummary {
+  id: string;
+  parent_version_id: string | null;
+  sequence_number: number;
+  content: {
+    schema_version: 1;
+    items: AnalysisReviewItemInput[];
+  };
+  created_at: string;
+  locked_at: string | null;
+}
+
 export interface MediaUploadTarget {
   asset: MediaAsset;
   upload_url: string;
@@ -149,6 +161,11 @@ export interface SubmitCaptureRequest extends AuthorizedRequest {
 export interface CompleteAnalysisReviewRequest extends AuthorizedRequest {
   sourceScopeVersionId: string;
   items: AnalysisReviewItemInput[];
+}
+
+export interface CreateManualScopeRequest extends AuthorizedRequest {
+  items: AnalysisReviewItemInput[];
+  parentVersionId: string | null;
 }
 
 const UUID_PATTERN =
@@ -338,6 +355,37 @@ export async function completeAnalysisReview({
     body: JSON.stringify({
       source_scope_version_id: sourceScopeVersionId,
       items,
+    }),
+    headers: jsonHeaders(),
+    method: "POST",
+    signal,
+  });
+}
+
+export async function listScopeVersions({
+  accessToken,
+  jobId,
+  signal,
+}: AuthorizedRequest): Promise<ScopeVersionSummary[]> {
+  return apiRequest<ScopeVersionSummary[]>(`${jobPath(jobId)}/scope-versions`, {
+    accessToken,
+    method: "GET",
+    signal,
+  });
+}
+
+export async function createManualScope({
+  accessToken,
+  items,
+  jobId,
+  parentVersionId,
+  signal,
+}: CreateManualScopeRequest): Promise<ScopeVersionSummary> {
+  return apiRequest<ScopeVersionSummary>(`${jobPath(jobId)}/scope-versions`, {
+    accessToken,
+    body: JSON.stringify({
+      parent_version_id: parentVersionId,
+      content: { schema_version: 1, items },
     }),
     headers: jsonHeaders(),
     method: "POST",

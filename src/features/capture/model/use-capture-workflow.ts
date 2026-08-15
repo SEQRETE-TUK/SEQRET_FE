@@ -6,15 +6,18 @@ import {
   completeAnalysisReview,
   completeMediaUpload,
   createCaptureSession,
+  createManualScope,
   createMediaUpload,
   getMoveJob,
   getAnalysisReview,
+  listScopeVersions,
   listCaptureSessions,
   submitCapture,
   uploadCaptureFile,
   type CaptureSession,
   type CompleteAnalysisReviewRequest,
   type MediaUploadTarget,
+  type AnalysisReviewItemInput,
 } from "@/features/capture/api/capture-api";
 import { SignedUploadError } from "@/api/client";
 
@@ -62,6 +65,7 @@ export function useCaptureWorkflow(connection: CaptureConnection) {
   const rootKey = ["capture-flow", connection.cacheScope, connection.jobId] as const;
   const sessionsKey = [...rootKey, "sessions"] as const;
   const reviewKey = [...rootKey, "analysis-review"] as const;
+  const scopeVersionsKey = [...rootKey, "scope-versions"] as const;
 
   const jobQuery = useQuery({
     queryKey: [...rootKey, "job"],
@@ -79,6 +83,11 @@ export function useCaptureWorkflow(connection: CaptureConnection) {
     enabled: latestAnalysisStatus === "completed",
     queryKey: reviewKey,
     queryFn: ({ signal }) => getAnalysisReview({ ...connection, signal }),
+  });
+
+  const scopeVersionsQuery = useQuery({
+    queryKey: scopeVersionsKey,
+    queryFn: ({ signal }) => listScopeVersions({ ...connection, signal }),
   });
 
   const refreshSessions = async () => {
@@ -163,15 +172,25 @@ export function useCaptureWorkflow(connection: CaptureConnection) {
     },
   });
 
+  const manualScopeMutation = useMutation({
+    mutationFn: ({ items, parentVersionId }: { items: AnalysisReviewItemInput[]; parentVersionId: string | null }) =>
+      createManualScope({ ...connection, items, parentVersionId }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: scopeVersionsKey });
+    },
+  });
+
   return {
     createSessionMutation,
     jobQuery,
+    manualScopeMutation,
     reviewMutation,
     reviewQuery,
     refreshReview,
     refreshSessions,
     resumableUpload,
     sessionsQuery,
+    scopeVersionsQuery,
     submitMutation,
     uploadMutation,
   };

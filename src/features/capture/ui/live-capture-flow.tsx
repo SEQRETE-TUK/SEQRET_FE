@@ -25,6 +25,8 @@ import { ProgressSteps } from "@/components/workflow/workflow-task";
 import {
   ANALYSIS_REVIEW_FORM_ID,
   AnalysisReviewPanel,
+  MANUAL_SCOPE_FORM_ID,
+  ManualScopeEditor,
   type AnalysisReviewDraftItem,
 } from "@/features/capture/ui/analysis-review-panel";
 import { Badge } from "@/components/ui/badge";
@@ -131,13 +133,13 @@ function ConnectionForm({ onConnect }: ConnectionFormProps) {
           className="grid size-11 place-items-center rounded-full"
           href="/"
         >
-          <ArrowLeft size={22} />
+          <ArrowLeft aria-hidden="true" size={22} />
         </a>
         <p className="mx-auto pr-11 text-lg font-bold">촬영 이어가기</p>
       </header>
       <main className="flex-1 px-6 pb-8 pt-7">
         <span className="grid size-12 place-items-center rounded-full bg-primary-50 text-primary-700">
-          <LockKeyhole size={27} />
+          <LockKeyhole aria-hidden="true" size={27} />
         </span>
         <h1 className="mt-6 text-ui-screen font-extrabold leading-[34px] tracking-[-0.6px]">
           받은 초대 정보로
@@ -187,7 +189,7 @@ function ConnectionForm({ onConnect }: ConnectionFormProps) {
         </form>
 
         <Card className="mt-6 flex gap-3 border-primary-100 bg-primary-50 p-4">
-          <ShieldCheck className="mt-0.5 shrink-0 text-primary-700" size={21} />
+          <ShieldCheck aria-hidden="true" className="mt-0.5 shrink-0 text-primary-700" size={21} />
           <div>
             <p className="text-base font-bold">이 화면을 닫으면 secret도 사라져요</p>
             <p className="mt-1 text-ui-support leading-5 text-ink-600">
@@ -253,7 +255,7 @@ function ZoneRow({
               : "bg-primary-50 text-primary-700"
         }`}
       >
-        {state.tone === "success" ? <Check size={17} /> : index + 1}
+        {state.tone === "success" ? <Check aria-hidden="true" size={17} /> : index + 1}
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
@@ -277,7 +279,7 @@ function ZoneRow({
         }`}
         htmlFor={inputId}
       >
-        <Camera size={19} />
+        <Camera aria-hidden="true" size={19} />
         <span className="sr-only">{zone.name} 사진 또는 영상 추가</span>
       </label>
       <input
@@ -303,7 +305,7 @@ function AnalysisState({ analysis }: { analysis: CaptureAnalysis }) {
     return (
       <Card className="mt-5 border-success bg-success-bg p-5">
         <div className="flex gap-3">
-          <CheckCircle2 className="shrink-0 text-success-ink" size={24} />
+          <CheckCircle2 aria-hidden="true" className="shrink-0 text-success-ink" size={24} />
           <div>
             <h2 className="text-xl font-bold text-success-ink">AI 초안이 준비됐어요</h2>
             <p className="mt-2 text-base leading-5 text-ink-600">
@@ -318,11 +320,11 @@ function AnalysisState({ analysis }: { analysis: CaptureAnalysis }) {
     return (
       <Card className="mt-5 border-warning bg-warning-bg p-5">
         <div className="flex gap-3">
-          <AlertTriangle className="shrink-0 text-warning" size={24} />
+          <AlertTriangle aria-hidden="true" className="shrink-0 text-warning" size={24} />
           <div>
             <h2 className="text-xl font-bold">분석을 완료하지 못했어요</h2>
             <p className="mt-2 text-base leading-5 text-ink-600">
-              촬영 파일은 그대로 보존됐어요. {analysis.retryable ? "자동 재시도 정책은 다음 통합 범위에서 연결해요." : "직접 입력 경로로 이어갈 수 있어요."}
+              촬영 파일은 그대로 보존됐어요. 아래에서 짐 목록을 직접 작성해 흐름을 계속할 수 있어요.
             </p>
           </div>
         </div>
@@ -339,7 +341,7 @@ function AnalysisState({ analysis }: { analysis: CaptureAnalysis }) {
     <Card className="mt-5 border-primary-100 bg-primary-50 p-5">
       <div className="flex items-center gap-4">
         <span className="grid size-12 shrink-0 place-items-center rounded-full bg-surface text-primary-700">
-          <LoaderCircle className="demo-spin" size={24} />
+          <LoaderCircle aria-hidden="true" className="demo-spin" size={24} />
         </span>
         <div>
           <h2 className="text-xl font-bold">{copy[analysis.status]}</h2>
@@ -354,6 +356,8 @@ function ConnectedCapture({ connection, onDisconnect, returnHref, returnLabel }:
   const workflow = useCaptureWorkflow(connection);
   const [localError, setLocalError] = useState<string | null>(null);
   const [localNotice, setLocalNotice] = useState<string | null>(null);
+  const [manualMode, setManualMode] = useState(false);
+  const [manualDraftItems, setManualDraftItems] = useState<AnalysisReviewDraftItem[]>([]);
   const [recoveringReview, setRecoveringReview] = useState(false);
   const [removedReviewItem, setRemovedReviewItem] = useState<RemovedReviewItem | null>(null);
   const [reviewDraftState, setReviewDraftState] = useState<ReviewDraftState | null>(null);
@@ -398,6 +402,9 @@ function ConnectedCapture({ connection, onDisconnect, returnHref, returnLabel }:
           description: item.description,
         })) ?? []);
   const reviewCompleted = review?.review_scope_version_id !== null && review !== undefined;
+  const latestScopeVersion = [...(workflow.scopeVersionsQuery.data ?? [])]
+    .sort((left, right) => left.sequence_number - right.sequence_number)
+    .at(-1);
   const reviewDirty =
     !reviewCompleted &&
     review !== undefined &&
@@ -419,6 +426,9 @@ function ConnectedCapture({ connection, onDisconnect, returnHref, returnLabel }:
         item.description.trim().length > 0 &&
         review?.zones.some((zone) => zone.room_zone_id === item.roomZoneId),
     );
+  const manualValid =
+    manualDraftItems.length > 0 &&
+    manualDraftItems.every((item) => item.description.trim().length > 0 && zones.some((zone) => zone.id === item.roomZoneId));
   const stage: 1 | 2 | 3 | 4 =
     analysis?.status === "completed" ? 4 : analysis ? 3 : validating || allReady ? 2 : 1;
   const busy =
@@ -426,6 +436,7 @@ function ConnectedCapture({ connection, onDisconnect, returnHref, returnLabel }:
     workflow.uploadMutation.isPending ||
     workflow.submitMutation.isPending ||
     workflow.reviewMutation.isPending ||
+    workflow.manualScopeMutation.isPending ||
     recoveringReview;
   const requestError =
     workflow.jobQuery.error ??
@@ -433,7 +444,8 @@ function ConnectedCapture({ connection, onDisconnect, returnHref, returnLabel }:
     workflow.createSessionMutation.error ??
     workflow.uploadMutation.error ??
     workflow.submitMutation.error ??
-    workflow.reviewMutation.error;
+    workflow.reviewMutation.error ??
+    workflow.manualScopeMutation.error;
 
   useEffect(() => {
     if (!reviewDirty) return;
@@ -449,7 +461,7 @@ function ConnectedCapture({ connection, onDisconnect, returnHref, returnLabel }:
     return (
       <div className="grid min-h-dvh place-items-center bg-canvas px-8 text-center">
         <div>
-          <LoaderCircle className="demo-spin mx-auto text-primary-700" size={32} />
+          <LoaderCircle aria-hidden="true" className="demo-spin mx-auto text-primary-700" size={32} />
           <p className="mt-4 text-lg font-bold">내 촬영 상태를 불러오고 있어요</p>
         </div>
       </div>
@@ -459,12 +471,12 @@ function ConnectedCapture({ connection, onDisconnect, returnHref, returnLabel }:
   if (!job || workflow.jobQuery.isError || workflow.sessionsQuery.isError) {
     return (
       <div className="flex min-h-dvh flex-col bg-canvas px-6 pb-8 pt-20">
-        <AlertTriangle className="text-warning" size={32} />
+        <AlertTriangle aria-hidden="true" className="text-warning" size={32} />
         <h1 className="mt-5 text-ui-title-lg font-extrabold">촬영을 불러오지 못했어요</h1>
         <p className="mt-3 text-lg leading-6 text-ink-600">{friendlyError(requestError)}</p>
         <div className="mt-auto space-y-3">
           <Button className="w-full" onClick={() => void Promise.all([workflow.jobQuery.refetch(), workflow.sessionsQuery.refetch()])} size="cta">
-            <RefreshCw size={18} /> 다시 확인
+            <RefreshCw aria-hidden="true" size={18} /> 다시 확인
           </Button>
           <Button className="w-full" onClick={onDisconnect} size="cta" variant="outline">
             초대 정보 다시 입력
@@ -619,6 +631,44 @@ function ConnectedCapture({ connection, onDisconnect, returnHref, returnLabel }:
     );
   };
 
+  const startManualEntry = () => {
+    const firstZone = zones[0];
+    if (!firstZone || latestScopeVersion?.locked_at) return;
+    setLocalError(null);
+    setLocalNotice(null);
+    workflow.manualScopeMutation.reset();
+    setManualDraftItems((current) => current.length > 0 ? current : [{
+      itemKey: `customer-${crypto.randomUUID()}`,
+      roomZoneId: firstZone.id,
+      description: "",
+    }]);
+    setManualMode(true);
+  };
+
+  const addManualItem = () => {
+    const firstZone = zones[0];
+    if (!firstZone || manualDraftItems.length >= MAX_REVIEW_ITEMS) return;
+    setManualDraftItems((current) => [...current, {
+      itemKey: `customer-${crypto.randomUUID()}`,
+      roomZoneId: firstZone.id,
+      description: "",
+    }]);
+  };
+
+  const completeManualScope = () => {
+    if (!manualValid || latestScopeVersion?.locked_at) return;
+    workflow.manualScopeMutation.mutate({
+      parentVersionId: latestScopeVersion?.id ?? null,
+      items: manualDraftItems.map((item) => ({
+        item_key: item.itemKey,
+        room_zone_id: item.roomZoneId,
+        description: item.description.trim(),
+      })),
+    }, {
+      onSuccess: () => setLocalNotice("직접 작성한 짐 목록을 새 범위 버전으로 저장했어요."),
+    });
+  };
+
   return (
     <div className="flex min-h-dvh flex-col bg-canvas text-ink-900">
       <header className="app-safe-header flex items-center border-b border-line bg-surface px-5 pb-3">
@@ -637,7 +687,7 @@ function ConnectedCapture({ connection, onDisconnect, returnHref, returnLabel }:
           onClick={disconnectSafely}
           type="button"
         >
-          <LogOut size={20} />
+          <LogOut aria-hidden="true" size={20} />
         </button>
       </header>
 
@@ -646,7 +696,9 @@ function ConnectedCapture({ connection, onDisconnect, returnHref, returnLabel }:
           <div>
             <p className="text-ui-support font-bold text-primary-700">{mockApiEnabled ? "Mock 데이터로 연결됨" : "실제 서버와 연결됨"}</p>
             <h1 className="mt-2 text-ui-title-lg font-extrabold leading-8">
-              {analysis?.status === "completed"
+              {manualMode
+                ? "짐 목록을 직접 작성해 주세요"
+                : analysis?.status === "completed"
                 ? "AI 초안을 확인해 주세요"
                 : "출발지 구역을 촬영해 주세요"}
             </h1>
@@ -654,17 +706,22 @@ function ConnectedCapture({ connection, onDisconnect, returnHref, returnLabel }:
           {(workflow.sessionsQuery.isFetching || workflow.reviewQuery.isFetching) && <LoaderCircle aria-label="상태 확인 중" className="demo-spin mt-1 shrink-0 text-primary-700" size={21} />}
         </div>
         <p className="mt-2 text-base leading-5 text-ink-600">
-          {analysis?.status === "completed"
+          {manualMode
+            ? "직접 입력한 내용도 새 작업범위 버전으로 남고, 업체가 검토하기 전까지 공동확인된 범위가 아니에요."
+            : analysis?.status === "completed"
             ? "AI 제안은 확정 범위가 아니에요. 내가 확인한 내용만 다음 단계로 전달해요."
             : "파일은 비공개 저장소로 직접 전송하고, 서버 확인이 끝난 자료만 AI 분석에 사용해요."}
         </p>
         <StageRail complete={reviewCompleted} stage={stage} />
 
-        {!session && (
+        {!session && !manualMode && (
           <Card className="mt-6 p-5 text-center">
-            <Video className="mx-auto text-primary-700" size={28} />
+            <Video aria-hidden="true" className="mx-auto text-primary-700" size={28} />
             <h2 className="mt-3 text-xl font-bold">새 촬영을 시작할 준비가 됐어요</h2>
             <p className="mt-2 text-ui-support leading-5 text-ink-600">촬영 세션을 만든 뒤 구역별 사진이나 영상을 추가해요.</p>
+            <Button className="mt-4 w-full" disabled={zones.length === 0 || workflow.scopeVersionsQuery.isPending || Boolean(latestScopeVersion?.locked_at)} onClick={startManualEntry} size="chip" variant="outline">
+              촬영 없이 직접 입력
+            </Button>
           </Card>
         )}
 
@@ -687,7 +744,7 @@ function ConnectedCapture({ connection, onDisconnect, returnHref, returnLabel }:
               </ol>
             ) : (
               <div className="py-6 text-center">
-                <Info className="mx-auto text-warning" size={24} />
+                <Info aria-hidden="true" className="mx-auto text-warning" size={24} />
                 <p className="mt-3 text-lg font-bold">출발지 촬영 구역이 없어요</p>
               </div>
             )}
@@ -696,9 +753,26 @@ function ConnectedCapture({ connection, onDisconnect, returnHref, returnLabel }:
 
         {analysis && <AnalysisState analysis={analysis} />}
 
+        {analysis?.status === "failed" && !manualMode ? (
+          <Button className="mt-4 w-full" disabled={zones.length === 0 || workflow.scopeVersionsQuery.isPending || Boolean(latestScopeVersion?.locked_at)} onClick={startManualEntry} size="cta" variant="outline">
+            보존된 촬영을 두고 직접 입력으로 계속
+          </Button>
+        ) : null}
+
+        {manualMode && !workflow.manualScopeMutation.isSuccess ? (
+          <ManualScopeEditor
+            draftItems={manualDraftItems}
+            onAdd={addManualItem}
+            onChange={(itemKey, changes) => setManualDraftItems((current) => current.map((item) => item.itemKey === itemKey ? { ...item, ...changes } : item))}
+            onRemove={(itemKey) => setManualDraftItems((current) => current.filter((item) => item.itemKey !== itemKey))}
+            onSubmit={completeManualScope}
+            zones={zones}
+          />
+        ) : null}
+
         {analysis?.status === "completed" && workflow.reviewQuery.isPending && (
           <Card className="mt-4 p-6 text-center">
-            <LoaderCircle className="demo-spin mx-auto text-primary-700" size={28} />
+            <LoaderCircle aria-hidden="true" className="demo-spin mx-auto text-primary-700" size={28} />
             <p className="mt-3 text-lg font-bold">검토할 항목을 불러오고 있어요</p>
           </Card>
         )}
@@ -706,7 +780,7 @@ function ConnectedCapture({ connection, onDisconnect, returnHref, returnLabel }:
         {analysis?.status === "completed" && workflow.reviewQuery.isError && (
           <Card className="mt-4 border-warning bg-warning-bg p-4">
             <div className="flex gap-3">
-              <AlertTriangle className="shrink-0 text-warning" size={21} />
+              <AlertTriangle aria-hidden="true" className="shrink-0 text-warning" size={21} />
               <div>
                 <p className="text-base font-bold">AI 초안 상태를 다시 확인해 주세요</p>
                 <p className="mt-1 text-ui-support leading-5 text-ink-600">
@@ -763,7 +837,7 @@ function ConnectedCapture({ connection, onDisconnect, returnHref, returnLabel }:
               size="chip"
               variant="outline"
             >
-              <RotateCcw size={17} /> 업로드 다시 시도
+              <RotateCcw aria-hidden="true" size={17} /> 업로드 다시 시도
             </Button>
           </Card>
         )}
@@ -783,15 +857,24 @@ function ConnectedCapture({ connection, onDisconnect, returnHref, returnLabel }:
       </main>
 
       <div className="app-safe-bottom sticky bottom-0 border-t border-line bg-surface/95 px-6 pt-4 backdrop-blur">
-        {!session || unrecoverable ? (
+        {manualMode ? (
+          workflow.manualScopeMutation.isSuccess ? (
+            <Button className="w-full" disabled size="cta"><Check aria-hidden="true" /> 직접 입력 저장 완료</Button>
+          ) : (
+            <Button className="w-full" disabled={!manualValid || workflow.manualScopeMutation.isPending} form={MANUAL_SCOPE_FORM_ID} size="cta" type="submit">
+              {workflow.manualScopeMutation.isPending ? <LoaderCircle aria-hidden="true" className="demo-spin" size={18} /> : <Check aria-hidden="true" size={18} />}
+              {manualValid ? "직접 입력 저장" : "항목 내용을 확인해 주세요"}
+            </Button>
+          )
+        ) : !session || unrecoverable ? (
           <Button className="w-full" disabled={busy || terminalJob} onClick={startSession} size="cta">
-            {workflow.createSessionMutation.isPending ? <LoaderCircle className="demo-spin" size={18} /> : <Video size={18} />}
+            {workflow.createSessionMutation.isPending ? <LoaderCircle aria-hidden="true" className="demo-spin" size={18} /> : <Video aria-hidden="true" size={18} />}
             {unrecoverable ? "새 촬영 세션 시작" : "촬영 시작"}
           </Button>
         ) : analysis?.status === "completed" ? (
           workflow.reviewQuery.isPending || recoveringReview ? (
             <Button className="w-full" disabled size="cta">
-              <LoaderCircle className="demo-spin" size={18} />
+              <LoaderCircle aria-hidden="true" className="demo-spin" size={18} />
               {recoveringReview ? "최신 검토 상태 확인 중" : "검토 항목 불러오는 중"}
             </Button>
           ) : workflow.reviewQuery.isError ? (
@@ -802,12 +885,12 @@ function ConnectedCapture({ connection, onDisconnect, returnHref, returnLabel }:
               size="cta"
               variant="outline"
             >
-              {workflow.reviewQuery.isFetching ? <LoaderCircle className="demo-spin" size={18} /> : <RefreshCw size={18} />}
+              {workflow.reviewQuery.isFetching ? <LoaderCircle aria-hidden="true" className="demo-spin" size={18} /> : <RefreshCw aria-hidden="true" size={18} />}
               검토 내용 다시 불러오기
             </Button>
           ) : reviewCompleted ? (
             <Button className="w-full" disabled size="cta">
-              <Check size={18} /> AI 초안 검토 완료
+              <Check aria-hidden="true" size={18} /> 짐 목록 검수 완료
             </Button>
           ) : (
             <Button
@@ -817,23 +900,23 @@ function ConnectedCapture({ connection, onDisconnect, returnHref, returnLabel }:
               size="cta"
               type="submit"
             >
-              {workflow.reviewMutation.isPending ? <LoaderCircle className="demo-spin" size={18} /> : <Check size={18} />}
-              {reviewValid ? "검토 내용 확정" : "항목 내용을 확인해 주세요"}
+              {workflow.reviewMutation.isPending ? <LoaderCircle aria-hidden="true" className="demo-spin" size={18} /> : <Check aria-hidden="true" size={18} />}
+              {reviewValid ? "짐 목록 검수 완료" : "항목 내용을 확인해 주세요"}
             </Button>
           )
         ) : analysis ? (
           <Button className="w-full" disabled size="cta">
-            {analysisActive ? <LoaderCircle className="demo-spin" size={18} /> : <AlertTriangle size={18} />}
+            {analysisActive ? <LoaderCircle aria-hidden="true" className="demo-spin" size={18} /> : <AlertTriangle aria-hidden="true" size={18} />}
             {analysisActive ? "AI 분석 진행 중" : "분석 실패 · 촬영 보존됨"}
           </Button>
         ) : allReady ? (
           <Button className="w-full" disabled={busy || zones.length === 0} onClick={submit} size="cta">
-            {workflow.submitMutation.isPending ? <LoaderCircle className="demo-spin" size={18} /> : <FileUp size={18} />}
+            {workflow.submitMutation.isPending ? <LoaderCircle aria-hidden="true" className="demo-spin" size={18} /> : <FileUp aria-hidden="true" size={18} />}
             촬영 마치고 AI 분석 시작
           </Button>
         ) : (
           <Button className="w-full" disabled size="cta">
-            {validating || workflow.uploadMutation.isPending ? <LoaderCircle className="demo-spin" size={18} /> : <Camera size={18} />}
+            {validating || workflow.uploadMutation.isPending ? <LoaderCircle aria-hidden="true" className="demo-spin" size={18} /> : <Camera aria-hidden="true" size={18} />}
             {validating ? "업로드 파일 확인 중" : "구역 촬영을 추가해 주세요"}
           </Button>
         )}

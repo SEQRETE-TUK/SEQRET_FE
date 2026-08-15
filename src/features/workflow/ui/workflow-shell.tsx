@@ -63,6 +63,7 @@ export function SessionRequired({ role }: { role: ParticipantRole }) {
 
 export function WorkflowShell({
   children,
+  context,
   currentStep = 1,
   embedded = false,
   retryAfter = 0,
@@ -71,6 +72,7 @@ export function WorkflowShell({
   wide = false,
 }: {
   children: ReactNode;
+  context?: ReactNode;
   currentStep?: number;
   embedded?: boolean;
   retryAfter?: number;
@@ -85,13 +87,14 @@ export function WorkflowShell({
   const content = (
     <>
       {retryAfter > 0 ? <p aria-live="polite" className="rounded-xl bg-warning-bg p-3 text-sm font-bold text-warning-ink">요청 제한으로 {retryAfter}초 동안 다시 제출할 수 없습니다.</p> : null}
+      {context}
       <section className={cn(embedded ? "pb-6" : "rounded-[var(--radius-card)] border border-line bg-surface p-5 shadow-[var(--shadow-card)]")}>
         <p className="text-sm font-bold text-primary-700">공동 거래 기록</p>
         <h2 className="mt-2 text-[26px] leading-8 font-extrabold tracking-[-0.04em]">{embedded ? title : "처리할 작업"}</h2>
         <p className="mt-2 text-sm leading-5 text-ink-600">{summary ?? "각 단계의 최신 상태를 확인하고 필요한 작업만 열어 처리할 수 있습니다."}</p>
         <div className="mt-5 flex min-h-12 items-center justify-between border-y border-line py-3 text-sm">
           <span className="font-bold">현재 처리 단계</span>
-          <span className="font-extrabold text-primary-700">{["연결", "범위 확인", "현장 변경", "배차", "완료 확인"][Math.min(currentStep, 4)]}</span>
+          <span className="font-extrabold text-primary-700">{["연결", "범위 확인", "배차", "현장 진행", "완료 확인"][Math.min(currentStep, 4)]}</span>
         </div>
       </section>
       <fieldset className="min-w-0" disabled={retryAfter > 0}>{children}</fieldset>

@@ -10,6 +10,7 @@ import {
 import { useRef, useState, type FormEvent } from "react";
 
 import { Button } from "@/components/ui/button";
+import { HandoffStatus, StatusTag, WorkContext } from "@/components/layout/app-primitives";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -38,7 +39,10 @@ import { useAuthFailure } from "@/features/workflow/model/use-auth-failure";
 import { useRetryAfter } from "@/features/workflow/model/use-retry-after";
 import { ApiNotice, EmptyState, InvitationPanel, WorkflowShell } from "@/features/workflow/ui/workflow-shell";
 
-const money = (value: number | null | undefined) => value == null ? "금액 미정" : `${value.toLocaleString("ko-KR")}원`;
+const moneyFormatter = new Intl.NumberFormat("ko-KR");
+const money = (value: number | null | undefined) => value == null ? "금액 미정" : `${moneyFormatter.format(value)}원`;
+const eventTimeFormatter = new Intl.DateTimeFormat("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
+const issueStatusLabel = (status: string) => ({ reported: "업체 확인 전", quoted: "변경안 전달", clarification_requested: "설명 요청", explained: "설명 제출", approved: "고객 승인", rejected: "고객 거절" })[status] ?? "상태 확인 중";
 const scopeItems = (scope: ScopeReview) => scope.scope.room_groups.flatMap((group) => group.items.map(({ item_key, room_zone_id, description }) => ({ item_key, room_zone_id, description })));
 
 export function LiveProviderWorkflow({ embedded = false, wide = false }: { embedded?: boolean; wide?: boolean }) {
@@ -194,10 +198,20 @@ export function LiveProviderWorkflow({ embedded = false, wide = false }: { embed
   useAuthFailure(scopeQuery.error, issueQuery.error, invitationQuery.error, dispatchQuery.error, completionQuery.error, proposalQuery.error, mutationError);
   if (!connection || session?.actor.role !== "company_manager") return null;
   const acceptedWorkerCount = invitationQuery.data?.invitations.filter((invitation) => invitation.role === "field_worker" && invitation.status === "accepted").length ?? 0;
+  const scopeStatus = scopeQuery.data?.scope.status;
+  const canProposeScope = scopeStatus === "company_review" || scopeStatus === "revision_requested";
 
   return (
     <WorkflowShell
-      currentStep={completionQuery.data?.completion_submission_id ? 4 : dispatchQuery.data?.status === "confirmed" ? 3 : selectedIssue ? 2 : 1}
+      context={scopeQuery.data ? <WorkContext
+        code={scopeQuery.data.job.job_code}
+        route={`${scopeQuery.data.job.origin_summary ?? "출발지 미정"} → ${scopeQuery.data.job.destination_summary ?? "도착지 미정"}`}
+        scheduledAt={scopeQuery.data.job.scheduled_at}
+        status={<StatusTag tone={scopeQuery.data.scope.status === "confirmed" ? "success" : "warning"}>{scopeQuery.data.scope.status === "confirmed" ? "공동확인 완료" : scopeQuery.data.scope.status === "customer_review" ? "고객 확인 대기" : "업체 처리 중"}</StatusTag>}
+        title={scopeQuery.data.job.title}
+        version={scopeQuery.data.scope.version_label}
+      /> : undefined}
+      currentStep={scopeStatus !== "confirmed" ? 1 : dispatchQuery.data?.status !== "confirmed" ? 2 : selectedIssue ? 3 : completionQuery.data?.completion_submission_id ? 4 : 3}
       retryAfter={retryAfter}
       summary="견적, 현장 변경, 배차, 완료 문서를 단계별 작업으로 나눠 필요한 화면만 엽니다."
       title="업체 운영"
@@ -209,12 +223,12 @@ export function LiveProviderWorkflow({ embedded = false, wide = false }: { embed
         <WorkflowTask
           description={scopeQuery.data ? `${scopeQuery.data.scope.item_count}개 항목 · ${scopeQuery.data.scope.version_label}` : "고객 범위를 불러온 뒤 견적을 작성해요"}
           index={1}
-          status={scopeQuery.data?.scope.status === "confirmed" ? "확정" : "작성 가능"}
+          status={scopeStatus === "confirmed" ? "확정" : scopeStatus === "customer_review" ? "고객 응답 대기" : scopeStatus === "revision_requested" ? "수정 필요" : "작성 가능"}
           title="범위와 견적"
-          tone={scopeQuery.data?.scope.status === "confirmed" ? "success" : "primary"}
+          tone={scopeStatus === "confirmed" ? "success" : scopeStatus === "customer_review" ? "warning" : "primary"}
         >
           <ApiNotice error={scopeQuery.error} />
-          {scopeQuery.data ? <><p className="mt-3 text-sm text-ink-600">{scopeQuery.data.scope.version_label} · 항목 {scopeQuery.data.scope.item_count}개 · {scopeQuery.data.scope.status}</p><form className="mt-4 space-y-3" onSubmit={(event: FormEvent) => { event.preventDefault(); scopeMutation.mutate(); }}><Label htmlFor="quote-amount">총 견적 금액</Label><Input autoComplete="off" id="quote-amount" inputMode="numeric" min="0" name="quoteAmount" onChange={(event) => setQuoteAmount(event.target.value)} required type="number" value={quoteAmount} /><Label htmlFor="quote-reason">견적 사유</Label><Textarea autoComplete="off" id="quote-reason" maxLength={2000} name="quoteReason" onChange={(event) => setQuoteReason(event.target.value)} required value={quoteReason} /><Button className="w-full" disabled={!Number(quoteAmount) || !quoteReason.trim() || scopeMutation.isPending || scopeQuery.data.scope.status === "confirmed"} size="cta" type="submit"><Send /> 견적 제안 보내기</Button></form></> : <EmptyState>작업범위가 준비되면 견적을 보낼 수 있습니다.</EmptyState>}
+          {scopeQuery.data ? <><HandoffStatus action={canProposeScope ? "작업과 금액을 하나의 버전으로 제안하세요" : "고객의 응답을 기다리고 있어요"} actor={canProposeScope ? "업체" : "고객"} updatedAt={scopeQuery.data.revision_request?.requested_at ?? scopeQuery.data.company_confirmed_at}>{canProposeScope ? "고객이 수정 요청을 보낸 경우 기존 제안을 고치지 않고 새 버전을 보냅니다. 고객 확인 전에는 현장 실행 기준이 바뀌지 않습니다." : "현재 제안은 그대로 보존됩니다. 고객이 확인하거나 수정 요청을 보낸 뒤 다음 작업을 진행하세요."}</HandoffStatus><p className="mt-4 text-sm text-ink-600">기준 {scopeQuery.data.scope.version_label} · 항목 {scopeQuery.data.scope.item_count}개 · 제외 {scopeQuery.data.scope.exclusion_count}개</p><form className="mt-4 space-y-3" onSubmit={(event: FormEvent) => { event.preventDefault(); if (canProposeScope) scopeMutation.mutate(); }}><Label htmlFor="quote-amount">총 견적 금액</Label><Input autoComplete="off" disabled={!canProposeScope} id="quote-amount" inputMode="numeric" min="0" name="quoteAmount" onChange={(event) => setQuoteAmount(event.target.value)} required type="number" value={quoteAmount} /><Label htmlFor="quote-reason">견적 사유</Label><Textarea autoComplete="off" disabled={!canProposeScope} id="quote-reason" maxLength={2000} name="quoteReason" onChange={(event) => setQuoteReason(event.target.value)} required value={quoteReason} /><Button className="w-full" disabled={!canProposeScope || !Number(quoteAmount) || !quoteReason.trim() || scopeMutation.isPending} size="cta" type="submit"><Send aria-hidden="true" /> 새 제안 보내기</Button></form></> : <EmptyState>작업범위가 준비되면 견적을 보낼 수 있습니다.</EmptyState>}
           <ApiNotice error={scopeMutation.error} title="견적 제안을 처리하지 못했어요" />
         </WorkflowTask>
 
@@ -226,7 +240,7 @@ export function LiveProviderWorkflow({ embedded = false, wide = false }: { embed
           tone={selectedIssue ? "warning" : "neutral"}
         >
           <ApiNotice error={issueQuery.error} />
-          <div className="mt-4 space-y-2">{issueQuery.data?.map((issue) => <button className={`w-full rounded-xl border p-3 text-left ${selectedIssue?.field_issue_id === issue.field_issue_id ? "border-primary-400 bg-primary-50" : "border-line"}`} key={issue.field_issue_id} onClick={() => setSelectedIssueId(issue.field_issue_id)} type="button"><b>{issue.title}</b><p className="mt-1 text-xs text-ink-600">{issue.status} · 증빙 {issue.evidence_media_asset_ids.length}건</p></button>)}</div>
+          <div className="mt-4 space-y-2">{issueQuery.data?.map((issue) => <button className={`w-full rounded-xl border p-3 text-left ${selectedIssue?.field_issue_id === issue.field_issue_id ? "border-primary-400 bg-primary-50" : "border-line"}`} key={issue.field_issue_id} onClick={() => setSelectedIssueId(issue.field_issue_id)} type="button"><b>{issue.title}</b><p className="mt-1 text-xs text-ink-600">{issueStatusLabel(issue.status)} · 증빙 {issue.evidence_media_asset_ids.length}건</p></button>)}</div>
           {selectedIssue && !selectedIssue.change_proposal_id ? <form className="mt-4 space-y-3" onSubmit={(event) => { event.preventDefault(); proposalMutation.mutate(); }}><Label htmlFor="change-amount">증감 금액</Label><Input autoComplete="off" id="change-amount" inputMode="numeric" name="changeAmount" onChange={(event) => setChangeAmount(event.target.value)} type="number" value={changeAmount} /><Label htmlFor="change-reason">고객에게 보일 사유</Label><Textarea autoComplete="off" id="change-reason" maxLength={2000} name="changeReason" onChange={(event) => setChangeReason(event.target.value)} required value={changeReason} /><p className="text-sm font-bold text-primary-800">변경 후 {money((scopeQuery.data?.quote?.total_amount_krw ?? 0) + Number(changeAmount))}</p><Button className="w-full" disabled={!scopeQuery.data || !changeReason.trim() || proposalMutation.isPending} type="submit">변경안 고객에게 보내기</Button></form> : null}
           {proposalQuery.data ? <div className="mt-4 rounded-xl bg-canvas p-4"><b>제안 상태: {proposalQuery.data.status}</b><p className="mt-1 text-sm text-ink-600">{money(proposalQuery.data.quote.total_amount_krw)}</p>{proposalQuery.data.clarification_requested_at && !proposalQuery.data.explanation ? <div className="mt-3 space-y-2"><Label htmlFor="proposal-explanation">고객 설명 요청 답변</Label><Textarea autoComplete="off" id="proposal-explanation" name="proposalExplanation" onChange={(event) => setExplanation(event.target.value)} value={explanation} /><Button className="w-full" disabled={!explanation.trim() || explanationMutation.isPending} onClick={() => explanationMutation.mutate()}>설명 제출</Button></div> : null}</div> : null}
           <ApiNotice error={proposalMutation.error ?? explanationMutation.error} title="현장 변경을 처리하지 못했어요" />
@@ -240,8 +254,8 @@ export function LiveProviderWorkflow({ embedded = false, wide = false }: { embed
           tone={dispatchQuery.data?.status === "confirmed" ? "success" : dispatchQuery.data?.status === "ready" ? "primary" : "neutral"}
         >
           <ApiNotice error={dispatchQuery.error} />
-          {dispatchQuery.data?.status === "confirmed" ? <div className="mt-4 rounded-xl bg-success-bg p-4 text-success-ink"><Check className="inline" /> 배차 확정 · {dispatchQuery.data.confirmed_at}</div> : null}
-          {(!dispatchQuery.data || dispatchQuery.data.status === "setup_required") ? <form className="mt-4 space-y-3" onSubmit={(event) => { event.preventDefault(); setupMutation.mutate(); }}><div className="grid grid-cols-2 gap-2"><div><Label htmlFor="vehicle-name">차량</Label><Input autoComplete="off" id="vehicle-name" name="vehicleName" onChange={(event) => setVehicleName(event.target.value)} value={vehicleName} /></div><div><Label htmlFor="capacity">적재 ㎡</Label><Input autoComplete="off" id="capacity" inputMode="decimal" min="0" name="vehicleCapacity" onChange={(event) => setVehicleCapacity(event.target.value)} type="number" value={vehicleCapacity} /></div></div><Label htmlFor="duration">예상 작업시간(분)</Label><Input autoComplete="off" id="duration" inputMode="numeric" min="1" max="720" name="durationMinutes" onChange={(event) => setDuration(event.target.value)} type="number" value={duration} /><p className="rounded-xl bg-canvas p-3 text-sm"><Users className="mr-1 inline size-4" /> 수락한 현장기사 {acceptedWorkerCount}명</p><Button className="w-full" disabled={!scopeQuery.data || acceptedWorkerCount === 0 || setupMutation.isPending} type="submit"><Truck /> 배차 후보 등록</Button></form> : null}
+          {dispatchQuery.data?.status === "confirmed" ? <div className="mt-4 rounded-xl bg-success-bg p-4 text-success-ink"><Check aria-hidden="true" className="inline" /> 배차 확정 · {dispatchQuery.data.confirmed_at ? eventTimeFormatter.format(new Date(dispatchQuery.data.confirmed_at)) : "시간 확인 중"}</div> : null}
+          {(!dispatchQuery.data || dispatchQuery.data.status === "setup_required") ? <form className="mt-4 space-y-3" onSubmit={(event) => { event.preventDefault(); setupMutation.mutate(); }}><div className="grid grid-cols-2 gap-2"><div><Label htmlFor="vehicle-name">차량</Label><Input autoComplete="off" id="vehicle-name" name="vehicleName" onChange={(event) => setVehicleName(event.target.value)} value={vehicleName} /></div><div><Label htmlFor="capacity">적재 ㎡</Label><Input autoComplete="off" id="capacity" inputMode="decimal" min="0" name="vehicleCapacity" onChange={(event) => setVehicleCapacity(event.target.value)} type="number" value={vehicleCapacity} /></div></div><Label htmlFor="duration">예상 작업시간(분)</Label><Input autoComplete="off" id="duration" inputMode="numeric" min="1" max="720" name="durationMinutes" onChange={(event) => setDuration(event.target.value)} type="number" value={duration} /><p className="rounded-xl bg-canvas p-3 text-sm"><Users aria-hidden="true" className="mr-1 inline size-4" /> 수락한 현장기사 {acceptedWorkerCount}명</p><Button className="w-full" disabled={!scopeQuery.data || acceptedWorkerCount === 0 || setupMutation.isPending} type="submit"><Truck aria-hidden="true" /> 배차 후보 등록</Button></form> : null}
           {dispatchQuery.data && ["ready", "stale"].includes(dispatchQuery.data.status) ? <div className="mt-4 space-y-3"><div className="space-y-2">{dispatchQuery.data.vehicle_options.map((vehicle) => <button className={`w-full rounded-xl border p-3 text-left ${selectedVehicleId === vehicle.id ? "border-primary-400 bg-primary-50" : "border-line"}`} disabled={!vehicle.available} key={vehicle.id} onClick={() => setSelectedVehicleId(vehicle.id)} type="button"><b>{vehicle.display_name}</b><p className="text-xs text-ink-600">{vehicle.capacity_m2}㎡ · {vehicle.conflict_reason ?? "사용 가능"}</p></button>)}</div><div className="space-y-2">{dispatchQuery.data.worker_options.map((worker) => <label className="flex items-center gap-3 rounded-xl border border-line p-3" key={worker.id}><input checked={selectedWorkerIds.includes(worker.id)} disabled={!worker.available} name="workerIds" onChange={(event) => setSelectedWorkerIds((current) => event.target.checked ? [...current, worker.id] : current.filter((id) => id !== worker.id))} type="checkbox" value={worker.id} /><span><b>{worker.display_name}</b><span className="block text-xs text-ink-600">{worker.conflict_reason ?? worker.role_label}</span></span></label>)}</div><Label htmlFor="worker-note">기사 전달 메모</Label><Textarea autoComplete="off" id="worker-note" name="workerNote" onChange={(event) => setWorkerNote(event.target.value)} value={workerNote} /><Button className="w-full" disabled={dispatchMutation.isPending || dispatchQuery.data.status === "stale"} onClick={() => dispatchMutation.mutate()} size="cta">배차 확정</Button></div> : null}
           <ApiNotice error={setupMutation.error ?? dispatchMutation.error} title="배차를 처리하지 못했어요" />
         </WorkflowTask>
@@ -254,7 +268,7 @@ export function LiveProviderWorkflow({ embedded = false, wide = false }: { embed
           tone={completionQuery.data?.archive_ready ? "success" : "neutral"}
         >
           <ApiNotice error={completionQuery.error} title="완료 기록이 아직 준비되지 않았어요" />
-          {completionQuery.data ? <><div className="mt-4 rounded-xl bg-canvas p-4"><p className="text-sm text-ink-600">최종 확정액</p><strong className="text-2xl">{money(completionQuery.data.final_amount_krw)}</strong><p className="mt-2 text-sm text-ink-600">완료 제출: {completionQuery.data.completion_submission_id ? "수신" : "대기"} · 고객 요청: {completionQuery.data.completion_request?.status ?? "전송 전"}</p></div><Button className="mt-4 w-full" disabled={!completionQuery.data.completion_submission_id || completionQuery.data.completion_request?.status === "requested" || completionRequestMutation.isPending} onClick={() => completionRequestMutation.mutate()}><Send /> 고객 완료 확인 요청</Button><Button className="mt-2 w-full" disabled={!completionQuery.data.archive_ready || archiveMutation.isPending} onClick={() => archiveMutation.mutate()} variant="outline">{archiveMutation.isPending ? <LoaderCircle className="animate-spin" /> : <Download />} 문서 ZIP 다운로드</Button></> : <EmptyState>현장기사의 완료 제출을 기다리고 있습니다.</EmptyState>}
+          {completionQuery.data ? <><div className="mt-4 rounded-xl bg-canvas p-4"><p className="text-sm text-ink-600">완료 기록 금액</p><strong className="text-2xl">{money(completionQuery.data.final_amount_krw)}</strong><p className="mt-2 text-sm text-ink-600">완료 제출: {completionQuery.data.completion_submission_id ? "수신" : "대기"} · 고객 요청: {completionQuery.data.completion_request?.status ?? "전송 전"}</p></div><Button className="mt-4 w-full" disabled={!completionQuery.data.completion_submission_id || completionQuery.data.completion_request?.status === "requested" || completionRequestMutation.isPending} onClick={() => completionRequestMutation.mutate()}><Send aria-hidden="true" /> 고객 완료 확인 요청</Button><Button className="mt-2 w-full" disabled={!completionQuery.data.archive_ready || archiveMutation.isPending} onClick={() => archiveMutation.mutate()} variant="outline">{archiveMutation.isPending ? <LoaderCircle aria-hidden="true" className="animate-spin" /> : <Download aria-hidden="true" />} 문서 ZIP 다운로드</Button></> : <EmptyState>현장기사의 완료 제출을 기다리고 있습니다.</EmptyState>}
           <ApiNotice error={completionRequestMutation.error ?? downloadError} title="완료 요청 또는 문서를 처리하지 못했어요" />
         </WorkflowTask>
       </div>
