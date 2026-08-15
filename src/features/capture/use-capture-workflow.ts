@@ -3,14 +3,17 @@ import { useState } from "react";
 
 import {
   asSupportedContentType,
+  completeAnalysisReview,
   completeMediaUpload,
   createCaptureSession,
   createMediaUpload,
   getMoveJob,
+  getAnalysisReview,
   listCaptureSessions,
   submitCapture,
   uploadCaptureFile,
   type CaptureSession,
+  type CompleteAnalysisReviewRequest,
   type MediaUploadTarget,
 } from "@/features/capture/capture-api";
 import { SignedUploadError } from "@/lib/api-client";
@@ -58,6 +61,7 @@ export function useCaptureWorkflow(connection: CaptureConnection) {
   const [resumableUpload, setResumableUpload] = useState<ResumableUpload | null>(null);
   const rootKey = ["capture-flow", connection.cacheScope, connection.jobId] as const;
   const sessionsKey = [...rootKey, "sessions"] as const;
+  const reviewKey = [...rootKey, "analysis-review"] as const;
 
   const jobQuery = useQuery({
     queryKey: [...rootKey, "job"],
@@ -68,6 +72,13 @@ export function useCaptureWorkflow(connection: CaptureConnection) {
     queryKey: sessionsKey,
     queryFn: ({ signal }) => listCaptureSessions({ ...connection, signal }),
     refetchInterval: (query) => (needsPolling(query.state.data) ? 2_000 : false),
+  });
+
+  const latestAnalysisStatus = sessionsQuery.data?.[0]?.analysis?.status;
+  const reviewQuery = useQuery({
+    enabled: latestAnalysisStatus === "completed",
+    queryKey: reviewKey,
+    queryFn: ({ signal }) => getAnalysisReview({ ...connection, signal }),
   });
 
   const refreshSessions = async () => {
@@ -138,9 +149,20 @@ export function useCaptureWorkflow(connection: CaptureConnection) {
     onSuccess: refreshSessions,
   });
 
+  const reviewMutation = useMutation({
+    mutationFn: (
+      command: Pick<CompleteAnalysisReviewRequest, "items" | "sourceScopeVersionId">,
+    ) => completeAnalysisReview({ ...connection, ...command }),
+    onSuccess: (review) => {
+      queryClient.setQueryData(reviewKey, review);
+    },
+  });
+
   return {
     createSessionMutation,
     jobQuery,
+    reviewMutation,
+    reviewQuery,
     refreshSessions,
     resumableUpload,
     sessionsQuery,
