@@ -1,0 +1,90 @@
+{
+  "date": "2026-08-16",
+  "verb": "redesign",
+  "scope": "app + design-system",
+  "genre": "modern-minimal",
+  "tone": "utilitarian, reassuring, evidence-first",
+  "theme": "studied reference patterns: LINE, SEED, Apps in Toss, Jimssa, Isaro, Soomgo, Miso",
+  "designSystem": "design-system.md + tokens.css",
+  "macrostructure": {
+    "entry": "role selection list + single sticky CTA",
+    "customer": "status-led move journey",
+    "provider": "priority task + operations ledger",
+    "crew": "time-and-route field brief",
+    "profile": "identity + sectioned settings list",
+    "documentation": "practical reference manual"
+  },
+  "variationKnobDelta": {
+    "previous": "role-specific homes + manifesto-like long document",
+    "current": "bounded next-action surface + rule-separated lists + live-component manual",
+    "cardUsage": "only for one bounded decision or work object",
+    "navigation": "role context + strong screen title + four-item bottom navigation"
+  },
+  "preEmitCritique": {
+    "philosophy": 5,
+    "hierarchy": 5,
+    "execution": 5,
+    "specificity": 5,
+    "restraint": 5,
+    "variety": 5
+  },
+  "slopTest": "pass",
+  "latestIteration": {
+    "date": "2026-08-16",
+    "research": [
+      "Toss App Store mobile screenshots",
+      "Daangn App Store mobile screenshots",
+      "LINE Design System",
+      "SEED Tabs",
+      "Apps in Toss ListRow, Tab and Bottom Sheet",
+      "local Jimssa, Soomgo, Miso and Isaro references"
+    ],
+    "changes": [
+      "Standardized high-density rows around leading, contents and trailing regions",
+      "Changed secondary groups to flat rule-separated lists",
+      "Changed scope navigation to accessible underline tabs",
+      "Moved revision input into a short bottom sheet",
+      "Added Mock-only before and after evidence to completion review",
+      "Documented the same patterns with live components in the design-system page"
+    ],
+    "verification": "Customer, provider, crew, completion, revision sheet and design-system screens verified in the Codex in-app browser; lint, typecheck and production build passed"
+  },
+  "changes": [
+    "Strengthened the shared app bar and bottom navigation without adding new chrome",
+    "Replaced vague customer copy with current status and the exact requested confirmation",
+    "Kept one bounded customer move card and moved preparation tools into rule-separated rows",
+    "Reframed the provider first viewport around one priority and an ordered operations ledger",
+    "Reframed the crew first viewport around time, route, safety and a single field action",
+    "Rebuilt MyPage as identity, sectioned list, security note and confirmed disconnect action",
+    "Replaced decorative alert and security copy with object-and-action language",
+    "Rebuilt the design-system page as a Korean practical manual with live components and screen patterns",
+    "Neutralized canvas and surface tokens while preserving the existing indigo brand interaction color"
+  ],
+  "verification": {
+    "browser": "Codex in-app browser",
+    "visualViewport": "384x824",
+    "surfaces": [
+      "role entry",
+      "customer home",
+      "provider home",
+      "provider work",
+      "crew home",
+      "connected MyPage",
+      "design-system foundations and components"
+    ],
+    "referenceComparison": [
+      "Jimssa home",
+      "Soomgo quote list",
+      "Miso MyPage"
+    ],
+    "horizontalOverflow": "0px on all live routes tested at 384px; width constraints and breakpoints reviewed for 320, 375, 414 and 768px",
+    "build": "ESLint, TypeScript, Vite production build and git diff check passed"
+  },
+  "deliberateNonChanges": [
+    "No new dependency, route or speculative abstraction",
+    "No API, authentication, state model or Mock API behavior change",
+    "No user-authored or production file deletion",
+    "No decorative asset generation",
+    "No copied brand asset or proprietary design-system component"
+  ]
+}

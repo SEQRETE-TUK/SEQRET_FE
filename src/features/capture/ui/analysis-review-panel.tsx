@@ -1,17 +1,21 @@
 import {
-  AlertTriangle,
-  CheckCircle2,
-  Image,
-  Plus,
-  RotateCcw,
-  Sparkles,
-  Trash2,
-} from "lucide-react";
+  ImageIcon as Image,
+  PlusIcon as Plus,
+  ArrowCounterClockwiseIcon as RotateCcw,
+  SparkleIcon as Sparkles,
+  TrashIcon as Trash2,
+} from "@phosphor-icons/react";
+import {
+  WarningStatusIcon as AlertTriangle,
+  SuccessStatusIcon as CheckCircle2,
+} from "@/components/icons";
 import type { FormEvent } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Select } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import type { AnalysisReview } from "@/features/capture/api/capture-api";
 
 export interface AnalysisReviewDraftItem {
@@ -58,14 +62,14 @@ export function AnalysisReviewPanel({
       <Card className="mt-5 overflow-hidden border-primary-100">
         <div className="bg-primary-50 p-5">
           <div className="flex items-start gap-3">
-            <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-white text-primary-700">
+            <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-surface text-primary-700">
               {completed ? <CheckCircle2 size={22} /> : <Sparkles size={22} />}
             </span>
             <div>
-              <h2 className="text-[17px] font-extrabold">
+              <h2 className="text-xl font-extrabold">
                 {completed ? "AI 초안 검토를 마쳤어요" : "AI가 찾은 항목을 확인해요"}
               </h2>
-              <p className="mt-1 text-[12px] leading-5 text-ink-600">
+              <p className="mt-1 text-ui-support leading-5 text-ink-600">
                 {completed
                   ? "확정한 내용은 변경 이력으로 안전하게 보존돼요."
                   : "틀린 설명은 고치고, 빠진 짐은 직접 추가해 주세요."}
@@ -75,7 +79,7 @@ export function AnalysisReviewPanel({
 
           {!completed && hasUnsavedChanges && (
             <p
-              className="mt-4 rounded-xl border border-warning bg-warning-bg px-3 py-2 text-[11px] font-bold text-warning-ink"
+              className="mt-4 rounded-xl border border-warning bg-warning-bg px-3 py-2 text-sm font-bold text-warning-ink"
               role="status"
             >
               아직 확정하지 않은 변경이 있어요. 이 화면을 나가면 사라져요.
@@ -84,12 +88,12 @@ export function AnalysisReviewPanel({
 
           <div className="mt-4 grid grid-cols-2 gap-2">
             {review.zones.map((zone) => (
-              <div className="rounded-xl border border-primary-100 bg-white px-3 py-3" key={zone.room_zone_id}>
+              <div className="rounded-xl border border-primary-100 bg-surface px-3 py-3" key={zone.room_zone_id}>
                 <div className="flex items-center gap-2">
                   <Image className="text-primary-700" size={16} />
-                  <p className="truncate text-[12px] font-bold">{zone.name}</p>
+                  <p className="truncate text-ui-support font-bold">{zone.name}</p>
                 </div>
-                <p className="mt-1 text-[11px] text-ink-400">
+                <p className="mt-1 text-sm text-ink-400">
                   확인 {zone.ready_media_count}/{zone.total_media_count}
                   {zone.failed_media_count > 0 && ` · 실패 ${zone.failed_media_count}`}
                 </p>
@@ -106,8 +110,8 @@ export function AnalysisReviewPanel({
               role="status"
             >
               <div className="min-w-0 flex-1">
-                <p className="text-[12px] font-bold">항목에서 제외했어요</p>
-                <p className="mt-0.5 truncate text-[11px] text-ink-400">
+                <p className="text-ui-support font-bold">항목에서 제외했어요</p>
+                <p className="mt-0.5 truncate text-sm text-ink-400">
                   {removedItemDescription}
                 </p>
               </div>
@@ -125,14 +129,14 @@ export function AnalysisReviewPanel({
           {draftItems.length === 0 && (
             <div className="rounded-2xl bg-warning-bg p-4 text-center">
               <AlertTriangle className="mx-auto text-warning" size={22} />
-              <p className="mt-2 text-[13px] font-bold">최소 한 개의 항목이 필요해요</p>
+              <p className="mt-2 text-base font-bold">최소 한 개의 항목이 필요해요</p>
             </div>
           )}
 
           {draftItems.map((draft, index) => {
             const source = review.items.find((item) => item.item_key === draft.itemKey);
             return (
-              <article className="rounded-2xl border border-line bg-white p-4" key={draft.itemKey}>
+              <article className="rounded-2xl border border-line bg-surface p-4" key={draft.itemKey}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex flex-wrap gap-1.5">
                     <Badge variant={source?.source === "customer" ? "neutral" : "primary"}>
@@ -155,12 +159,14 @@ export function AnalysisReviewPanel({
                   )}
                 </div>
 
-                <label className="mt-4 block text-[11px] font-bold text-ink-400">
+                <label className="mt-4 block text-sm font-bold text-ink-400">
                   공간
-                  <select
+                  <Select
                     aria-label={`${index + 1}번 항목 공간`}
-                    className="mt-1.5 h-11 w-full rounded-xl border border-line bg-white px-3 text-[13px] font-bold outline-none focus:border-primary-600 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary-400 disabled:bg-[#F5F6F8]"
+                    autoComplete="off"
+                    className="mt-1.5 h-11 px-3 text-base font-bold"
                     disabled={completed}
+                    name={`review-item-${index + 1}-room`}
                     onChange={(event) => onChange(draft.itemKey, { roomZoneId: event.target.value })}
                     value={draft.roomZoneId}
                   >
@@ -169,23 +175,25 @@ export function AnalysisReviewPanel({
                         {zone.name}
                       </option>
                     ))}
-                  </select>
+                  </Select>
                 </label>
 
-                <label className="mt-3 block text-[11px] font-bold text-ink-400">
+                <label className="mt-3 block text-sm font-bold text-ink-400">
                   짐 또는 작업 설명
-                  <textarea
+                  <Textarea
                     aria-label={`${index + 1}번 항목 설명`}
                     aria-invalid={!completed && draft.description.trim().length === 0}
-                    className="mt-1.5 min-h-20 w-full resize-none rounded-xl border border-line bg-white px-3 py-3 text-[14px] font-semibold leading-5 outline-none focus:border-primary-600 disabled:bg-[#F5F6F8] disabled:text-ink-600"
+                    autoComplete="off"
+                    className="mt-1.5 min-h-20 resize-none px-3 py-3 text-lg font-semibold leading-5"
                     disabled={completed}
                     maxLength={2000}
+                    name={`review-item-${index + 1}-description`}
                     onChange={(event) => onChange(draft.itemKey, { description: event.target.value })}
                     required
                     value={draft.description}
                   />
                   {!completed && (
-                    <span className="mt-1 flex justify-between gap-3 text-[10px] font-medium">
+                    <span className="mt-1 flex justify-between gap-3 text-xs font-medium">
                       <span className="text-danger-ink">
                         {draft.description.trim().length === 0 ? "설명을 입력해 주세요" : ""}
                       </span>
@@ -217,4 +225,3 @@ export function AnalysisReviewPanel({
     </form>
   );
 }
-

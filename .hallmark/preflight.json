@@ -1,0 +1,17 @@
+{
+  "date": "2026-08-16",
+  "project": "SEQRET_FE",
+  "framework": "React 19 + Vite 8 + Tailwind CSS 4",
+  "componentSystem": "shadcn-style local primitives backed by Base UI",
+  "font": "Pretendard, existing dependency",
+  "motionLibrary": null,
+  "genre": "modern-minimal",
+  "tone": "utilitarian, reassuring, evidence-first",
+  "macrostructures": {
+    "roleFlows": "workbench",
+    "providerWeb": "workbench",
+    "documentation": "long-document"
+  },
+  "enrichment": "none",
+  "sourceOfTruth": "tokens.css"
+}

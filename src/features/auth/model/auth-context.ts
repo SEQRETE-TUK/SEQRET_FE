@@ -31,6 +31,6 @@ export function useAuth(): AuthContextValue {
 
 export function rolePath(role: ParticipantRole): string {
   if (role === "customer") return "/consumer";
-  if (role === "company_manager") return "/provider/web";
+  if (role === "company_manager") return "/provider";
   return "/crew";
 }

@@ -1,23 +1,27 @@
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  AlertTriangle,
-  ArrowLeft,
-  Camera,
-  Check,
-  CheckCircle2,
-  FileUp,
-  Info,
-  LoaderCircle,
-  LockKeyhole,
-  LogOut,
-  RefreshCw,
-  RotateCcw,
-  ShieldCheck,
-  Video,
-} from "lucide-react";
+  ArrowLeftIcon as ArrowLeft,
+  CameraIcon as Camera,
+  CheckIcon as Check,
+  UploadSimpleIcon as FileUp,
+  CircleNotchIcon as LoaderCircle,
+  LockKeyIcon as LockKeyhole,
+  SignOutIcon as LogOut,
+  ArrowClockwiseIcon as RefreshCw,
+  ArrowCounterClockwiseIcon as RotateCcw,
+  VideoCameraIcon as Video,
+} from "@phosphor-icons/react";
+import {
+  WarningStatusIcon as AlertTriangle,
+  SuccessStatusIcon as CheckCircle2,
+  InfoStatusIcon as Info,
+  SecurityStatusIcon as ShieldCheck,
+} from "@/components/icons";
 import { useEffect, useState, type FormEvent, type MouseEvent } from "react";
+import { Link } from "react-router-dom";
 
-import { MobileFrame, StatusBar } from "@/components/layout/mobile-frame";
+import { MobileFrame } from "@/components/layout/mobile-frame";
+import { ProgressSteps } from "@/components/workflow/workflow-task";
 import {
   ANALYSIS_REVIEW_FORM_ID,
   AnalysisReviewPanel,
@@ -26,6 +30,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import {
   captureFileError,
   isValidAccessSecret,
@@ -39,6 +44,7 @@ import {
   type CaptureConnection,
 } from "@/features/capture/model/use-capture-workflow";
 import { ApiError, SignedUploadError } from "@/api/client";
+import { mockAccessSecrets, mockApiEnabled, mockJobId } from "@/api/mock-api";
 
 interface ConnectionFormProps {
   onConnect: (jobId: string, accessToken: string) => void;
@@ -47,6 +53,8 @@ interface ConnectionFormProps {
 interface ConnectedCaptureProps {
   connection: CaptureConnection;
   onDisconnect: () => void;
+  returnHref: string;
+  returnLabel: string;
 }
 
 interface ZoneRowProps {
@@ -95,8 +103,8 @@ function friendlyError(error: unknown): string {
 }
 
 function ConnectionForm({ onConnect }: ConnectionFormProps) {
-  const [jobId, setJobId] = useState("");
-  const [accessToken, setAccessToken] = useState("");
+  const [jobId, setJobId] = useState(mockApiEnabled ? mockJobId : "");
+  const [accessToken, setAccessToken] = useState(mockApiEnabled ? mockAccessSecrets.customer : "");
   const [error, setError] = useState<string | null>(null);
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
@@ -117,8 +125,7 @@ function ConnectionForm({ onConnect }: ConnectionFormProps) {
 
   return (
     <div className="flex min-h-dvh flex-col bg-canvas text-ink-900">
-      <StatusBar />
-      <header className="flex h-14 items-center px-5">
+      <header className="app-safe-header flex items-center border-b border-line bg-surface px-5 pb-3">
         <a
           aria-label="역할 선택으로 돌아가기"
           className="grid size-11 place-items-center rounded-full"
@@ -126,49 +133,51 @@ function ConnectionForm({ onConnect }: ConnectionFormProps) {
         >
           <ArrowLeft size={22} />
         </a>
-        <p className="mx-auto pr-11 text-[17px] font-bold">촬영 이어가기</p>
+        <p className="mx-auto pr-11 text-lg font-bold">촬영 이어가기</p>
       </header>
       <main className="flex-1 px-6 pb-8 pt-7">
-        <span className="grid size-14 place-items-center rounded-2xl bg-primary-50 text-primary-700">
+        <span className="grid size-12 place-items-center rounded-full bg-primary-50 text-primary-700">
           <LockKeyhole size={27} />
         </span>
-        <h1 className="mt-6 text-[26px] font-extrabold leading-[34px] tracking-[-0.6px]">
+        <h1 className="mt-6 text-ui-screen font-extrabold leading-[34px] tracking-[-0.6px]">
           받은 초대 정보로
           <br />내 촬영을 불러와요
         </h1>
-        <p className="mt-3 text-[14px] leading-6 text-ink-600">
-          아직 로그인 전달 화면이 연결되지 않아, 현재는 초대 안내의 두 값을 한 번 입력해요.
+        <p className="mt-3 text-base leading-6 text-ink-600">
+          {mockApiEnabled ? "Mock 작업 ID와 보안코드가 자동 입력되었습니다." : "초대 안내에서 받은 작업 ID와 보안코드를 한 번만 입력해 주세요."}
         </p>
 
         <form className="mt-8 space-y-5" onSubmit={submit}>
-          <label className="block text-[13px] font-bold text-ink-600">
+          <label className="block text-base font-bold text-ink-600">
             작업 ID
-            <input
+            <Input
               autoCapitalize="none"
               autoComplete="off"
-              className="mt-2 h-14 w-full rounded-2xl border border-line bg-white px-4 text-[14px] outline-none focus:border-primary-600"
+              className="mt-2 h-14 rounded-2xl"
               inputMode="text"
+              name="jobId"
               onChange={(event) => setJobId(event.target.value)}
-              placeholder="00000000-0000-0000-0000-000000000000"
+              placeholder="00000000-0000-0000-0000-000000000000…"
               spellCheck={false}
               value={jobId}
             />
           </label>
-          <label className="block text-[13px] font-bold text-ink-600">
-            Access secret
-            <input
+          <label className="block text-base font-bold text-ink-600">
+            Bearer 보안코드
+            <Input
               autoCapitalize="none"
               autoComplete="off"
-              className="mt-2 h-14 w-full rounded-2xl border border-line bg-white px-4 text-[14px] outline-none focus:border-primary-600"
+              className="mt-2 h-14 rounded-2xl"
+              name="accessSecret"
               onChange={(event) => setAccessToken(event.target.value)}
-              placeholder="초대 안내의 비밀값"
+              placeholder="초대 안내의 비밀값…"
               spellCheck={false}
               type="password"
               value={accessToken}
             />
           </label>
           {error && (
-            <p className="rounded-2xl bg-danger-bg px-4 py-3 text-[13px] font-bold text-danger-ink" role="alert">
+            <p className="rounded-2xl bg-danger-bg px-4 py-3 text-base font-bold text-danger-ink" role="alert">
               {error}
             </p>
           )}
@@ -180,8 +189,8 @@ function ConnectionForm({ onConnect }: ConnectionFormProps) {
         <Card className="mt-6 flex gap-3 border-primary-100 bg-primary-50 p-4">
           <ShieldCheck className="mt-0.5 shrink-0 text-primary-700" size={21} />
           <div>
-            <p className="text-[13px] font-bold">이 화면을 닫으면 secret도 사라져요</p>
-            <p className="mt-1 text-[12px] leading-5 text-ink-600">
+            <p className="text-base font-bold">이 화면을 닫으면 secret도 사라져요</p>
+            <p className="mt-1 text-ui-support leading-5 text-ink-600">
               URL, 브라우저 저장소, 로그에는 남기지 않아요.
             </p>
           </div>
@@ -192,30 +201,10 @@ function ConnectionForm({ onConnect }: ConnectionFormProps) {
 }
 
 function StageRail({ complete, stage }: { complete: boolean; stage: 1 | 2 | 3 | 4 }) {
-  const labels = ["구역 촬영", "파일 확인", "AI 분석", "초안 검토"];
   return (
-    <ol aria-label="촬영 진행 단계" className="mt-5 grid grid-cols-4 gap-1.5">
-      {labels.map((label, index) => {
-        const step = (index + 1) as 1 | 2 | 3 | 4;
-        const active = step === stage && !complete;
-        const done = step < stage || (complete && step === stage);
-        return (
-          <li
-            className={`rounded-xl border px-2 py-3 text-center text-[11px] font-bold ${
-              active
-                ? "border-primary-400 bg-primary-50 text-primary-700"
-                : done
-                  ? "border-success bg-success-bg text-success-ink"
-                  : "border-line bg-white text-ink-400"
-            }`}
-            key={label}
-          >
-            <span className="mb-1 block text-[10px]">{done ? "완료" : `${step}/4`}</span>
-            {label}
-          </li>
-        );
-      })}
-    </ol>
+    <div className="mt-5 rounded-[var(--radius-card)] border border-line bg-surface px-3 py-4">
+      <ProgressSteps current={complete ? 4 : stage - 1} items={["촬영", "확인", "분석", "검토"]} />
+    </div>
   );
 }
 
@@ -256,7 +245,7 @@ function ZoneRow({
   return (
     <li className="relative flex gap-4 border-b border-line py-4 last:border-b-0">
       <span
-        className={`relative z-10 grid size-9 shrink-0 place-items-center rounded-full text-[12px] font-extrabold ${
+        className={`relative z-10 grid size-9 shrink-0 place-items-center rounded-full text-ui-support font-extrabold ${
           state.tone === "success"
             ? "bg-success-bg text-success-ink"
             : state.tone === "warning"
@@ -268,12 +257,12 @@ function ZoneRow({
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <p className="truncate text-[15px] font-bold">{zone.name}</p>
+          <p className="truncate text-lg font-bold">{zone.name}</p>
           <Badge variant={state.tone === "success" ? "success" : state.tone === "warning" ? "warning" : "neutral"}>
             {state.label}
           </Badge>
         </div>
-        <p className="mt-1 text-[12px] text-ink-400">
+        <p className="mt-1 text-ui-support text-ink-400">
           {assets.length > 0
             ? assets.map((asset) => (asset.content_type === "video/mp4" ? "영상" : "사진")).join(" · ")
             : "큰 짐과 이동 동선이 보이게 촬영해 주세요"}
@@ -283,7 +272,7 @@ function ZoneRow({
         aria-disabled={disabled}
         className={`grid size-11 shrink-0 place-items-center rounded-xl border ${
           disabled
-            ? "pointer-events-none border-line bg-[#E4E6ED] text-ink-400"
+            ? "pointer-events-none border-line bg-line text-ink-400"
             : "border-primary-100 bg-primary-50 text-primary-700"
         }`}
         htmlFor={inputId}
@@ -297,6 +286,7 @@ function ZoneRow({
         className="sr-only"
         disabled={disabled}
         id={inputId}
+        name={`captureZone-${zone.id}`}
         onChange={(event) => {
           const file = event.currentTarget.files?.[0];
           event.currentTarget.value = "";
@@ -315,8 +305,8 @@ function AnalysisState({ analysis }: { analysis: CaptureAnalysis }) {
         <div className="flex gap-3">
           <CheckCircle2 className="shrink-0 text-success-ink" size={24} />
           <div>
-            <h2 className="text-[17px] font-bold text-success-ink">AI 초안이 준비됐어요</h2>
-            <p className="mt-2 text-[13px] leading-5 text-ink-600">
+            <h2 className="text-xl font-bold text-success-ink">AI 초안이 준비됐어요</h2>
+            <p className="mt-2 text-base leading-5 text-ink-600">
               촬영 결과를 작업범위 초안으로 저장했어요. 아래에서 설명을 고치거나 빠진 항목을 추가해 주세요.
             </p>
           </div>
@@ -330,8 +320,8 @@ function AnalysisState({ analysis }: { analysis: CaptureAnalysis }) {
         <div className="flex gap-3">
           <AlertTriangle className="shrink-0 text-warning" size={24} />
           <div>
-            <h2 className="text-[17px] font-bold">분석을 완료하지 못했어요</h2>
-            <p className="mt-2 text-[13px] leading-5 text-ink-600">
+            <h2 className="text-xl font-bold">분석을 완료하지 못했어요</h2>
+            <p className="mt-2 text-base leading-5 text-ink-600">
               촬영 파일은 그대로 보존됐어요. {analysis.retryable ? "자동 재시도 정책은 다음 통합 범위에서 연결해요." : "직접 입력 경로로 이어갈 수 있어요."}
             </p>
           </div>
@@ -348,19 +338,19 @@ function AnalysisState({ analysis }: { analysis: CaptureAnalysis }) {
   return (
     <Card className="mt-5 border-primary-100 bg-primary-50 p-5">
       <div className="flex items-center gap-4">
-        <span className="grid size-12 shrink-0 place-items-center rounded-full bg-white text-primary-700">
+        <span className="grid size-12 shrink-0 place-items-center rounded-full bg-surface text-primary-700">
           <LoaderCircle className="demo-spin" size={24} />
         </span>
         <div>
-          <h2 className="text-[17px] font-bold">{copy[analysis.status]}</h2>
-          <p className="mt-1 text-[12px] text-ink-600">화면을 열어 둔 동안 상태를 자동으로 확인해요.</p>
+          <h2 className="text-xl font-bold">{copy[analysis.status]}</h2>
+          <p className="mt-1 text-ui-support text-ink-600">화면을 열어 둔 동안 상태를 자동으로 확인해요.</p>
         </div>
       </div>
     </Card>
   );
 }
 
-function ConnectedCapture({ connection, onDisconnect }: ConnectedCaptureProps) {
+function ConnectedCapture({ connection, onDisconnect, returnHref, returnLabel }: ConnectedCaptureProps) {
   const workflow = useCaptureWorkflow(connection);
   const [localError, setLocalError] = useState<string | null>(null);
   const [localNotice, setLocalNotice] = useState<string | null>(null);
@@ -460,7 +450,7 @@ function ConnectedCapture({ connection, onDisconnect }: ConnectedCaptureProps) {
       <div className="grid min-h-dvh place-items-center bg-canvas px-8 text-center">
         <div>
           <LoaderCircle className="demo-spin mx-auto text-primary-700" size={32} />
-          <p className="mt-4 text-[15px] font-bold">내 촬영 상태를 불러오고 있어요</p>
+          <p className="mt-4 text-lg font-bold">내 촬영 상태를 불러오고 있어요</p>
         </div>
       </div>
     );
@@ -470,8 +460,8 @@ function ConnectedCapture({ connection, onDisconnect }: ConnectedCaptureProps) {
     return (
       <div className="flex min-h-dvh flex-col bg-canvas px-6 pb-8 pt-20">
         <AlertTriangle className="text-warning" size={32} />
-        <h1 className="mt-5 text-[24px] font-extrabold">촬영을 불러오지 못했어요</h1>
-        <p className="mt-3 text-[14px] leading-6 text-ink-600">{friendlyError(requestError)}</p>
+        <h1 className="mt-5 text-ui-title-lg font-extrabold">촬영을 불러오지 못했어요</h1>
+        <p className="mt-3 text-lg leading-6 text-ink-600">{friendlyError(requestError)}</p>
         <div className="mt-auto space-y-3">
           <Button className="w-full" onClick={() => void Promise.all([workflow.jobQuery.refetch(), workflow.sessionsQuery.refetch()])} size="cta">
             <RefreshCw size={18} /> 다시 확인
@@ -496,7 +486,7 @@ function ConnectedCapture({ connection, onDisconnect }: ConnectedCaptureProps) {
     !reviewDirty ||
     window.confirm("아직 확정하지 않은 검토 변경이 있어요. 변경을 버리고 나갈까요?");
 
-  const returnToDemo = (event: MouseEvent<HTMLAnchorElement>) => {
+  const returnToApp = (event: MouseEvent<HTMLAnchorElement>) => {
     if (!canLeaveReview()) event.preventDefault();
   };
 
@@ -631,17 +621,16 @@ function ConnectedCapture({ connection, onDisconnect }: ConnectedCaptureProps) {
 
   return (
     <div className="flex min-h-dvh flex-col bg-canvas text-ink-900">
-      <StatusBar />
-      <header className="flex h-14 items-center border-b border-line bg-white px-5">
-        <a
-          aria-label="촬영 데모로 돌아가기"
+      <header className="app-safe-header flex items-center border-b border-line bg-surface px-5 pb-3">
+        <Link
+          aria-label={returnLabel}
           className="grid size-11 place-items-center rounded-full"
-          href="/?role=consumer&screen=3"
-          onClick={returnToDemo}
+          onClick={returnToApp}
+          to={returnHref}
         >
-          <ArrowLeft size={22} />
-        </a>
-        <p className="mx-auto truncate px-3 text-[17px] font-bold">{job.title}</p>
+          <ArrowLeft aria-hidden="true" size={22} />
+        </Link>
+        <p className="mx-auto truncate px-3 text-xl font-bold">{job.title}</p>
         <button
           aria-label="연결 해제"
           className="grid size-11 place-items-center rounded-full text-ink-600"
@@ -655,8 +644,8 @@ function ConnectedCapture({ connection, onDisconnect }: ConnectedCaptureProps) {
       <main className="flex-1 px-5 pb-8 pt-5">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-[12px] font-bold text-primary-700">실제 서버와 연결됨</p>
-            <h1 className="mt-2 text-[24px] font-extrabold leading-8">
+            <p className="text-ui-support font-bold text-primary-700">{mockApiEnabled ? "Mock 데이터로 연결됨" : "실제 서버와 연결됨"}</p>
+            <h1 className="mt-2 text-ui-title-lg font-extrabold leading-8">
               {analysis?.status === "completed"
                 ? "AI 초안을 확인해 주세요"
                 : "출발지 구역을 촬영해 주세요"}
@@ -664,7 +653,7 @@ function ConnectedCapture({ connection, onDisconnect }: ConnectedCaptureProps) {
           </div>
           {(workflow.sessionsQuery.isFetching || workflow.reviewQuery.isFetching) && <LoaderCircle aria-label="상태 확인 중" className="demo-spin mt-1 shrink-0 text-primary-700" size={21} />}
         </div>
-        <p className="mt-2 text-[13px] leading-5 text-ink-600">
+        <p className="mt-2 text-base leading-5 text-ink-600">
           {analysis?.status === "completed"
             ? "AI 제안은 확정 범위가 아니에요. 내가 확인한 내용만 다음 단계로 전달해요."
             : "파일은 비공개 저장소로 직접 전송하고, 서버 확인이 끝난 자료만 AI 분석에 사용해요."}
@@ -674,8 +663,8 @@ function ConnectedCapture({ connection, onDisconnect }: ConnectedCaptureProps) {
         {!session && (
           <Card className="mt-6 p-5 text-center">
             <Video className="mx-auto text-primary-700" size={28} />
-            <h2 className="mt-3 text-[17px] font-bold">새 촬영을 시작할 준비가 됐어요</h2>
-            <p className="mt-2 text-[12px] leading-5 text-ink-600">촬영 세션을 만든 뒤 구역별 사진이나 영상을 추가해요.</p>
+            <h2 className="mt-3 text-xl font-bold">새 촬영을 시작할 준비가 됐어요</h2>
+            <p className="mt-2 text-ui-support leading-5 text-ink-600">촬영 세션을 만든 뒤 구역별 사진이나 영상을 추가해요.</p>
           </Card>
         )}
 
@@ -699,7 +688,7 @@ function ConnectedCapture({ connection, onDisconnect }: ConnectedCaptureProps) {
             ) : (
               <div className="py-6 text-center">
                 <Info className="mx-auto text-warning" size={24} />
-                <p className="mt-3 text-[14px] font-bold">출발지 촬영 구역이 없어요</p>
+                <p className="mt-3 text-lg font-bold">출발지 촬영 구역이 없어요</p>
               </div>
             )}
           </Card>
@@ -710,7 +699,7 @@ function ConnectedCapture({ connection, onDisconnect }: ConnectedCaptureProps) {
         {analysis?.status === "completed" && workflow.reviewQuery.isPending && (
           <Card className="mt-4 p-6 text-center">
             <LoaderCircle className="demo-spin mx-auto text-primary-700" size={28} />
-            <p className="mt-3 text-[14px] font-bold">검토할 항목을 불러오고 있어요</p>
+            <p className="mt-3 text-lg font-bold">검토할 항목을 불러오고 있어요</p>
           </Card>
         )}
 
@@ -719,8 +708,8 @@ function ConnectedCapture({ connection, onDisconnect }: ConnectedCaptureProps) {
             <div className="flex gap-3">
               <AlertTriangle className="shrink-0 text-warning" size={21} />
               <div>
-                <p className="text-[13px] font-bold">AI 초안 상태를 다시 확인해 주세요</p>
-                <p className="mt-1 text-[12px] leading-5 text-ink-600">
+                <p className="text-base font-bold">AI 초안 상태를 다시 확인해 주세요</p>
+                <p className="mt-1 text-ui-support leading-5 text-ink-600">
                   {friendlyError(workflow.reviewQuery.error)}
                 </p>
               </div>
@@ -730,7 +719,7 @@ function ConnectedCapture({ connection, onDisconnect }: ConnectedCaptureProps) {
 
         {localNotice && (
           <p
-            className="mt-4 rounded-2xl bg-success-bg px-4 py-3 text-[13px] font-bold text-success-ink"
+            className="mt-4 rounded-2xl bg-success-bg px-4 py-3 text-base font-bold text-success-ink"
             role="status"
           >
             {localNotice}
@@ -762,7 +751,7 @@ function ConnectedCapture({ connection, onDisconnect }: ConnectedCaptureProps) {
 
         {workflow.resumableUpload && workflow.uploadMutation.isError && (
           <Card className="mt-4 border-warning bg-warning-bg p-4">
-            <p className="text-[13px] font-bold">중단된 파일 전송을 이어갈 수 있어요</p>
+            <p className="text-base font-bold">중단된 파일 전송을 이어갈 수 있어요</p>
             <Button
               className="mt-3 w-full"
               disabled={busy}
@@ -780,20 +769,20 @@ function ConnectedCapture({ connection, onDisconnect }: ConnectedCaptureProps) {
         )}
 
         {(localError || requestError) && (
-          <p className="mt-4 rounded-2xl bg-danger-bg px-4 py-3 text-[13px] font-bold text-danger-ink" role="alert">
+          <p className="mt-4 rounded-2xl bg-danger-bg px-4 py-3 text-base font-bold text-danger-ink" role="alert">
             {localError ?? friendlyError(requestError)}
           </p>
         )}
 
         {unrecoverable && !analysis && (
           <Card className="mt-4 border-warning bg-warning-bg p-4">
-            <p className="text-[13px] font-bold">완료되지 않은 파일이 있어 새 촬영이 필요해요</p>
-            <p className="mt-1 text-[12px] leading-5 text-ink-600">기존 기록은 지우지 않고 새 세션에서 다시 촬영해요.</p>
+            <p className="text-base font-bold">완료되지 않은 파일이 있어 새 촬영이 필요해요</p>
+            <p className="mt-1 text-ui-support leading-5 text-ink-600">기존 기록은 지우지 않고 새 세션에서 다시 촬영해요.</p>
           </Card>
         )}
       </main>
 
-      <div className="sticky bottom-0 border-t border-line bg-white px-6 pb-5 pt-4">
+      <div className="app-safe-bottom sticky bottom-0 border-t border-line bg-surface/95 px-6 pt-4 backdrop-blur">
         {!session || unrecoverable ? (
           <Button className="w-full" disabled={busy || terminalJob} onClick={startSession} size="cta">
             {workflow.createSessionMutation.isPending ? <LoaderCircle className="demo-spin" size={18} /> : <Video size={18} />}
@@ -848,7 +837,7 @@ function ConnectedCapture({ connection, onDisconnect }: ConnectedCaptureProps) {
             {validating ? "업로드 파일 확인 중" : "구역 촬영을 추가해 주세요"}
           </Button>
         )}
-        <p className="mt-3 text-center text-[11px] text-ink-400">
+        <p className="mt-3 text-center text-sm text-ink-400">
           {reviewDirty
             ? "확정 전 변경은 이 화면에만 보관돼요."
             : reviewCompleted
@@ -862,9 +851,17 @@ function ConnectedCapture({ connection, onDisconnect }: ConnectedCaptureProps) {
   );
 }
 
-export function LiveCaptureFlow() {
+export function LiveCaptureFlow({
+  initialConnection = null,
+  onExit,
+  returnHref = "/consumer",
+}: {
+  initialConnection?: CaptureConnection | null;
+  onExit?: () => void;
+  returnHref?: string;
+} = {}) {
   const queryClient = useQueryClient();
-  const [connection, setConnection] = useState<CaptureConnection | null>(null);
+  const [connection, setConnection] = useState<CaptureConnection | null>(initialConnection);
 
   const disconnect = () => {
     if (connection) {
@@ -872,7 +869,8 @@ export function LiveCaptureFlow() {
         queryKey: ["capture-flow", connection.cacheScope],
       });
     }
-    setConnection(null);
+    if (initialConnection && onExit) onExit();
+    else setConnection(null);
   };
 
   return (
@@ -882,6 +880,8 @@ export function LiveCaptureFlow() {
           connection={connection}
           key={connection.cacheScope}
           onDisconnect={disconnect}
+          returnHref={returnHref}
+          returnLabel="내 이사로 돌아가기"
         />
       ) : (
         <ConnectionForm
@@ -897,4 +897,3 @@ export function LiveCaptureFlow() {
     </MobileFrame>
   );
 }
-

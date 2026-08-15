@@ -1,447 +1,491 @@
 import {
-  AlertCircle,
-  ArrowLeft,
-  ArrowRight,
-  Check,
-  ChevronRight,
-  Circle,
-  ExternalLink,
-  ImagePlus,
-  MapPin,
-  Play,
-} from "lucide-react";
+  ArrowLeftIcon as ArrowLeft,
+  CameraIcon as Camera,
+  CheckIcon as Check,
+  CaretRightIcon as ChevronRight,
+  ArrowSquareOutIcon as ExternalLink,
+  HouseIcon as Home,
+} from "@phosphor-icons/react";
+import {
+  SecurityStatusIcon as ShieldCheck,
+} from "@/components/icons";
+import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { ListGroup, ListRow, PriorityFacts } from "@/components/layout/app-primitives";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
+
+const navigation = [
+  ["principles", "사용 원칙"],
+  ["foundations", "기초"],
+  ["components", "컴포넌트"],
+  ["patterns", "화면 패턴"],
+  ["roles", "역할별 적용"],
+  ["quality", "검수 기준"],
+] as const;
+
+const principles = [
+  {
+    title: "한 화면에는 하나의 우선 행동",
+    body: "상태를 먼저 설명하고, 지금 처리할 작업 하나를 가장 강하게 표시합니다.",
+  },
+  {
+    title: "카드는 경계가 필요한 작업에만",
+    body: "다음 작업·견적·증빙처럼 한 덩어리로 판단해야 할 때만 카드를 사용합니다.",
+  },
+  {
+    title: "설정과 기록은 목록으로",
+    body: "마이페이지·이력·작업 순서는 구분선 기반 목록으로 빠르게 탐색하게 합니다.",
+  },
+  {
+    title: "이미지는 근거가 있을 때만",
+    body: "현장 사진과 완료 증빙처럼 판단에 필요한 이미지에만 공간을 배정합니다.",
+  },
+];
 
 const colors = [
-  { name: "Primary 600", value: "accent", role: "결정 CTA · 선택 · 진행", className: "bg-primary-600" },
-  { name: "Primary 700", value: "accent-hover", role: "CTA hover · 강조", className: "bg-primary-700" },
-  { name: "Primary 50", value: "accent-50", role: "정보 · 선택 배경", className: "bg-primary-50" },
-  { name: "Canvas", value: "paper", role: "화면 배경", className: "bg-canvas" },
-  { name: "Surface", value: "paper-2", role: "콘텐츠 표면", className: "bg-white" },
-  { name: "Ink 900", value: "ink", role: "주요 텍스트", className: "bg-ink-900" },
-  { name: "Ink 600", value: "ink-2", role: "보조 텍스트", className: "bg-ink-600" },
-  { name: "Line", value: "rule", role: "구분선 · 테두리", className: "bg-line" },
-  { name: "Success", value: "success", role: "완료 · 통과", className: "bg-success" },
-  { name: "Warning", value: "warning", role: "모름 · 대기", className: "bg-warning" },
-  { name: "Danger", value: "danger", role: "증가 · 거절 · 삭제", className: "bg-danger" },
+  { name: "Primary", token: "--color-accent", use: "주요 CTA · 선택 · 현재 단계", className: "bg-primary-600" },
+  { name: "Primary soft", token: "--color-accent-50", use: "선택 배경 · 정보 상태", className: "bg-primary-50" },
+  { name: "Ink", token: "--color-ink", use: "제목 · 본문 핵심 정보", className: "bg-ink-900" },
+  { name: "Muted ink", token: "--color-ink-2", use: "설명 · 보조 상태", className: "bg-ink-600" },
+  { name: "Surface", token: "--color-paper-2", use: "앱 화면 · 시트 · 입력 표면", className: "bg-surface" },
+  { name: "Rule", token: "--color-rule", use: "목록 구분 · 입력 테두리", className: "bg-line" },
+  { name: "Success", token: "--color-success", use: "완료 · 연결됨", className: "bg-success" },
+  { name: "Warning", token: "--color-warning", use: "대기 · 현장 주의", className: "bg-warning" },
+  { name: "Danger", token: "--color-danger", use: "오류 · 종료 · 거절", className: "bg-danger" },
+];
+
+const typeScale = [
+  { name: "화면 제목", spec: "28–32 / 1.2 · 800", className: "text-[30px] leading-[1.2] font-extrabold", sample: "이사 준비 현황" },
+  { name: "상단 제목", spec: "22 / 1.27 · 800", className: "text-[22px] leading-7 font-extrabold", sample: "오늘 작업" },
+  { name: "섹션 제목", spec: "22 / 1.3 · 800", className: "app-section-title", sample: "확인할 내용" },
+  { name: "본문", spec: "16 / 1.5 · 500", className: "text-base leading-6", sample: "현재 상태와 다음 작업을 설명합니다." },
+  { name: "보조 정보", spec: "14 / 1.43 · 500", className: "text-sm leading-5 text-ink-600", sample: "1월 15일 화요일 · 오전 10:00" },
+  { name: "상태", spec: "12 / 1.33 · 700", className: "text-xs font-bold text-primary-700", sample: "확인 대기" },
 ];
 
 const patterns = [
-  ["역할 진입", "역할 1개 선택 + 단일 로그인 CTA"],
-  ["작업/상태 홈", "상태 히어로 + 다음 행동 목록"],
-  ["이사 조건", "경로/조건 행 · 카드 3개 요약 금지"],
-  ["촬영/완료", "미디어 작업 영역 + 미디어 레일"],
-  ["AI/작업 범위", "그룹 목록 + 구분선 + 상세 시트"],
-  ["버전/이벤트", "타임라인"],
-  ["변경 승인", "금액 비교 + 증거 + 변경점"],
-  ["업체 데스크톱", "테이블 · 분할 패널 · 타임라인"],
-  ["현장 작업자", "경로 스트립 + 체크리스트 + 증거 우선 폼"],
+  {
+    name: "홈",
+    first: "일정 맥락과 지금 필요한 결정",
+    middle: "현재 확인된 버전·금액·경로",
+    last: "기록 바로가기 · 역할별 하단 내비게이션",
+  },
+  {
+    name: "작업 목록",
+    first: "목록 범위와 완료 수",
+    middle: "상태가 있는 구분선 행",
+    last: "필요할 때만 하단 CTA",
+  },
+  {
+    name: "작업 상세",
+    first: "결정 대상과 상태",
+    middle: "근거 · 값 · 변경 이력",
+    last: "승인 또는 수정 중 한 행동",
+  },
+  {
+    name: "마이페이지",
+    first: "이름 · 역할 · 연결 상태",
+    middle: "계정과 기록 목록",
+    last: "보안 안내 · 연결 종료",
+  },
+  {
+    name: "하단 시트",
+    first: "행동을 설명하는 제목",
+    middle: "입력 또는 선택 항목",
+    last: "취소보다 강한 완료 CTA",
+  },
+  {
+    name: "빈 화면",
+    first: "현재 비어 있는 대상",
+    middle: "빈 이유와 다음 조건",
+    last: "실행 가능한 경우에만 CTA",
+  },
 ];
 
-const sections = [
-  ["governance", "Operating model"],
-  ["foundations", "Foundations"],
-  ["typography", "Typography"],
-  ["components", "Components"],
-  ["patterns", "Patterns"],
-  ["quality", "Quality bar"],
-  ["rules", "Usage rules"],
+const roleGuides = [
+  {
+    role: "고객",
+    intent: "내 결정이 필요한 변경과 현재 합의 기준을 놓치지 않게 한다.",
+    order: "결정 요청 → 현재 버전·금액 → 기록과 준비",
+    primary: "범위·변경·완료 확인",
+  },
+  {
+    role: "이사업체",
+    intent: "운영이 멈춘 지점과 처리 순서를 빠르게 판단한다.",
+    order: "우선 처리 → 현재 기준 → 배차·현장 변경·문서",
+    primary: "범위·배차·현장 이슈 처리",
+  },
+  {
+    role: "현장기사",
+    intent: "도착 후 행동을 순서대로 수행하고 기록을 남긴다.",
+    order: "체크인·다음 행동 → 확인된 범위 → 경로·배차 → 현장 기록",
+    primary: "체크인 또는 작업 이어가기",
+  },
+];
+
+const checks = [
+  "상단 제목만 읽어도 화면의 목적을 알 수 있다.",
+  "스크롤 전 영역에 현재 상태와 다음 행동이 보인다.",
+  "같은 위계의 텍스트는 같은 크기·두께·색을 사용한다.",
+  "44px 미만의 터치 영역과 12px 미만의 본문 텍스트가 없다.",
+  "아이콘 없이도 버튼과 목록의 의미를 이해할 수 있다.",
+  "오류·대기·빈 상태가 원인과 다음 행동을 함께 설명한다.",
+  "320·375·414·768px에서 가로 스크롤과 잘림이 없다.",
 ];
 
 export function DesignSystemPage() {
   return (
-    <main className="h-dvh overflow-y-auto overscroll-y-contain bg-canvas text-ink-900" id="main-content">
-      <header className="border-b border-line bg-white">
-        <div className="mx-auto flex max-w-[1440px] items-center justify-between px-5 py-4 lg:px-7">
-          <Link className="flex min-h-11 items-center gap-2 text-[13px] font-bold text-ink-600" to="/">
+    <main className="min-h-dvh bg-canvas text-ink-900" id="main-content">
+      <header className="sticky top-0 z-[var(--z-sticky)] border-b border-line bg-surface/98 backdrop-blur">
+        <div className="mx-auto flex min-h-16 max-w-[1280px] items-center justify-between gap-4 px-5 lg:px-8">
+          <Link className="inline-flex min-h-11 items-center gap-2 text-sm font-bold text-ink-600" to="/">
             <ArrowLeft aria-hidden="true" className="size-4" />
             서비스로 돌아가기
           </Link>
-          <Badge variant="primary">Product UI v0.3</Badge>
+          <Badge variant="primary">Product UI v1.4</Badge>
         </div>
       </header>
 
-      <div className="mx-auto grid max-w-[1440px] lg:grid-cols-[220px_minmax(0,1fr)]">
-        <aside className="hidden border-r border-line bg-white px-7 py-10 lg:block">
-          <nav aria-label="디자인 시스템 목차" className="sticky top-8 space-y-1">
-            <p className="mb-3 text-[11px] font-bold tracking-[0.12em] text-ink-400 uppercase">Contents</p>
-            {sections.map(([href, label]) => (
-              <a
-                className="flex min-h-11 items-center rounded-xl px-3 text-[13px] font-semibold text-ink-600 hover:bg-primary-50 hover:text-primary-700"
-                href={`#${href}`}
-                key={href}
-              >
+      <div className="mx-auto max-w-[1280px] lg:grid lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-12 lg:px-8">
+        <aside className="no-scrollbar overflow-x-auto border-b border-line px-5 py-3 lg:sticky lg:top-16 lg:h-[calc(100dvh-4rem)] lg:overflow-visible lg:border-r lg:border-b-0 lg:px-0 lg:py-8">
+          <nav aria-label="디자인 시스템 목차" className="flex min-w-max gap-1 lg:min-w-0 lg:flex-col lg:pr-8">
+            {navigation.map(([id, label]) => (
+              <a className="inline-flex min-h-11 items-center rounded-lg px-3 text-sm font-bold text-ink-600 hover:bg-surface-muted" href={`#${id}`} key={id}>
                 {label}
               </a>
             ))}
           </nav>
         </aside>
 
-        <div className="min-w-0 px-5 py-10 lg:px-12 lg:py-14">
-          <section className="max-w-3xl">
-            <div className="mb-5 flex items-center gap-3">
-              <span className="grid size-11 place-items-center rounded-2xl bg-primary-600 text-[15px] font-extrabold text-white">SQ</span>
-              <p className="text-[12px] font-bold tracking-[0.14em] text-primary-700 uppercase">SEQRET Design System</p>
-            </div>
-            <h1 className="text-[32px] leading-[42px] font-extrabold tracking-[-0.6px] sm:text-[40px] sm:leading-[52px]">
-              한 화면에는 하나의 결정만.
+        <div className="min-w-0 px-5 pb-24 lg:px-0">
+          <section className="border-b border-line py-12 md:py-16">
+            <p className="text-sm font-bold text-primary-700">SEQRET 디자인 시스템</p>
+            <h1 className="mt-3 max-w-[760px] text-[34px] leading-[1.18] font-extrabold tracking-[-0.045em] md:text-[48px]">
+              제품 화면의 공통 기준
             </h1>
-            <p className="mt-4 max-w-2xl text-[15px] leading-6 text-ink-600">
-              공통 기준을 찾고, 재사용하고, 검증하기 위한 작은 팀의 단일 기준서입니다. 색은 상태를,
-              레이아웃은 역할과 맥락을 설명합니다.
+            <p className="mt-5 max-w-[720px] text-base leading-7 text-ink-600 md:text-lg">
+              고객·이사업체·현장기사가 같은 이사 정보를 서로 다른 역할로 확인할 때, 상태와 다음 행동을 일관되게 전달하기 위한 기준입니다.
             </p>
+            <div className="mt-7 flex flex-wrap gap-2">
+              <Button nativeButton={false} render={<Link to="/consumer" />}>고객 화면 보기 <ChevronRight aria-hidden="true" /></Button>
+              <Button nativeButton={false} render={<Link to="/provider" />} variant="outline">업체 화면 보기</Button>
+              <Button nativeButton={false} render={<Link to="/crew" />} variant="outline">현장 화면 보기</Button>
+            </div>
           </section>
 
-          <section className="scroll-mt-8 pt-16" id="governance">
-            <SectionHeading
-              eyebrow="01"
-              title="Operating model"
-              description="별도 패키지나 Storybook 없이, 이 페이지와 실제 코드만 함께 관리합니다."
-            />
-
-            <div className="mt-7 grid gap-4 lg:grid-cols-2">
-              <RuleCard
-                title="시스템에 포함"
-                items={[
-                  "여러 화면에서 재사용하는 토큰과 UI",
-                  "역할별 흐름에서 반복되는 제품 패턴",
-                  "접근성·문구·상태 표현의 최소 기준",
-                  "실제 화면에서 검증된 사용 예시",
-                ]}
-              />
-              <RuleCard
-                title="화면에 남겨두기"
-                items={[
-                  "한 화면에서만 쓰는 일회성 구성",
-                  "API·권한·업무 규칙 같은 제품 명세",
-                  "아직 사용처가 없는 추측성 variant",
-                  "다크 모드·패키지 배포 같은 미래 확장",
-                ]}
-              />
-            </div>
-
-            <h3 className="mt-9 text-[17px] leading-6 font-bold tracking-[-0.3px]">Source of truth</h3>
-            <div className="mt-4 overflow-hidden rounded-2xl border border-line bg-white">
-              {[
-                ["Tokens", "tokens.css", "색·공간·타이포 값의 단일 원본"],
-                ["UI primitives", "src/components/ui", "Button · Badge · Card · Sheet"],
-                ["Product patterns", "Figma Product UI v0.2", "역할별 정보 구조와 패턴"],
-                ["Usage proof", "실제 서비스 화면", "소비자 · 업체 · PWA · 작업자"],
-              ].map(([type, source, role]) => (
-                <div
-                  className="grid gap-1 border-b border-line px-5 py-4 last:border-b-0 sm:grid-cols-[140px_240px_1fr] sm:items-center"
-                  key={type}
-                >
-                  <span className="text-[12px] font-bold">{type}</span>
-                  <code className="text-[11px] text-primary-700">{source}</code>
-                  <span className="text-[12px] leading-5 text-ink-600">{role}</span>
-                </div>
+          <DocSection id="principles" kicker="01" title="사용 원칙" summary="화면을 구성하기 전에 정보의 역할을 먼저 정합니다.">
+            <div className="grid border-t border-line md:grid-cols-2">
+              {principles.map((item, index) => (
+                <article className="border-b border-line py-5 md:px-5 md:first:pl-0 md:nth-[2n]:border-l" key={item.title}>
+                  <p className="text-xs font-bold text-ink-400">{String(index + 1).padStart(2, "0")}</p>
+                  <h3 className="mt-2 text-lg font-extrabold">{item.title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-ink-600">{item.body}</p>
+                </article>
               ))}
             </div>
+          </DocSection>
 
-            <h3 className="mt-9 text-[17px] leading-6 font-bold tracking-[-0.3px]">Change workflow</h3>
-            <ol className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              {[
-                ["1", "근거 확인", "실제 화면 또는 사용자 문제에서 시작"],
-                ["2", "범위 결정", "공통이면 시스템, 한 번이면 화면에 유지"],
-                ["3", "같이 수정", "코드·Figma·이 문서를 같은 변경으로 반영"],
-                ["4", "검증", "모바일·데스크톱·키보드·주요 상태 확인"],
-              ].map(([step, title, description]) => (
-                <li className="rounded-2xl border border-line bg-white p-4" key={step}>
-                  <span className="text-[11px] font-bold text-primary-600">{step.padStart(2, "0")}</span>
-                  <p className="mt-2 text-[13px] font-bold">{title}</p>
-                  <p className="mt-1 text-[11px] leading-4 text-ink-400">{description}</p>
+          <DocSection id="foundations" kicker="02" title="기초" summary="Pretendard, 중립 표면, 인디고 상호작용색, 4px 간격 체계를 사용합니다.">
+            <Subsection title="색상 역할">
+              <div className="border-t border-line">
+                {colors.map((color) => (
+                  <div className="grid min-h-16 grid-cols-[2.5rem_minmax(0,1fr)] items-center gap-3 border-b border-line py-3 sm:grid-cols-[2.5rem_9rem_12rem_minmax(0,1fr)]" key={color.token}>
+                    <span aria-hidden="true" className={`size-8 rounded-lg border border-line ${color.className}`} />
+                    <strong className="text-sm">{color.name}</strong>
+                    <code className="hidden text-xs text-ink-600 sm:block">{color.token}</code>
+                    <span className="col-start-2 text-sm text-ink-600 sm:col-start-auto">{color.use}</span>
+                  </div>
+                ))}
+              </div>
+            </Subsection>
+
+            <Subsection title="타이포그래피">
+              <div className="border-t border-line">
+                {typeScale.map((type) => (
+                  <div className="grid gap-2 border-b border-line py-5 md:grid-cols-[9rem_minmax(0,1fr)]" key={type.name}>
+                    <div>
+                      <strong className="block text-sm">{type.name}</strong>
+                      <span className="mt-1 block text-xs text-ink-600">{type.spec}</span>
+                    </div>
+                    <p className={type.className}>{type.sample}</p>
+                  </div>
+                ))}
+              </div>
+            </Subsection>
+
+            <Subsection title="간격과 형태">
+              <dl className="grid gap-px overflow-hidden border border-line bg-line sm:grid-cols-3">
+                <TokenFact term="간격" description="4 · 8 · 12 · 16 · 24 · 32px" />
+                <TokenFact term="화면 여백" description="16–24px" />
+                <TokenFact term="목록 행" description="최소 64px" />
+                <TokenFact term="입력·버튼" description="12px 모서리" />
+                <TokenFact term="작업 카드" description="16px 모서리" />
+                <TokenFact term="하단 시트" description="28px 상단 모서리" />
+              </dl>
+            </Subsection>
+          </DocSection>
+
+          <DocSection id="components" kicker="03" title="컴포넌트" summary="공통 컴포넌트는 상태와 행동의 차이를 분명하게 보여야 합니다.">
+            <Subsection title="아이콘">
+              <div className="max-w-[680px] border-y border-line">
+                <IconRule
+                  label="하단 내비게이션"
+                  description="모든 탭에 같은 fill 아이콘 계열을 쓰고, 선택 상태는 색과 라벨 두께로만 구분합니다."
+                  example={(
+                    <span className="flex items-center gap-4">
+                      <Home aria-label="홈 비활성" className="text-ink-400" size="var(--icon-md)" weight="fill" />
+                      <Home aria-label="홈 활성" className="text-primary-700" size="var(--icon-md)" weight="fill" />
+                    </span>
+                  )}
+                />
+                <IconRule
+                  label="뒤로가기·닫기·더보기"
+                  description="조작 아이콘은 regular 20–24px로 사용합니다."
+                  example={<ArrowLeft aria-label="뒤로가기" size="var(--icon-sm)" weight="regular" />}
+                />
+                <IconRule
+                  label="상태·경고·보안"
+                  description="본문과 함께 bold 18–20px로 표시합니다."
+                  example={<ShieldCheck aria-label="안전하게 연결됨" className="text-success-ink" size="var(--icon-sm)" weight="bold" />}
+                />
+                <IconRule
+                  label="서비스 카테고리"
+                  description="실제 사진이 더 적절하지 않은 분류에만 duotone 28–36px를 사용합니다."
+                  example={<Camera aria-label="촬영" className="text-primary-700" size="var(--icon-category)" weight="duotone" />}
+                />
+              </div>
+              <p className="mt-4 max-w-[680px] text-sm leading-6 text-ink-600">
+                시스템 아이콘은 Phosphor 한 세트만 사용합니다. 텍스트만으로 충분한 곳에는 아이콘을 추가하지 않고, 아이콘만으로 의미를 전달하지 않습니다.
+              </p>
+            </Subsection>
+
+            <Subsection title="버튼">
+              <div className="flex flex-wrap gap-2">
+                <Button>다음 단계</Button>
+                <Button variant="outline">이전</Button>
+                <Button variant="secondary">임시 저장</Button>
+                <Button variant="destructive">연결 종료</Button>
+              </div>
+              <p className="mt-4 text-sm leading-6 text-ink-600">주요 버튼은 화면 또는 시트 하나에 한 개를 기본으로 합니다. 동일 위계의 버튼을 나란히 반복하지 않습니다.</p>
+            </Subsection>
+
+            <Subsection title="입력">
+              <div className="max-w-[440px]">
+                <Label htmlFor="design-system-address">출발지 표시명</Label>
+                <Input className="mt-2" id="design-system-address" placeholder="예: 성수동 아파트" />
+                <p className="mt-2 text-sm text-ink-600">입력 목적이 분명한 라벨과 실제 형식에 가까운 예시를 제공합니다.</p>
+              </div>
+            </Subsection>
+
+            <Subsection title="상태와 목록 행">
+              <div className="max-w-[560px]">
+                <ListGroup className="mt-0" variant="plain">
+                  <ListRow description="고객 확인 대기" end="v1.0">범위와 견적</ListRow>
+                  <ListRow description="차량·현장기사 배정 완료" end={<Badge variant="success">확정</Badge>}>배차</ListRow>
+                  <ListRow
+                    description="완료 사진과 최종 금액"
+                    leading={<img alt="완료 사진 예시" className="size-[72px] rounded-xl object-cover" height="72" loading="lazy" src="/room-after-evidence.png" width="72" />}
+                  >완료 기록</ListRow>
+                </ListGroup>
+              </div>
+              <p className="mt-4 max-w-[560px] text-sm leading-6 text-ink-600">목록은 left·contents·right 영역으로 구성합니다. 사진이 판단 근거일 때만 왼쪽 썸네일을 쓰고, 설정·기록 목록은 바깥 카드 없이 화면 구분선으로 묶습니다.</p>
+            </Subsection>
+
+            <Subsection title="다음 작업 카드">
+              <article className="app-panel max-w-[560px] p-5">
+                <p className="text-sm font-bold text-primary-700">다음 작업</p>
+                <h3 className="mt-1 text-[22px] leading-7 font-extrabold">업체가 보낸 범위와 견적을 확인해 주세요</h3>
+                <div className="mt-4 border-t border-line pt-3">
+                  <PriorityFacts items={[{ label: "버전", value: "v1.0" }, { label: "확인 금액", value: "480,000원" }, { label: "작업", value: "24개" }]} />
+                </div>
+                <Button className="mt-5 w-full">범위와 견적 확인</Button>
+              </article>
+            </Subsection>
+          </DocSection>
+
+          <DocSection id="patterns" kicker="04" title="화면 패턴" summary="페이지 유형마다 정보가 나타나는 순서를 고정합니다.">
+            <div className="overflow-x-auto border-t border-line">
+              <table className="w-full min-w-[680px] border-collapse text-left text-sm">
+                <thead>
+                  <tr className="border-b border-line text-ink-600">
+                    <th className="px-3 py-4 font-bold">화면</th>
+                    <th className="px-3 py-4 font-bold">상단</th>
+                    <th className="px-3 py-4 font-bold">본문</th>
+                    <th className="px-3 py-4 font-bold">마지막</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {patterns.map((pattern) => (
+                    <tr className="border-b border-line align-top" key={pattern.name}>
+                      <th className="px-3 py-4 font-extrabold">{pattern.name}</th>
+                      <td className="px-3 py-4 text-ink-600">{pattern.first}</td>
+                      <td className="px-3 py-4 text-ink-600">{pattern.middle}</td>
+                      <td className="px-3 py-4 text-ink-600">{pattern.last}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <Subsection title="모바일 홈 구조">
+              <div className="max-w-[390px] overflow-hidden border-y border-line bg-surface">
+                <div className="border-b border-line bg-surface px-5 py-4"><p className="text-[22px] font-black tracking-[-0.055em]">SEQRET</p></div>
+                <div className="p-5">
+                  <p className="text-sm font-bold text-primary-700">8월 23일 이사 · D-7</p>
+                  <h3 className="mt-2 text-[28px] leading-9 font-extrabold">고객님, 확인할 내용이 있어요</h3>
+                  <div className="mt-5 rounded-[var(--radius-card)] border border-primary-100 bg-primary-50/70 p-5">
+                    <Badge variant="primary">공동확인 대기</Badge>
+                    <p className="mt-4 text-xl font-extrabold">업체가 작업 범위를 제안했어요</p>
+                    <p className="mt-2 text-sm text-ink-600">v1.0 · 1,200,000원 · 4개 항목</p>
+                    <Button className="mt-5 w-full">변경 내용 확인</Button>
+                  </div>
+                  <p className="mt-7 text-lg font-extrabold">현재 기준</p>
+                  <div className="mt-3 overflow-hidden border-y border-line">
+                    <ExampleRow title="작업 범위" meta="v1.0 · 고객 확인 대기" />
+                    <ExampleRow title="확인 금액" meta="1,200,000원" />
+                    <ExampleRow title="이사 경로" meta="성수동 → 합정동" />
+                  </div>
+                </div>
+              </div>
+            </Subsection>
+          </DocSection>
+
+          <DocSection id="roles" kicker="05" title="역할별 적용" summary="같은 기능이라도 역할의 판단 순서에 맞춰 첫 화면을 다르게 구성합니다.">
+            <div className="border-t border-line">
+              {roleGuides.map((guide) => (
+                <article className="grid gap-3 border-b border-line py-6 md:grid-cols-[8rem_minmax(0,1fr)]" key={guide.role}>
+                  <h3 className="text-xl font-extrabold">{guide.role}</h3>
+                  <dl className="grid gap-3 text-sm sm:grid-cols-3">
+                    <div><dt className="font-bold">목적</dt><dd className="mt-1 leading-5 text-ink-600">{guide.intent}</dd></div>
+                    <div><dt className="font-bold">정보 순서</dt><dd className="mt-1 leading-5 text-ink-600">{guide.order}</dd></div>
+                    <div><dt className="font-bold">주요 행동</dt><dd className="mt-1 leading-5 text-ink-600">{guide.primary}</dd></div>
+                  </dl>
+                </article>
+              ))}
+            </div>
+          </DocSection>
+
+          <DocSection id="quality" kicker="06" title="검수 기준" summary="화면 완성 여부는 장식이 아니라 이해·행동·상태 전달로 판단합니다.">
+            <ol className="border-t border-line">
+              {checks.map((check, index) => (
+                <li className="flex min-h-16 items-start gap-3 border-b border-line py-4" key={check}>
+                  <span className="grid size-7 shrink-0 place-items-center rounded-full bg-success-bg text-success-ink"><Check aria-hidden="true" className="size-4" /></span>
+                  <span className="pt-1 text-sm leading-5 font-semibold">{check}</span>
+                  <span className="ml-auto pt-1 text-xs font-bold text-ink-400">{String(index + 1).padStart(2, "0")}</span>
                 </li>
               ))}
             </ol>
 
-            <div className="mt-6 rounded-2xl bg-primary-50 p-5">
-              <p className="text-[13px] font-bold text-primary-800">현재 운영 기준</p>
-              <p className="mt-2 text-[12px] leading-5 text-ink-600">
-                작업한 사람이 문서까지 갱신하고, 다른 한 명이 실제 화면과 접근성 기준을 확인합니다. 새 항목은
-                사용 가능성·기존 규칙과의 일관성·다른 화면에서의 재사용성을 충족할 때만 공통화합니다.
-              </p>
-            </div>
-
-            <div className="mt-5 flex flex-wrap gap-2">
-              {[
-                ["USWDS · 점진적 도입", "https://designsystem.digital.gov/maturity-model/"],
-                ["GOV.UK · 기여 기준", "https://design-system.service.gov.uk/community/contribution-criteria/"],
-                ["WCAG 2.2", "https://www.w3.org/TR/WCAG22/"],
-              ].map(([label, href]) => (
-                <a
-                  className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-line bg-white px-4 text-[12px] font-bold text-ink-600 hover:border-primary-400 hover:bg-primary-50"
-                  href={href}
-                  key={href}
-                  rel="noreferrer"
-                  target="_blank"
-                >
-                  {label}
-                  <ExternalLink aria-hidden="true" className="size-4" />
-                </a>
-              ))}
-            </div>
-          </section>
-
-          <section className="scroll-mt-8 pt-16" id="foundations">
-            <SectionHeading eyebrow="02" title="Foundations" description="코드에서 실제 사용 중인 색과 공간 규칙입니다." />
-
-            <h3 className="mt-9 text-[17px] leading-6 font-bold tracking-[-0.3px]">Color roles</h3>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              {colors.map((color) => (
-                <Card className="flex items-center gap-4 rounded-2xl p-4" key={color.name}>
-                  <span aria-hidden="true" className={`size-12 shrink-0 rounded-xl border border-black/5 ${color.className}`} />
-                  <div className="min-w-0">
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="text-[13px] leading-5 font-bold">{color.name}</p>
-                      <code className="text-[11px] text-ink-400">{color.value}</code>
-                    </div>
-                    <p className="mt-1 text-[12px] leading-4 text-ink-400">{color.role}</p>
-                  </div>
-                </Card>
-              ))}
-            </div>
-            <p className="mt-3 text-[11px] leading-4 text-ink-400">
-              Semantic 원색은 아이콘·경계에 사용하고, 작은 텍스트는 대비를 확보한 success / warning / danger ink 토큰을 사용합니다.
-            </p>
-
-            <div className="mt-8 grid gap-4 md:grid-cols-2">
-              <RuleCard title="Mobile" items={["24px screen · 20px card padding", "44px minimum touch target", "56px sticky primary action"]} />
-              <RuleCard title="Desktop" items={["28px content padding", "table / split pane 우선", "bounded object에만 card 사용"]} />
-            </div>
-
-            <div className="mt-6 overflow-hidden rounded-2xl border border-line bg-white">
-              <div className="grid grid-cols-3 border-b border-line bg-canvas px-5 py-3 text-[11px] font-bold text-ink-400">
-                <span>Category</span><span>Value</span><span>Usage</span>
+            <Subsection title="참고 기준">
+              <div className="grid gap-2 text-sm">
+                <ReferenceLink href="https://designsystem.line.me/" label="LINE Design System" description="내비게이션, 타이포그래피, 컴포넌트 기준" />
+                <ReferenceLink href="https://seed-design.io/" label="SEED Design System" description="Foundation → Component → Pattern 구조" />
+                <ReferenceLink href="https://developers-apps-in-toss.toss.im/design/components.html" label="Apps in Toss" description="모바일 공통 컴포넌트의 역할과 조합" />
+                <div className="flex min-h-14 items-center gap-3 border-b border-line py-3">
+                  <ShieldCheck aria-hidden="true" className="size-5 shrink-0 text-primary-700" />
+                  <span className="min-w-0"><strong className="block">프로젝트 레퍼런스 이미지</strong><span className="mt-0.5 block text-ink-600">짐싸·이사로·숨고·미소의 정보 밀도와 화면 구조를 참고하며 시각 복제는 하지 않습니다.</span></span>
+                </div>
               </div>
-              {[
-                ["Spacing", "4pt semantic scale", "12 related · 16 row · 20 card · 32 section"],
-                ["Radius", "12 / 16 / 24", "control · surface · sheet/modal"],
-                ["Stroke", "1px", "hairline border only"],
-                ["Icon", "24px · 2px stroke", "44px touch target 안에 배치"],
-                ["Elevation", "L0 / L1 / L2", "base · sticky · overlay"],
-              ].map((row) => (
-                <div className="grid grid-cols-3 gap-3 border-b border-line px-5 py-4 text-[12px] leading-5 last:border-b-0" key={row[0]}>
-                  <span className="font-bold">{row[0]}</span><span className="text-ink-600">{row[1]}</span><span className="text-ink-400">{row[2]}</span>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section className="scroll-mt-8 pt-16" id="typography">
-            <SectionHeading eyebrow="03" title="Typography" description="Pretendard를 기본으로 사용하고 숫자와 시스템 대체 글꼴은 Inter가 보완합니다." />
-            <div className="mt-7 overflow-hidden rounded-2xl border border-line bg-white px-5 sm:px-7">
-              <TypeRow name="Display" spec="28 / 36 · 800" className="text-[28px] leading-9 font-extrabold tracking-[-0.5px]" text="128,000원" />
-              <TypeRow name="Desktop title" spec="26 / 34 · 800" className="text-[26px] leading-[34px] font-extrabold tracking-[-0.5px]" text="이사 건 관리" />
-              <TypeRow name="Mobile title" spec="22 / 30 · 800" className="text-[22px] leading-[30px] font-extrabold tracking-[-0.5px]" text="어떤 작업을 요청할까요?" />
-              <TypeRow name="Heading" spec="17 / 24 · 700" className="text-[17px] leading-6 font-bold tracking-[-0.3px]" text="확인이 필요한 항목" />
-              <TypeRow name="Body" spec="15 / 22 · 500" className="text-[15px] leading-[22px] font-medium" text="영상에서 분석한 작업 범위를 확인해 주세요." />
-              <TypeRow name="Sub" spec="13 / 19 · 500" className="text-[13px] leading-[19px] font-medium" text="수정하면 새 버전으로 저장됩니다." />
-              <TypeRow name="Caption" spec="12 / 16 · 600" className="text-[12px] leading-4 font-semibold" text="분석 완료 · 방금 전" />
-            </div>
-          </section>
-
-          <section className="scroll-mt-8 pt-16" id="components">
-            <SectionHeading eyebrow="04" title="Components" description="현재 서비스가 공통으로 사용하는 shadcn 기반 UI입니다." />
-
-            <div className="mt-7 overflow-hidden rounded-2xl border border-line bg-white">
-              {[
-                ["Primitive", "Button · Badge · Card · Sheet", "components/ui에서 공통 관리"],
-                ["Form", "Label · Input · Select · Textarea", "label·focus·invalid·disabled 상태 통일"],
-                ["Product pattern", "List · Route · Step · Media", "반복되는 업무 맥락에만 사용"],
-              ].map(([level, inventory, rule]) => (
-                <div
-                  className="grid gap-1 border-b border-line px-5 py-4 last:border-b-0 sm:grid-cols-[140px_260px_1fr] sm:items-center"
-                  key={level}
-                >
-                  <span className="text-[12px] font-bold">{level}</span>
-                  <span className="text-[12px] text-ink-600">{inventory}</span>
-                  <span className="text-[11px] leading-4 text-ink-400">{rule}</span>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-4 grid gap-4 xl:grid-cols-2">
-              <Showcase title="Buttons" description="화면당 Primary CTA는 하나만 사용합니다.">
-                <div className="flex flex-wrap gap-3">
-                  <Button>확인하고 계속</Button>
-                  <Button variant="outline">나중에</Button>
-                  <Button variant="destructive">삭제</Button>
-                  <Button disabled>비활성</Button>
-                </div>
-              </Showcase>
-
-              <Showcase title="Status chips" description="상태색은 장식이 아니라 의미만 전달합니다.">
-                <div className="flex flex-wrap gap-2">
-                  <Badge>기본</Badge><Badge variant="primary">확인 필요</Badge><Badge variant="warning">대기</Badge>
-                  <Badge variant="success">완료</Badge><Badge variant="danger">오류</Badge>
-                </div>
-              </Showcase>
-
-              <Showcase title="Form controls" description="입력 목적과 오류 상태를 같은 규칙으로 전달합니다.">
-                <div className="grid gap-4">
-                  <Label htmlFor="system-name">고객 이름</Label>
-                  <Input autoComplete="name" id="system-name" name="customerName" placeholder="예: 박민서…" />
-                  <Label htmlFor="system-room">공간</Label>
-                  <Select defaultValue="living" id="system-room" name="room">
-                    <option value="living">거실</option><option value="bedroom">침실</option>
-                  </Select>
-                  <Label htmlFor="system-note">변경 사유</Label>
-                  <Textarea id="system-note" name="note" placeholder="고객에게 보일 변경 사유…" />
-                </div>
-              </Showcase>
-
-              <Showcase title="List row" description="관련 정보는 카드 대신 행과 구분선으로 묶습니다.">
-                <div className="divide-y divide-line">
-                  {["작업 범위 v2", "변경 요청 내역"].map((label, index) => (
-                    <div className="flex min-h-16 items-center gap-3" key={label}>
-                      <div className="min-w-0 flex-1"><p className="text-[13px] font-bold">{label}</p><p className="mt-1 text-[11px] text-ink-400">{index ? "업체 확인 대기" : "오늘 14:32 · 최신 버전"}</p></div>
-                      <ChevronRight aria-hidden="true" className="size-5 text-ink-400" />
-                    </div>
-                  ))}
-                </div>
-              </Showcase>
-
-              <Showcase title="Route stops" description="출발지와 도착지는 하나의 경로로 읽히게 합니다.">
-                <div className="relative space-y-1 before:absolute before:top-8 before:bottom-8 before:left-[13px] before:w-px before:bg-line">
-                  <RouteStop label="출발지" value="08:00 · 마포구 · 5층" active />
-                  <RouteStop label="도착지" value="성동구 · 8층" />
-                </div>
-              </Showcase>
-
-              <Showcase title="Step item" description="완료, 현재, 예정 상태를 순서대로 표현합니다.">
-                <div className="grid gap-2 sm:grid-cols-3">
-                  <StepItem state="done" label="영상 촬영" /><StepItem state="current" label="범위 확인" /><StepItem state="upcoming" label="업체 확인" />
-                </div>
-              </Showcase>
-
-              <Showcase title="Media tile" description="촬영 자료는 준비 상태와 오류를 직접 표시합니다.">
-                <div className="grid grid-cols-3 gap-2">
-                  <MediaTile label="추가" /><MediaTile label="영상 23초" state="ready" /><MediaTile label="재시도" state="error" />
-                </div>
-              </Showcase>
-            </div>
-          </section>
-
-          <section className="scroll-mt-8 pt-16" id="patterns">
-            <SectionHeading eyebrow="05" title="Pattern selection" description="정보 성격에 맞는 한 가지 구조를 선택합니다." />
-            <div className="mt-7 overflow-hidden rounded-2xl border border-line bg-white">
-              {patterns.map(([context, pattern], index) => (
-                <div className="grid gap-1 border-b border-line px-5 py-4 last:border-b-0 sm:grid-cols-[40px_180px_1fr] sm:items-center" key={context}>
-                  <span className="text-[11px] font-bold text-primary-600">{String(index + 1).padStart(2, "0")}</span>
-                  <span className="text-[13px] font-bold">{context}</span>
-                  <span className="text-[13px] leading-5 text-ink-600">{pattern}</span>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section className="scroll-mt-8 pt-16" id="quality">
-            <SectionHeading
-              eyebrow="06"
-              title="Quality bar"
-              description="컴포넌트가 예쁘게 보이는 것보다, 모든 상태에서 이해하고 조작할 수 있는지가 우선입니다."
-            />
-
-            <div className="mt-7 grid gap-4 lg:grid-cols-2">
-              <RuleCard
-                title="Accessibility"
-                items={[
-                  "본문 텍스트 4.5:1, UI 경계와 상태 3:1 이상",
-                  "프로젝트 터치 목표 44×44px, 키보드 focus 항상 표시",
-                  "색만으로 상태를 구분하지 않고 텍스트·아이콘 병행",
-                  "200% 확대와 320px 폭에서 정보·기능 손실 없음",
-                  "동작 감소 설정과 비동기 상태 안내 지원",
-                ]}
-              />
-              <RuleCard
-                title="Content"
-                items={[
-                  "결정이 필요한 화면만 질문형 제목 사용",
-                  "CTA는 ‘확인하고 계속’처럼 행동과 결과를 명시",
-                  "상태는 주체와 시점을 포함해 대기 이유를 설명",
-                  "금액 변경은 이전·변경·최종 값을 함께 표시",
-                  "오류는 원인보다 사용자가 할 다음 행동을 우선 안내",
-                ]}
-              />
-            </div>
-
-            <h3 className="mt-9 text-[17px] leading-6 font-bold tracking-[-0.3px]">Required states</h3>
-            <div className="mt-4 overflow-hidden rounded-2xl border border-line bg-white">
-              {[
-                ["Action", "default · hover · focus · disabled · destructive"],
-                ["Input", "empty · focus · filled · error · disabled"],
-                ["Async", "queued · processing · success · error · retry"],
-                ["Overlay", "open · close · scroll · focus return"],
-              ].map(([kind, states]) => (
-                <div className="grid gap-1 border-b border-line px-5 py-4 last:border-b-0 sm:grid-cols-[140px_1fr]" key={kind}>
-                  <span className="text-[12px] font-bold">{kind}</span>
-                  <span className="text-[12px] leading-5 text-ink-600">{states}</span>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section className="scroll-mt-8 pt-16" id="rules">
-            <SectionHeading eyebrow="07" title="Usage rules" description="디자인 선택을 빠르게 검토하는 최소 체크리스트입니다." />
-            <div className="mt-7 grid gap-4 lg:grid-cols-2">
-              <RuleChecklist title="Do" tone="success" items={["핵심 문구와 상태는 가능한 한 한 줄", "작은 본문도 15px 이상, 핵심 질문은 24px 이상", "한 화면의 핵심 결정과 Primary CTA는 1개", "버튼처럼 보이면 반드시 실제 상태가 바뀜", "단계 완료 후 탭·뒤로가기에서도 완료 상태와 다음 행동 유지"]} />
-              <RuleChecklist title="Avoid" tone="danger" items={["문장을 억지로 나눠 만든 여백", "가시성 낮은 텍스트 링크와 토스트만 뜨는 가짜 버튼", "모호한 내부 용어: 승인본·지난 버전·잠김", "화면 문구에 제작자 관점의 내부 작업 용어 사용", "장식용 상태색과 placeholder 이미지"]} />
-            </div>
-
-            <div className="mt-8 rounded-3xl bg-ink-900 p-6 text-white sm:flex sm:items-center sm:justify-between sm:gap-6">
-              <div><p className="text-[17px] leading-6 font-bold">실제 화면에서 확인하기</p><p className="mt-1 text-[13px] leading-5 text-white/65">역할별 화면에 같은 규칙이 어떻게 적용됐는지 비교할 수 있습니다.</p></div>
-              <div className="mt-5 flex flex-wrap gap-2 sm:mt-0">
-                {[['소비자','/?role=consumer'],['업체','/provider'],['업체 PWA','/provider/web'],['작업자','/crew']].map(([label, href]) => (
-                  <Link className="inline-flex min-h-11 items-center gap-1 rounded-xl bg-white px-4 text-[12px] font-bold text-ink-900 hover:bg-primary-50" to={href} key={href}>{label}<ArrowRight aria-hidden="true" className="size-4" /></Link>
-                ))}
-              </div>
-            </div>
-          </section>
+            </Subsection>
+          </DocSection>
         </div>
       </div>
     </main>
   );
 }
 
-function SectionHeading({ eyebrow, title, description }: { eyebrow: string; title: string; description: string }) {
-  return <div className="border-b border-line pb-5"><p className="text-[11px] font-bold tracking-[0.12em] text-primary-600">{eyebrow}</p><h2 className="mt-2 text-[26px] leading-[34px] font-extrabold tracking-[-0.5px]">{title}</h2><p className="mt-2 text-[13px] leading-5 text-ink-600">{description}</p></div>;
+function DocSection({
+  children,
+  id,
+  kicker,
+  summary,
+  title,
+}: {
+  children: ReactNode;
+  id: string;
+  kicker: string;
+  summary: string;
+  title: string;
+}) {
+  return (
+    <section className="scroll-mt-20 border-b border-line py-12 md:py-16" id={id}>
+      <div className="mb-8">
+        <p className="text-xs font-extrabold text-primary-700">{kicker}</p>
+        <h2 className="mt-2 text-[28px] leading-9 font-extrabold tracking-[-0.04em] md:text-[32px]">{title}</h2>
+        <p className="mt-3 max-w-[680px] text-base leading-6 text-ink-600">{summary}</p>
+      </div>
+      {children}
+    </section>
+  );
 }
 
-function RuleCard({ title, items }: { title: string; items: string[] }) {
-  return <Card className="rounded-2xl p-5"><p className="text-[15px] font-bold">{title}</p><ul className="mt-4 space-y-3">{items.map((item) => <li className="flex items-start gap-2 text-[13px] leading-5 text-ink-600" key={item}><Check aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-primary-600" />{item}</li>)}</ul></Card>;
+function Subsection({ children, title }: { children: ReactNode; title: string }) {
+  return (
+    <section className="mt-10 first:mt-0">
+      <h3 className="mb-4 text-lg font-extrabold">{title}</h3>
+      {children}
+    </section>
+  );
 }
 
-function TypeRow({ name, spec, className, text }: { name: string; spec: string; className: string; text: string }) {
-  return <div className="grid gap-4 border-b border-line py-6 last:border-b-0 md:grid-cols-[130px_1fr] md:items-center"><div><p className="text-[12px] font-bold">{name}</p><p className="mt-1 text-[11px] text-ink-400">{spec}</p></div><p className={className}>{text}</p></div>;
+function TokenFact({ description, term }: { description: string; term: string }) {
+  return (
+    <div className="bg-surface p-4">
+      <dt className="text-sm font-bold">{term}</dt>
+      <dd className="mt-1 text-sm text-ink-600">{description}</dd>
+    </div>
+  );
 }
 
-function Showcase({ title, description, children }: { title: string; description: string; children: React.ReactNode }) {
-  return <Card className="rounded-2xl p-5"><p className="text-[17px] leading-6 font-bold">{title}</p><p className="mt-1 text-[12px] leading-4 text-ink-400">{description}</p><div className="mt-5">{children}</div></Card>;
+function IconRule({
+  description,
+  example,
+  label,
+}: {
+  description: string;
+  example: ReactNode;
+  label: string;
+}) {
+  return (
+    <div className="grid min-h-20 grid-cols-[4rem_minmax(0,1fr)] items-center gap-4 border-b border-line py-4 last:border-b-0 sm:grid-cols-[6rem_10rem_minmax(0,1fr)]">
+      <span className="flex min-h-12 items-center justify-center rounded-xl bg-surface-muted text-ink-600">{example}</span>
+      <strong className="text-sm">{label}</strong>
+      <span className="col-start-2 text-sm leading-5 text-ink-600 sm:col-start-auto">{description}</span>
+    </div>
+  );
 }
 
-function RouteStop({ label, value, active = false }: { label: string; value: string; active?: boolean }) {
-  return <div className="relative flex min-h-[62px] items-center gap-3"><span className={`z-10 grid size-7 shrink-0 place-items-center rounded-full ${active ? "bg-primary-600 text-white" : "bg-primary-50 text-primary-700"}`}><MapPin aria-hidden="true" className="size-4" /></span><div><p className="text-[12px] font-bold">{label}</p><p className="mt-1 text-[13px] text-ink-600">{value}</p></div></div>;
+function ExampleRow({
+  icon,
+  meta,
+  title,
+  tone = "neutral",
+}: {
+  icon?: "camera";
+  meta: string;
+  title: string;
+  tone?: "neutral" | "primary" | "success" | "warning";
+}) {
+  const toneClass = tone === "primary" ? "text-primary-700" : tone === "success" ? "text-success-ink" : tone === "warning" ? "text-warning-ink" : "text-ink-600";
+  return (
+    <div className="flex min-h-16 items-center gap-3 border-b border-line px-1 last:border-b-0">
+      {icon === "camera" ? <Camera aria-hidden="true" className="size-5 shrink-0 text-primary-700" /> : null}
+      <span className="min-w-0 flex-1"><strong className="block text-sm">{title}</strong><span className={`mt-0.5 block text-sm ${toneClass}`}>{meta}</span></span>
+      <ChevronRight aria-hidden="true" className="size-5 shrink-0 text-ink-400" />
+    </div>
+  );
 }
 
-function StepItem({ state, label }: { state: "done" | "current" | "upcoming"; label: string }) {
-  const styles = state === "done" ? "bg-success-bg" : state === "current" ? "bg-primary-50" : "border border-line bg-white";
-  return <div className={`flex min-h-[68px] items-center gap-2 rounded-xl p-3 ${styles}`}><span className={`grid size-6 shrink-0 place-items-center rounded-full ${state === "done" ? "bg-success text-white" : state === "current" ? "bg-primary-600 text-white" : "bg-canvas text-ink-400"}`}>{state === "done" ? <Check className="size-3.5" /> : state === "current" ? <Circle className="size-2 fill-current" /> : <Circle className="size-2" />}</span><div><p className="text-[12px] font-bold">{label}</p><p className="mt-0.5 text-[11px] text-ink-400">{state === "done" ? "완료" : state === "current" ? "현재 단계" : "다음 단계"}</p></div></div>;
-}
-
-function MediaTile({ label, state = "empty" }: { label: string; state?: "empty" | "ready" | "error" }) {
-  const styles = state === "error" ? "bg-danger-bg text-danger" : state === "ready" ? "bg-primary-50 text-primary-700" : "bg-canvas text-ink-400";
-  return <div className={`grid min-h-[104px] place-items-center rounded-xl p-3 text-center ${styles}`}><div><span className="mx-auto grid h-[34px] w-[42px] place-items-center rounded-lg border border-current bg-white/70">{state === "ready" ? <Play className="size-4 fill-current" /> : state === "error" ? <AlertCircle className="size-4" /> : <ImagePlus className="size-4" />}</span><p className="mt-2 text-[11px] font-bold">{label}</p></div></div>;
-}
-
-function RuleChecklist({ title, tone, items }: { title: string; tone: "success" | "danger"; items: string[] }) {
-  return <Card className="rounded-2xl p-5"><Badge variant={tone}>{title}</Badge><ul className="mt-5 space-y-3">{items.map((item) => <li className="flex items-start gap-2 text-[13px] leading-5 text-ink-600" key={item}>{tone === "success" ? <Check className="mt-0.5 size-4 shrink-0 text-success" /> : <AlertCircle className="mt-0.5 size-4 shrink-0 text-danger" />}{item}</li>)}</ul></Card>;
+function ReferenceLink({ description, href, label }: { description: string; href: string; label: string }) {
+  return (
+    <a className="interactive-row flex min-h-14 items-center gap-3 border-b border-line py-3" href={href} rel="noreferrer" target="_blank">
+      <ExternalLink aria-hidden="true" className="size-5 shrink-0 text-primary-700" />
+      <span className="min-w-0 flex-1"><strong className="block">{label}</strong><span className="mt-0.5 block text-ink-600">{description}</span></span>
+      <ChevronRight aria-hidden="true" className="size-5 shrink-0 text-ink-400" />
+    </a>
+  );
 }

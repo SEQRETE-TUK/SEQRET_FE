@@ -26,7 +26,7 @@
 | Styling | Tailwind CSS | 4.3.3 | 사용 중 | token 기반 utility styling과 responsive layout을 구성한다. |
 | Headless UI | Base UI | 1.7.0 | 사용 중 | 접근 가능한 Button·Dialog 기반 primitive를 제공한다. |
 | Variant | CVA | 0.7.1 | 사용 중 | Button과 Badge variant를 타입 안전하게 관리한다. |
-| Icon | Lucide React | 1.14.0 | 사용 중 | 일관된 선형 icon을 제공한다. |
+| Icon | Phosphor React | 2.1.10 | 사용 중 | 같은 glyph의 regular·fill·bold·duotone weight로 탐색, 상태와 카테고리를 일관되게 구분한다. |
 | Font | Pretendard | 5.2.5 | 사용 중 | 한국어 UI 가독성을 제공한다. |
 | PWA | vite-plugin-pwa, Workbox | 1.3.0, 7.4.1 | 기반만 있음 | 설치형 shell과 service worker 갱신을 지원한다. 서버 상태·비밀값은 cache하지 않는다. |
 | Hosting | Vercel | 별도 배포 설정 | 목표 | preview와 정적 frontend 배포를 제공한다. canonical HTTPS origin 확정이 필요하다. |

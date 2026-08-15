@@ -1,12 +1,25 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Copy, LogOut, RefreshCw, Send, ShieldAlert, X } from "lucide-react";
+import {
+  CheckIcon as Check,
+  CopyIcon as Copy,
+  SignOutIcon as LogOut,
+  ArrowClockwiseIcon as RefreshCw,
+  PaperPlaneTiltIcon as Send,
+  UserPlusIcon as UserPlus,
+  XIcon as X,
+} from "@phosphor-icons/react";
+import {
+  InfoStatusIcon as Info,
+  SecurityWarningIcon as ShieldAlert,
+} from "@/components/icons";
 import { useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { WorkflowTask } from "@/components/workflow/workflow-task";
 import { useAuth } from "@/features/auth/model/auth-context";
 import {
   apiErrorMessage,
@@ -34,38 +47,72 @@ export function SessionRequired({ role }: { role: ParticipantRole }) {
   const { session } = useAuth();
   if (session?.actor.role === role) return null;
   return (
-    <main className="mx-auto grid min-h-dvh max-w-lg place-items-center bg-canvas p-6" id="main-content">
-      <Card className="w-full p-6 text-center">
-        <ShieldAlert className="mx-auto size-9 text-primary-700" />
-        <h1 className="mt-4 text-xl font-extrabold">보안코드로 다시 연결해 주세요</h1>
-        <p className="mt-2 text-sm leading-6 text-ink-600">민감한 접근 정보는 저장하지 않기 때문에 새로고침하면 안전하게 연결이 종료됩니다.</p>
-        <Button className="mt-5 w-full" onClick={() => window.location.assign("/")} size="cta">연결 화면으로 이동</Button>
-      </Card>
+    <main className="mobile-stage" id="main-content">
+      <div className="mobile-frame px-5">
+        <header className="app-safe-header pb-3"><strong className="text-lg font-black tracking-[-0.04em] text-primary-800">SEQRET</strong></header>
+        <section className="pt-14">
+          <span className="grid size-12 place-items-center rounded-full bg-primary-50 text-primary-700"><ShieldAlert aria-hidden="true" className="size-6" /></span>
+          <h1 className="mt-6 max-w-[18rem] text-[28px] leading-9 font-extrabold tracking-[-0.04em]">보안코드로 다시 연결해 주세요</h1>
+          <p className="mt-3 max-w-[21rem] text-base leading-6 text-ink-600">접근 정보는 저장하지 않기 때문에 새로고침하면 연결이 안전하게 종료됩니다.</p>
+          <ButtonLink className="mt-8 w-full" href="/" size="cta">역할 선택으로 이동</ButtonLink>
+        </section>
+      </div>
     </main>
   );
 }
 
-export function WorkflowShell({ children, retryAfter = 0, title, wide = false }: { children: ReactNode; retryAfter?: number; title: string; wide?: boolean }) {
+export function WorkflowShell({
+  children,
+  currentStep = 1,
+  embedded = false,
+  retryAfter = 0,
+  summary,
+  title,
+  wide = false,
+}: {
+  children: ReactNode;
+  currentStep?: number;
+  embedded?: boolean;
+  retryAfter?: number;
+  summary?: string;
+  title: string;
+  wide?: boolean;
+}) {
   const { session, clearSession } = useAuth();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   if (!session) return null;
+  const content = (
+    <>
+      {retryAfter > 0 ? <p aria-live="polite" className="rounded-xl bg-warning-bg p-3 text-sm font-bold text-warning-ink">요청 제한으로 {retryAfter}초 동안 다시 제출할 수 없습니다.</p> : null}
+      <section className={cn(embedded ? "pb-6" : "rounded-[var(--radius-card)] border border-line bg-surface p-5 shadow-[var(--shadow-card)]")}>
+        <p className="text-sm font-bold text-primary-700">공동 거래 기록</p>
+        <h2 className="mt-2 text-[26px] leading-8 font-extrabold tracking-[-0.04em]">{embedded ? title : "처리할 작업"}</h2>
+        <p className="mt-2 text-sm leading-5 text-ink-600">{summary ?? "각 단계의 최신 상태를 확인하고 필요한 작업만 열어 처리할 수 있습니다."}</p>
+        <div className="mt-5 flex min-h-12 items-center justify-between border-y border-line py-3 text-sm">
+          <span className="font-bold">현재 처리 단계</span>
+          <span className="font-extrabold text-primary-700">{["연결", "범위 확인", "현장 변경", "배차", "완료 확인"][Math.min(currentStep, 4)]}</span>
+        </div>
+      </section>
+      <fieldset className="min-w-0" disabled={retryAfter > 0}>{children}</fieldset>
+    </>
+  );
+  if (embedded) return <section aria-label={title} className="min-w-0 px-[var(--content-gutter)] pb-28 pt-7">{content}</section>;
   return (
-    <div className={cn("min-h-dvh bg-canvas", wide ? "px-5 py-6 md:px-8" : "mobile-stage")}>
-      <div className={cn("mx-auto", wide ? "max-w-7xl" : "mobile-frame min-h-dvh bg-canvas")}>
-        <header className="sticky top-0 z-20 flex items-center justify-between border-b border-line bg-white/95 px-5 py-4 backdrop-blur">
-          <div>
-            <p className="text-xs font-bold text-primary-700">{roleLabel[session.actor.role]} · {session.actor.display_name}</p>
-            <h1 className="mt-1 text-xl font-extrabold">{title}</h1>
+    <div className={cn("min-h-dvh bg-canvas", wide ? "px-0" : "mobile-stage")}>
+      <div className={cn("mx-auto min-h-dvh bg-canvas", wide ? "max-w-[var(--shell-wide)]" : "mobile-frame")}>
+        <header className="app-safe-header sticky top-0 z-[var(--z-sticky)] flex items-center justify-between border-b border-line bg-surface/95 px-5 pb-3 backdrop-blur">
+          <div className="min-w-0">
+            <p className="truncate text-xs font-bold text-primary-700">{roleLabel[session.actor.role]} · {session.actor.display_name}</p>
+            <h1 className="mt-1 truncate text-xl font-extrabold">{title}</h1>
           </div>
           <div className="flex gap-1">
             <Button aria-label="최신 상태 불러오기" onClick={() => queryClient.invalidateQueries({ queryKey: workflowKeys.root(session.actor.job_id) })} size="icon" variant="ghost"><RefreshCw /></Button>
             <Button aria-label="연결 종료" onClick={() => { clearSession(); navigate("/"); }} size="icon" variant="ghost"><LogOut /></Button>
           </div>
         </header>
-        <main className="space-y-5 p-5" id="main-content">
-          {retryAfter > 0 ? <p aria-live="polite" className="rounded-xl bg-warning-bg p-3 text-sm font-bold text-warning-ink">요청 제한으로 {retryAfter}초 동안 다시 제출할 수 없습니다.</p> : null}
-          <fieldset className="contents" disabled={retryAfter > 0}>{children}</fieldset>
+        <main className={cn("pb-10", wide ? "px-5 pt-6 md:px-8" : "px-4 pt-5")} id="main-content">
+          {content}
         </main>
       </div>
     </div>
@@ -83,7 +130,7 @@ export function ApiNotice({ error, title = "현재 상태를 불러오지 못했
 }
 
 export function EmptyState({ children }: { children: ReactNode }) {
-  return <p className="rounded-xl bg-canvas p-4 text-sm leading-6 text-ink-600">{children}</p>;
+  return <p className="mt-4 flex items-start gap-2 rounded-xl bg-canvas p-4 text-sm leading-5 text-ink-600"><Info aria-hidden="true" className="mt-0.5 size-4 shrink-0" />{children}</p>;
 }
 
 export function InvitationPanel() {
@@ -152,10 +199,15 @@ export function InvitationPanel() {
 
   if (!canIssue) return null;
   const targetRole = session.actor.role === "customer" ? "업체" : "현장기사";
+  const pendingInvitationCount = invitationQuery.data?.invitations.filter((invitation) => invitation.status === "pending").length ?? 0;
   return (
-    <fieldset className="contents" disabled={retryAfter > 0}><Card className="p-5">
-      <h2 className="text-lg font-bold">{targetRole} 초대</h2>
-      <p className="mt-1 text-sm text-ink-600">발급된 보안코드는 한 번만 표시되며 저장되지 않습니다.</p>
+    <fieldset className="contents" disabled={retryAfter > 0}><WorkflowTask
+      description="일회성 보안코드는 저장하지 않고 필요한 상대에게만 전달해요"
+      leading={<UserPlus aria-hidden="true" className="size-4" />}
+      status={issued ? "전달 필요" : pendingInvitationCount > 0 ? `${pendingInvitationCount}명 대기` : "초대하기"}
+      title={`${targetRole} 초대`}
+      tone={issued ? "warning" : pendingInvitationCount > 0 ? "primary" : "neutral"}
+    >
       <ApiNotice error={error} title="초대 상태를 처리하지 못했어요" />
       {issued ? (
         <div className="mt-4 rounded-xl bg-primary-50 p-4">
@@ -163,7 +215,7 @@ export function InvitationPanel() {
             <p className="font-bold text-primary-800">지금 전달할 보안코드</p>
             <Button onClick={() => { void navigator.clipboard.writeText(issued.access_link.secret).then(() => setNotice("클립보드에 복사했어요.")).catch(() => setNotice("복사하지 못했어요. 브라우저 권한을 확인해 주세요.")); }} size="chip" variant="outline"><Copy /> 복사</Button>
           </div>
-          <p className="mt-3 rounded-lg bg-white p-3 text-sm text-ink-600">보안코드는 화면·URL·로그에 표시하지 않고 복사 동작에만 사용합니다.</p>
+          <p className="mt-3 rounded-lg bg-surface p-3 text-sm text-ink-600">보안코드는 화면·URL·로그에 표시하지 않고 복사 동작에만 사용합니다.</p>
           <Button className="mt-3 w-full" onClick={() => setIssued(null)} variant="ghost">표시 닫기</Button>
         </div>
       ) : null}
@@ -171,7 +223,7 @@ export function InvitationPanel() {
       <form className="mt-4 flex gap-2" onSubmit={(event) => { event.preventDefault(); if (displayName.trim()) inviteMutation.mutate(); }}>
         <div className="min-w-0 flex-1">
           <Label className="sr-only" htmlFor="invite-name">초대 대상 이름</Label>
-          <Input id="invite-name" maxLength={100} onChange={(event) => setDisplayName(event.target.value)} placeholder={`${targetRole} 이름`} value={displayName} />
+          <Input autoComplete="off" id="invite-name" maxLength={100} name="inviteeName" onChange={(event) => setDisplayName(event.target.value)} placeholder={`예: ${targetRole} 담당자 이름…`} value={displayName} />
         </div>
         <Button disabled={!displayName.trim() || inviteMutation.isPending} type="submit"><Send /> 초대</Button>
       </form>
@@ -187,7 +239,7 @@ export function InvitationPanel() {
           </div>
         ))}
       </div>
-    </Card></fieldset>
+    </WorkflowTask></fieldset>
   );
 }
 

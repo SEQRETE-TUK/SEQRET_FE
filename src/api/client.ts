@@ -1,3 +1,5 @@
+import { mockApiEnabled, mockApiRequest } from "@/api/mock-api";
+
 const API_PREFIX = "/api/v1";
 
 export interface ApiRequestOptions extends Omit<RequestInit, "headers"> {
@@ -123,6 +125,9 @@ async function request<T>(
   requestInit: RequestInit,
   accessToken?: string,
 ): Promise<T> {
+  if (mockApiEnabled) {
+    return mockApiRequest<T>(path, requestInit, accessToken);
+  }
   const headers = new Headers(requestInit.headers);
   headers.set("Accept", "application/json");
   if (accessToken !== undefined) {
@@ -172,6 +177,9 @@ export async function downloadApiFile(
   path: string,
   accessToken: string,
 ): Promise<{ blob: Blob; filename: string }> {
+  if (mockApiEnabled) {
+    return { blob: new Blob(["SEQRET Mock 문서"], { type: "application/zip" }), filename: "seqret-mock-documents.zip" };
+  }
   const normalizedToken = accessToken.trim();
   if (!normalizedToken) {
     throw new Error("An access token is required");
@@ -201,6 +209,7 @@ export async function uploadToSignedUrl({
   uploadHeaders,
   uploadUrl,
 }: SignedUploadRequest): Promise<void> {
+  if (mockApiEnabled && uploadUrl.startsWith("mock-upload://")) return;
   const response = await fetch(uploadUrl, {
     body,
     credentials: "omit",

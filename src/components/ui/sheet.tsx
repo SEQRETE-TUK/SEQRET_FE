@@ -1,5 +1,8 @@
 import { Dialog } from "@base-ui/react/dialog";
-import { X } from "lucide-react";
+import {
+  ArrowLeftIcon as ArrowLeft,
+  XIcon as X,
+} from "@phosphor-icons/react";
 import type { ComponentProps } from "react";
 
 import { cn } from "@/lib/utils";
@@ -8,25 +11,30 @@ const Sheet = Dialog.Root;
 const SheetTrigger = Dialog.Trigger;
 const SheetClose = Dialog.Close;
 
-function SheetContent({ className, children, ...props }: Dialog.Popup.Props) {
+function SheetContent({ className, children, presentation = "sheet", ...props }: Dialog.Popup.Props & { presentation?: "sheet" | "page" }) {
   return (
     <Dialog.Portal>
-      <Dialog.Backdrop className="demo-sheet-backdrop fixed inset-0 z-[var(--z-modal)] bg-ink-900/35" />
+      <Dialog.Backdrop className="demo-sheet-backdrop fixed inset-0 z-[var(--z-modal)] bg-[var(--color-overlay)]" />
       <Dialog.Viewport className="fixed inset-0 z-[var(--z-modal)] flex items-end justify-center">
         <Dialog.Popup
+          data-presentation={presentation}
           className={cn(
-            "demo-sheet-popup relative max-h-[calc(100dvh-96px)] w-full max-w-[440px] overflow-y-auto rounded-t-[var(--radius-sheet)] bg-white pt-5 text-ink-900 outline-none",
+            "demo-sheet-popup app-safe-bottom relative max-h-[calc(100dvh-40px)] w-full max-w-[var(--shell-mobile)] overflow-y-auto overscroll-contain rounded-t-[var(--radius-sheet)] bg-surface pt-5 text-ink-900 outline-2 outline-transparent focus-visible:outline-focus-ring",
+            presentation === "page" && "h-dvh max-h-dvh rounded-none pt-0",
             className,
           )}
           {...props}
         >
-          <div className="mx-auto mb-4 h-1 w-12 rounded-full bg-line" aria-hidden="true" />
+          {presentation === "sheet" ? <div className="mx-auto mb-4 h-1 w-12 rounded-full bg-line md:hidden" aria-hidden="true" /> : null}
           {children}
           <Dialog.Close
-            className="absolute top-5 right-5 flex size-11 items-center justify-center rounded-full text-ink-600 hover:bg-canvas focus-visible:outline-3 focus-visible:outline-primary-400"
-            aria-label="닫기"
+            className={cn(
+              "absolute z-20 flex size-11 items-center justify-center rounded-full text-ink-600 hover:bg-canvas focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring",
+              presentation === "page" ? "top-[max(10px,env(safe-area-inset-top))] left-2" : "top-5 right-5",
+            )}
+            aria-label={presentation === "page" ? "뒤로가기" : "닫기"}
           >
-            <X aria-hidden="true" />
+            {presentation === "page" ? <ArrowLeft aria-hidden="true" /> : <X aria-hidden="true" />}
           </Dialog.Close>
         </Dialog.Popup>
       </Dialog.Viewport>
@@ -43,11 +51,11 @@ function SheetTitle({ className, ...props }: Dialog.Title.Props) {
 }
 
 function SheetDescription({ className, ...props }: Dialog.Description.Props) {
-  return <Dialog.Description className={cn("text-[13px] leading-[19px] text-ink-400", className)} {...props} />;
+  return <Dialog.Description className={cn("text-sm leading-5 text-ink-600", className)} {...props} />;
 }
 
 function SheetFooter({ className, ...props }: ComponentProps<"div">) {
-  return <div className={cn("sticky bottom-0 mt-4 border-t border-line bg-white p-5 pb-[max(20px,env(safe-area-inset-bottom))]", className)} {...props} />;
+  return <div className={cn("sticky bottom-0 mt-4 border-t border-line bg-surface p-5 pb-[max(20px,env(safe-area-inset-bottom))]", className)} {...props} />;
 }
 
 export { Sheet, SheetClose, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger };
