@@ -15,7 +15,7 @@ import {
   ShieldCheck,
   Video,
 } from "lucide-react";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent, type MouseEvent } from "react";
 
 import { MobileFrame, StatusBar } from "@/components/demo-ui";
 import {
@@ -63,7 +63,14 @@ interface ReviewDraftState {
   items: AnalysisReviewDraftItem[];
 }
 
+interface RemovedReviewItem {
+  index: number;
+  item: AnalysisReviewDraftItem;
+  key: string;
+}
+
 const ACTIVE_ANALYSIS = new Set(["pending", "dispatching", "queued", "running"]);
+const MAX_REVIEW_ITEMS = 500;
 const VALIDATING_MEDIA = new Set(["uploaded", "processing"]);
 
 function friendlyError(error: unknown): string {
@@ -356,6 +363,9 @@ function AnalysisState({ analysis }: { analysis: CaptureAnalysis }) {
 function ConnectedCapture({ connection, onDisconnect }: ConnectedCaptureProps) {
   const workflow = useCaptureWorkflow(connection);
   const [localError, setLocalError] = useState<string | null>(null);
+  const [localNotice, setLocalNotice] = useState<string | null>(null);
+  const [recoveringReview, setRecoveringReview] = useState(false);
+  const [removedReviewItem, setRemovedReviewItem] = useState<RemovedReviewItem | null>(null);
   const [reviewDraftState, setReviewDraftState] = useState<ReviewDraftState | null>(null);
   const job = workflow.jobQuery.data;
   const sessions = workflow.sessionsQuery.data;
@@ -398,6 +408,20 @@ function ConnectedCapture({ connection, onDisconnect }: ConnectedCaptureProps) {
           description: item.description,
         })) ?? []);
   const reviewCompleted = review?.review_scope_version_id !== null && review !== undefined;
+  const reviewDirty =
+    !reviewCompleted &&
+    review !== undefined &&
+    (reviewDraftItems.length !== review.items.length ||
+      reviewDraftItems.some((draft) => {
+        const original = review.items.find((item) => item.item_key === draft.itemKey);
+        return (
+          original === undefined ||
+          original.room_zone_id !== draft.roomZoneId ||
+          original.description !== draft.description
+        );
+      }));
+  const activeRemovedReviewItem =
+    removedReviewItem?.key === reviewKey ? removedReviewItem : null;
   const reviewValid =
     reviewDraftItems.length > 0 &&
     reviewDraftItems.every(
@@ -411,7 +435,8 @@ function ConnectedCapture({ connection, onDisconnect }: ConnectedCaptureProps) {
     workflow.createSessionMutation.isPending ||
     workflow.uploadMutation.isPending ||
     workflow.submitMutation.isPending ||
-    workflow.reviewMutation.isPending;
+    workflow.reviewMutation.isPending ||
+    recoveringReview;
   const requestError =
     workflow.jobQuery.error ??
     workflow.sessionsQuery.error ??
@@ -419,6 +444,16 @@ function ConnectedCapture({ connection, onDisconnect }: ConnectedCaptureProps) {
     workflow.uploadMutation.error ??
     workflow.submitMutation.error ??
     workflow.reviewMutation.error;
+
+  useEffect(() => {
+    if (!reviewDirty) return;
+    const preventUnsavedExit = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = true;
+    };
+    window.addEventListener("beforeunload", preventUnsavedExit);
+    return () => window.removeEventListener("beforeunload", preventUnsavedExit);
+  }, [reviewDirty]);
 
   if (workflow.jobQuery.isPending || workflow.sessionsQuery.isPending) {
     return (
@@ -457,6 +492,38 @@ function ConnectedCapture({ connection, onDisconnect }: ConnectedCaptureProps) {
     unrecoverable ||
     terminalJob;
 
+  const canLeaveReview = () =>
+    !reviewDirty ||
+    window.confirm("아직 확정하지 않은 검토 변경이 있어요. 변경을 버리고 나갈까요?");
+
+  const returnToDemo = (event: MouseEvent<HTMLAnchorElement>) => {
+    if (!canLeaveReview()) event.preventDefault();
+  };
+
+  const disconnectSafely = () => {
+    if (canLeaveReview()) onDisconnect();
+  };
+
+  const reloadReview = async (successNotice?: string) => {
+    setRecoveringReview(true);
+    const result = await workflow.refreshReview();
+    setRecoveringReview(false);
+    if (result.isSuccess) {
+      workflow.reviewMutation.reset();
+      setReviewDraftState(null);
+      setRemovedReviewItem(null);
+      if (successNotice) setLocalNotice(successNotice);
+    }
+    return result;
+  };
+
+  const retryReview = async () => {
+    setLocalError(null);
+    setLocalNotice(null);
+    workflow.reviewMutation.reset();
+    await reloadReview();
+  };
+
   const startSession = () => {
     setLocalError(null);
     workflow.createSessionMutation.reset();
@@ -494,7 +561,8 @@ function ConnectedCapture({ connection, onDisconnect }: ConnectedCaptureProps) {
 
   const addReviewItem = () => {
     const firstZone = review?.zones[0];
-    if (!firstZone) return;
+    if (!firstZone || reviewDraftItems.length >= MAX_REVIEW_ITEMS) return;
+    setLocalNotice(null);
     setReviewDraft([
       ...reviewDraftItems,
       {
@@ -509,6 +577,7 @@ function ConnectedCapture({ connection, onDisconnect }: ConnectedCaptureProps) {
     itemKey: string,
     changes: Partial<AnalysisReviewDraftItem>,
   ) => {
+    setLocalNotice(null);
     setReviewDraft(
       reviewDraftItems.map((item) =>
         item.itemKey === itemKey ? { ...item, ...changes } : item,
@@ -517,32 +586,68 @@ function ConnectedCapture({ connection, onDisconnect }: ConnectedCaptureProps) {
   };
 
   const removeReviewItem = (itemKey: string) => {
+    const index = reviewDraftItems.findIndex((item) => item.itemKey === itemKey);
+    if (index < 0) return;
+    setLocalNotice(null);
+    setRemovedReviewItem({ index, item: reviewDraftItems[index], key: reviewKey });
     setReviewDraft(reviewDraftItems.filter((item) => item.itemKey !== itemKey));
+  };
+
+  const restoreRemovedReviewItem = () => {
+    if (!activeRemovedReviewItem) return;
+    const restoredItems = [...reviewDraftItems];
+    restoredItems.splice(
+      Math.min(activeRemovedReviewItem.index, restoredItems.length),
+      0,
+      activeRemovedReviewItem.item,
+    );
+    setReviewDraft(restoredItems);
+    setRemovedReviewItem(null);
   };
 
   const completeReview = () => {
     if (!review || reviewCompleted || !reviewValid) return;
     setLocalError(null);
+    setLocalNotice(null);
     workflow.reviewMutation.reset();
-    workflow.reviewMutation.mutate({
-      sourceScopeVersionId: review.source_scope_version_id,
-      items: reviewDraftItems.map((item) => ({
-        item_key: item.itemKey,
-        room_zone_id: item.roomZoneId,
-        description: item.description.trim(),
-      })),
-    });
+    workflow.reviewMutation.mutate(
+      {
+        sourceScopeVersionId: review.source_scope_version_id,
+        items: reviewDraftItems.map((item) => ({
+          item_key: item.itemKey,
+          room_zone_id: item.roomZoneId,
+          description: item.description.trim(),
+        })),
+      },
+      {
+        onError: (error) => {
+          if (error instanceof ApiError && error.status === 409) {
+            void reloadReview("다른 화면에서 바뀐 최신 검토 상태를 불러왔어요.");
+          }
+        },
+      },
+    );
   };
 
   return (
     <div className="flex min-h-dvh flex-col bg-canvas text-ink-900">
       <StatusBar />
       <header className="flex h-14 items-center border-b border-line bg-white px-5">
-        <a aria-label="촬영 데모로 돌아가기" className="grid size-11 place-items-center rounded-full" href="/?role=consumer&screen=3">
+        <a
+          aria-label="촬영 데모로 돌아가기"
+          className="grid size-11 place-items-center rounded-full"
+          href="/?role=consumer&screen=3"
+          onClick={returnToDemo}
+        >
           <ArrowLeft size={22} />
         </a>
         <p className="mx-auto truncate px-3 text-[17px] font-bold">{job.title}</p>
-        <button aria-label="연결 해제" className="grid size-11 place-items-center rounded-full text-ink-600" onClick={onDisconnect} type="button">
+        <button
+          aria-label="연결 해제"
+          className="grid size-11 place-items-center rounded-full text-ink-600"
+          onClick={disconnectSafely}
+          type="button"
+        >
           <LogOut size={20} />
         </button>
       </header>
@@ -623,16 +728,37 @@ function ConnectedCapture({ connection, onDisconnect }: ConnectedCaptureProps) {
           </Card>
         )}
 
-        {analysis?.status === "completed" && review && (
-          <AnalysisReviewPanel
-            draftItems={reviewDraftItems}
-            onAdd={addReviewItem}
-            onChange={changeReviewItem}
-            onRemove={removeReviewItem}
-            onSubmit={completeReview}
-            review={review}
-          />
+        {localNotice && (
+          <p
+            className="mt-4 rounded-2xl bg-success-bg px-4 py-3 text-[13px] font-bold text-success-ink"
+            role="status"
+          >
+            {localNotice}
+          </p>
         )}
+
+        {analysis?.status === "completed" &&
+          review &&
+          !workflow.reviewQuery.isError &&
+          !recoveringReview && (
+            <AnalysisReviewPanel
+              canAdd={reviewDraftItems.length < MAX_REVIEW_ITEMS}
+              draftItems={reviewDraftItems}
+              hasUnsavedChanges={reviewDirty}
+              onAdd={addReviewItem}
+              onChange={changeReviewItem}
+              onRemove={removeReviewItem}
+              onRestoreRemoved={restoreRemovedReviewItem}
+              onSubmit={completeReview}
+              removedItemDescription={
+                activeRemovedReviewItem
+                  ? activeRemovedReviewItem.item.description.trim() ||
+                    "설명 없는 직접 추가 항목"
+                  : null
+              }
+              review={review}
+            />
+          )}
 
         {workflow.resumableUpload && workflow.uploadMutation.isError && (
           <Card className="mt-4 border-warning bg-warning-bg p-4">
@@ -674,15 +800,16 @@ function ConnectedCapture({ connection, onDisconnect }: ConnectedCaptureProps) {
             {unrecoverable ? "새 촬영 세션 시작" : "촬영 시작"}
           </Button>
         ) : analysis?.status === "completed" ? (
-          workflow.reviewQuery.isPending ? (
+          workflow.reviewQuery.isPending || recoveringReview ? (
             <Button className="w-full" disabled size="cta">
-              <LoaderCircle className="demo-spin" size={18} /> 검토 항목 불러오는 중
+              <LoaderCircle className="demo-spin" size={18} />
+              {recoveringReview ? "최신 검토 상태 확인 중" : "검토 항목 불러오는 중"}
             </Button>
           ) : workflow.reviewQuery.isError ? (
             <Button
               className="w-full"
-              disabled={workflow.reviewQuery.isFetching}
-              onClick={() => void workflow.reviewQuery.refetch()}
+              disabled={workflow.reviewQuery.isFetching || recoveringReview}
+              onClick={() => void retryReview()}
               size="cta"
               variant="outline"
             >
@@ -722,11 +849,13 @@ function ConnectedCapture({ connection, onDisconnect }: ConnectedCaptureProps) {
           </Button>
         )}
         <p className="mt-3 text-center text-[11px] text-ink-400">
-          {reviewCompleted
-            ? "검토 완료본은 변경 이력으로 보존돼요."
-            : terminalJob
-              ? "종료된 작업에는 새 촬영을 추가할 수 없어요."
-              : "업로드 URL과 secret은 브라우저에 저장하지 않아요."}
+          {reviewDirty
+            ? "확정 전 변경은 이 화면에만 보관돼요."
+            : reviewCompleted
+              ? "검토 완료본은 변경 이력으로 보존돼요."
+              : terminalJob
+                ? "종료된 작업에는 새 촬영을 추가할 수 없어요."
+                : "업로드 URL과 secret은 브라우저에 저장하지 않아요."}
         </p>
       </div>
     </div>

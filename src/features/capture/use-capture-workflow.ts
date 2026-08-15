@@ -85,6 +85,11 @@ export function useCaptureWorkflow(connection: CaptureConnection) {
     await queryClient.invalidateQueries({ queryKey: sessionsKey });
   };
 
+  const refreshReview = async () => {
+    await refreshSessions();
+    return reviewQuery.refetch();
+  };
+
   const createSessionMutation = useMutation({
     mutationFn: () => createCaptureSession(connection),
     onSuccess: async () => {
@@ -163,6 +168,7 @@ export function useCaptureWorkflow(connection: CaptureConnection) {
     jobQuery,
     reviewMutation,
     reviewQuery,
+    refreshReview,
     refreshSessions,
     resumableUpload,
     sessionsQuery,
