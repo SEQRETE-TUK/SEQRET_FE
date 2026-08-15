@@ -1,5 +1,3 @@
-"use client";
-
 import { Dialog } from "@base-ui/react/dialog";
 import { X } from "lucide-react";
 import type { ComponentProps } from "react";

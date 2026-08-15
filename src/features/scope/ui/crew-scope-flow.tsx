@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import {
   ArrowLeft,
@@ -14,7 +12,7 @@ import {
   Video,
   X,
 } from "lucide-react";
-import { MobileFrame, StatusBar } from "@/components/demo-ui";
+import { MobileFrame, StatusBar } from "@/components/layout/mobile-frame";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -441,7 +439,7 @@ function Completion({ back }: { back: () => void }) {
   );
 }
 
-export function CrewDemo() {
+export function CrewScopeFlow() {
   const [screen, setScreen] = useState(0);
 
   return (
@@ -456,4 +454,3 @@ export function CrewDemo() {
   );
 }
 
-export default CrewDemo;

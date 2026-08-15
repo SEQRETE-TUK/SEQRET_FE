@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, type ReactNode } from "react";
 import {
   ArrowLeft,
@@ -18,7 +16,7 @@ import {
   Video,
   X,
 } from "lucide-react";
-import { MobileFrame, StatusBar } from "@/components/demo-ui";
+import { MobileFrame, StatusBar } from "@/components/layout/mobile-frame";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -219,7 +217,7 @@ function Completion({ back }: { back: () => void }) {
   );
 }
 
-export function ProviderMobileDemo() {
+export function ProviderMobileScopeFlow() {
   const [screen, setScreen] = useState(0);
   return (
     <MobileFrame><StatusBar />
@@ -289,7 +287,7 @@ function OperateView() {
   return <><Badge variant="primary">작업 중</Badge><h1 className="mt-4 text-2xl font-extrabold">당일 운영 · 완료</h1><div className="mt-5 grid gap-5 xl:grid-cols-[2fr_1fr]"><div className="space-y-5"><Card className="p-5"><h2 className="text-[17px] font-bold">실시간 타임라인</h2><div className="mt-6 space-y-7">{[['08:02 · 팀 체크인 · 안전확인 3종 통과','done'],['09:40 · 출발지 상차 완료 · 사진 6장','done'],['10:55 · 변경요청 CR-01 (사다리차 +150,000원)','wait'],['11:02 · 고객 승인 → v4 확정 · 총액 1,430,000원','done'],['도착지 하차 · 진행 중','next'],['완료 기록 · 대기','next']].map(([label,state]) => <div className="flex items-center gap-4" key={label}><span className={`size-4 rounded-full ${state === 'done' ? 'bg-[#17A46B]' : state === 'wait' ? 'bg-[#F5A623]' : 'bg-[#E4E6ED]'}`} /><b className={`text-[13px] ${state === 'next' ? muted : ink}`}>{label}</b>{state === 'wait' && <Badge className="ml-auto" variant="warning">응답 대기 12분</Badge>}</div>)}</div></Card><Card className="p-5"><h2 className="font-bold">완료 증빙 수신 현황</h2><div className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-4">{[['거실 전/후','완료'],['침실 전/후','완료'],['주방·베란다','대기'],['차량 적재','완료']].map(([label,state]) => <div className={`grid h-24 place-items-center rounded-xl ${state === '대기' ? 'bg-[#FFF6E5] text-[#9A6200]' : 'bg-[#F4F5F9] text-[#17A46B]'}`} key={label}><ShieldCheck size={22} /><b className="text-[13px]">{label} · {state}</b></div>)}</div></Card></div><div className="space-y-5"><Card className="border-[#818CF8] p-5"><h2 className="font-bold">금액 요약</h2><div className="mt-5 flex justify-between text-[13px]"><span className={muted}>기본 합의 (v3)</span><b>1,280,000원</b></div><div className="mt-4 flex justify-between text-[13px]"><span className={muted}>승인 변경 CR-01</span><b>+150,000원</b></div><div className="my-5 h-px bg-[#E9EAF2]" /><div className="flex justify-between"><b>최종 확정액 (v4)</b><strong className="text-2xl text-[#3730A3]">1,430,000원</strong></div></Card><Card className="p-5"><h2 className="font-bold">완료 확인</h2><div className="mt-4 flex justify-between text-[13px]"><b>한빛이사 (나)</b><Badge variant="success">확인함</Badge></div><div className="mt-3 flex justify-between text-[13px]"><b>박민서 (고객)</b><Badge variant={requested ? 'warning' : 'neutral'}>{requested ? '요청 보냄' : '대기'}</Badge></div><Button className="mt-4 w-full" onClick={() => setRequested(true)}>완료 확인 요청 보내기</Button></Card><Card className="p-5"><h2 className="font-bold">문서 패키지</h2><p className={`mt-3 text-[13px] ${muted}`}>견적서 v3 · 변경 승인서 CR-01 · 완료 확인서 · 근무기록</p><Button className="mt-4" variant="outline"><Download size={16} /> PDF 일괄 내려받기</Button></Card></div></div></>;
 }
 
-export function ProviderWebDemo() {
+export function ProviderWebScopeFlow() {
   const [view, setView] = useState<WebView>("cases");
   return <WebShell setView={setView} view={view}>
     {view === "cases" && <CasesView open={setView} />}

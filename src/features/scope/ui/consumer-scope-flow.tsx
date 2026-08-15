@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, type ReactNode } from "react";
 import {
   ArrowLeft,
@@ -33,7 +31,7 @@ import {
   Video,
   X,
 } from "lucide-react";
-import { MobileFrame, StatusBar } from "@/components/demo-ui";
+import { MobileFrame, StatusBar } from "@/components/layout/mobile-frame";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -270,7 +268,7 @@ function History({ back, restart }: { back: () => void; restart: () => void }) {
   );
 }
 
-export function ConsumerDemo() {
+export function ConsumerScopeFlow() {
   const [screen, setScreen] = useState(1);
   const go = (target: number) => setScreen(Math.min(12, Math.max(1, target)));
   const next = () => go(screen + 1);
@@ -293,4 +291,3 @@ export function ConsumerDemo() {
   return <MobileFrame>{content}</MobileFrame>;
 }
 
-export default ConsumerDemo;
