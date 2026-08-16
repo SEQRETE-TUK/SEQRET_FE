@@ -57,16 +57,17 @@ export function LiveProviderWorkflow({ wide = false }: { wide?: boolean }) {
   const [selectedWorkerIds, setSelectedWorkerIds] = useState<string[]>([]);
   const [downloadError, setDownloadError] = useState<unknown>(null);
   const connection: Connection | null = session ? { accessToken: session.accessToken, jobId: session.actor.job_id } : null;
+  const workflowEnabled = Boolean(connection && session?.actor.invitation?.status !== "pending");
 
-  const scopeQuery = useQuery({ enabled: Boolean(connection), queryKey: workflowKeys.scope(session?.actor.job_id ?? ""), queryFn: () => getScopeReview(connection!) });
-  const issueQuery = useQuery({ enabled: Boolean(connection), queryKey: workflowKeys.fieldIssues(session?.actor.job_id ?? ""), queryFn: () => listFieldIssues(connection!) });
-  const invitationQuery = useQuery({ enabled: Boolean(connection), queryKey: workflowKeys.invitations(session?.actor.job_id ?? ""), queryFn: () => listInvitations(connection!) });
-  const dispatchQuery = useQuery({ enabled: Boolean(connection), queryKey: workflowKeys.dispatch(session?.actor.job_id ?? ""), queryFn: () => getDispatch(connection!) });
-  const completionQuery = useQuery({ enabled: Boolean(connection), queryKey: workflowKeys.completion(session?.actor.job_id ?? ""), queryFn: () => getCompletionSummary(connection!) });
+  const scopeQuery = useQuery({ enabled: workflowEnabled, queryKey: workflowKeys.scope(session?.actor.job_id ?? ""), queryFn: () => getScopeReview(connection!) });
+  const issueQuery = useQuery({ enabled: workflowEnabled, queryKey: workflowKeys.fieldIssues(session?.actor.job_id ?? ""), queryFn: () => listFieldIssues(connection!) });
+  const invitationQuery = useQuery({ enabled: workflowEnabled, queryKey: workflowKeys.invitations(session?.actor.job_id ?? ""), queryFn: () => listInvitations(connection!) });
+  const dispatchQuery = useQuery({ enabled: workflowEnabled, queryKey: workflowKeys.dispatch(session?.actor.job_id ?? ""), queryFn: () => getDispatch(connection!) });
+  const completionQuery = useQuery({ enabled: workflowEnabled, queryKey: workflowKeys.completion(session?.actor.job_id ?? ""), queryFn: () => getCompletionSummary(connection!) });
   const selectedIssue = issueQuery.data?.find((issue) => issue.field_issue_id === selectedIssueId) ?? issueQuery.data?.find((issue) => issue.status === "open") ?? null;
   const proposalId = selectedIssue?.change_proposal_id ?? "";
   const proposalQuery = useQuery({
-    enabled: Boolean(connection && proposalId),
+    enabled: Boolean(workflowEnabled && proposalId),
     queryKey: workflowKeys.proposal(session?.actor.job_id ?? "", proposalId),
     queryFn: () => getChangeProposal(connection!, proposalId),
   });
@@ -191,7 +192,7 @@ export function LiveProviderWorkflow({ wide = false }: { wide?: boolean }) {
   return (
     <WorkflowShell retryAfter={retryAfter} title="업체 운영" wide={wide}>
       <InvitationPanel />
-      <div className={wide ? "grid gap-5 lg:grid-cols-2" : "space-y-5"}>
+      {session.actor.invitation?.status === "pending" ? null : <div className={wide ? "grid gap-5 lg:grid-cols-2" : "space-y-5"}>
         <Card className="p-5">
           <p className="text-sm font-bold text-primary-700">범위 · 견적</p><h2 className="mt-1 text-xl font-extrabold">고객에게 견적 제안</h2>
           <ApiNotice error={scopeQuery.error} />
@@ -223,7 +224,7 @@ export function LiveProviderWorkflow({ wide = false }: { wide?: boolean }) {
           {completionQuery.data ? <><div className="mt-4 rounded-xl bg-canvas p-4"><p className="text-sm text-ink-600">최종 확정액</p><strong className="text-2xl">{money(completionQuery.data.final_amount_krw)}</strong><p className="mt-2 text-sm text-ink-600">완료 제출: {completionQuery.data.completion_submission_id ? "수신" : "대기"} · 고객 요청: {completionQuery.data.completion_request?.status ?? "전송 전"}</p></div><Button className="mt-4 w-full" disabled={!completionQuery.data.completion_submission_id || completionQuery.data.completion_request?.status === "requested" || completionRequestMutation.isPending} onClick={() => completionRequestMutation.mutate()}><Send /> 고객 완료 확인 요청</Button><Button className="mt-2 w-full" disabled={!completionQuery.data.archive_ready || archiveMutation.isPending} onClick={() => archiveMutation.mutate()} variant="outline">{archiveMutation.isPending ? <LoaderCircle className="animate-spin" /> : <Download />} 문서 ZIP 다운로드</Button></> : <EmptyState>현장기사의 완료 제출을 기다리고 있습니다.</EmptyState>}
           <ApiNotice error={completionRequestMutation.error ?? downloadError} title="완료 요청 또는 문서를 처리하지 못했어요" />
         </Card>
-      </div>
+      </div>}
     </WorkflowShell>
   );
 }

@@ -537,6 +537,144 @@ async function connect(page: Page, role: ParticipantRole, secret: string) {
   await page.getByRole("button", { name: `${labels[role]}로 연결` }).click();
 }
 
+test("pending worker accepts before protected workflow queries start", async ({ page }) => {
+  let accepted = false;
+  const protectedBeforeAccept: string[] = [];
+  const pendingInvitation = {
+    ...invitation("field_worker"),
+    resolved_at: null,
+    status: "pending",
+  };
+  const prefix = `/api/v1/move-jobs/${ids.job}`;
+
+  await page.route("**/api/v1/**", async (route) => {
+    const request = route.request();
+    const method = request.method();
+    const path = new URL(request.url()).pathname;
+
+    if (method === "GET" && path === "/api/v1/me") {
+      await fulfillJson(route, {
+        ...actor("field_worker"),
+        invitation: accepted ? { ...pendingInvitation, resolved_at: now, status: "accepted" } : pendingInvitation,
+        permissions: accepted
+          ? ["field:check_in", "field:complete"]
+          : ["invitation:read", "invitation:accept", "invitation:decline"],
+      });
+      return;
+    }
+    if (method === "POST" && path === `${prefix}/invitations/${ids.workerInvitation}/accept`) {
+      accepted = true;
+      await fulfillJson(route, { ...pendingInvitation, resolved_at: now, status: "accepted" });
+      return;
+    }
+    if (!accepted) {
+      protectedBeforeAccept.push(`${method} ${path}`);
+      await fulfillJson(route, { detail: "invitation must be accepted" }, 401);
+      return;
+    }
+    if (method === "GET" && path === prefix) {
+      await fulfillJson(route, job);
+      return;
+    }
+    if (method === "GET" && path === `${prefix}/field-brief`) {
+      await fulfillJson(route, fieldBrief(false, false));
+      return;
+    }
+    if (method === "GET" && path === `${prefix}/field-issues`) {
+      await fulfillJson(route, []);
+      return;
+    }
+    if (method === "GET" && path === `${prefix}/capture-sessions`) {
+      await fulfillJson(route, []);
+      return;
+    }
+    await fulfillJson(route, { detail: `Unhandled mock route: ${method} ${path}` }, 500);
+  });
+
+  await connect(page, "field_worker", workerSecret);
+  await expect(page).toHaveURL(/\/crew$/);
+  await expect(page.getByRole("heading", { name: "작업 초대를 수락할까요?" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "현장 브리프" })).toHaveCount(0);
+  expect(protectedBeforeAccept).toEqual([]);
+
+  await page.getByRole("button", { name: "수락", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "작업 초대를 수락할까요?" })).toBeHidden();
+  await expect(page.getByRole("heading", { name: "현장 브리프" })).toBeVisible();
+  await expect(page).toHaveURL(/\/crew$/);
+  expect(protectedBeforeAccept).toEqual([]);
+});
+
+test("pending provider accepts before protected workflow queries start", async ({ page }) => {
+  let accepted = false;
+  const protectedBeforeAccept: string[] = [];
+  const pendingInvitation = {
+    ...invitation("company_manager"),
+    resolved_at: null,
+    status: "pending",
+  };
+  const prefix = `/api/v1/move-jobs/${ids.job}`;
+
+  await page.route("**/api/v1/**", async (route) => {
+    const request = route.request();
+    const method = request.method();
+    const path = new URL(request.url()).pathname;
+
+    if (method === "GET" && path === "/api/v1/me") {
+      await fulfillJson(route, {
+        ...actor("company_manager"),
+        invitation: accepted ? { ...pendingInvitation, resolved_at: now, status: "accepted" } : pendingInvitation,
+        permissions: accepted
+          ? ["scope:propose", "dispatch:manage"]
+          : ["invitation:read", "invitation:accept", "invitation:decline"],
+      });
+      return;
+    }
+    if (method === "POST" && path === `${prefix}/invitations/${ids.companyInvitation}/accept`) {
+      accepted = true;
+      await fulfillJson(route, { ...pendingInvitation, resolved_at: now, status: "accepted" });
+      return;
+    }
+    if (!accepted) {
+      protectedBeforeAccept.push(`${method} ${path}`);
+      await fulfillJson(route, { detail: "invitation must be accepted" }, 401);
+      return;
+    }
+    if (method === "GET" && path === `${prefix}/scope-review`) {
+      await fulfillJson(route, scopeReview("company_review"));
+      return;
+    }
+    if (method === "GET" && path === `${prefix}/field-issues`) {
+      await fulfillJson(route, []);
+      return;
+    }
+    if (method === "GET" && path === `${prefix}/invitations`) {
+      await fulfillJson(route, { invitations: [] });
+      return;
+    }
+    if (method === "GET" && path === `${prefix}/dispatch`) {
+      await fulfillJson(route, dispatchView("setup_required"));
+      return;
+    }
+    if (method === "GET" && path === `${prefix}/completion-summary`) {
+      await fulfillJson(route, completionSummary(false));
+      return;
+    }
+    await fulfillJson(route, { detail: `Unhandled mock route: ${method} ${path}` }, 500);
+  });
+
+  await connect(page, "company_manager", companySecret);
+  await expect(page).toHaveURL(/\/provider\/web$/);
+  await expect(page.getByRole("heading", { name: "작업 초대를 수락할까요?" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "고객에게 견적 제안" })).toHaveCount(0);
+  expect(protectedBeforeAccept).toEqual([]);
+
+  await page.getByRole("button", { name: "수락", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "작업 초대를 수락할까요?" })).toBeHidden();
+  await expect(page.getByRole("heading", { name: "고객에게 견적 제안" })).toBeVisible();
+  await expect(page).toHaveURL(/\/provider\/web$/);
+  expect(protectedBeforeAccept).toEqual([]);
+});
+
 test("customer onboarding issues an invitation without persisting its secret", async ({ page }) => {
   const consoleMessages: string[] = [];
   page.on("console", (message) => consoleMessages.push(message.text()));

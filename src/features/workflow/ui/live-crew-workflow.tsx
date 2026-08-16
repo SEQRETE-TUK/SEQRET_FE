@@ -31,7 +31,7 @@ import {
 } from "@/features/workflow/api/workflow-api";
 import { useAuthFailure } from "@/features/workflow/model/use-auth-failure";
 import { useRetryAfter } from "@/features/workflow/model/use-retry-after";
-import { ApiNotice, EmptyState, WorkflowShell } from "@/features/workflow/ui/workflow-shell";
+import { ApiNotice, EmptyState, InvitationPanel, WorkflowShell } from "@/features/workflow/ui/workflow-shell";
 
 export function LiveCrewWorkflow() {
   const { session } = useAuth();
@@ -52,12 +52,13 @@ export function LiveCrewWorkflow() {
   const [completionMediaId, setCompletionMediaId] = useState<string | null>(null);
   const [onsiteConfirmed, setOnsiteConfirmed] = useState(false);
   const connection: Connection | null = session ? { accessToken: session.accessToken, jobId: session.actor.job_id } : null;
+  const workflowEnabled = Boolean(connection && session?.actor.invitation?.status !== "pending");
 
-  const briefQuery = useQuery({ enabled: Boolean(connection), queryKey: workflowKeys.brief(session?.actor.job_id ?? ""), queryFn: () => getFieldBrief(connection!) });
-  const jobQuery = useQuery({ enabled: Boolean(connection), queryKey: [...workflowKeys.root(session?.actor.job_id ?? ""), "job"], queryFn: () => getMoveJob(connection!) });
-  const issueQuery = useQuery({ enabled: Boolean(connection), queryKey: workflowKeys.fieldIssues(session?.actor.job_id ?? ""), queryFn: () => listFieldIssues(connection!) });
+  const briefQuery = useQuery({ enabled: workflowEnabled, queryKey: workflowKeys.brief(session?.actor.job_id ?? ""), queryFn: () => getFieldBrief(connection!) });
+  const jobQuery = useQuery({ enabled: workflowEnabled, queryKey: [...workflowKeys.root(session?.actor.job_id ?? ""), "job"], queryFn: () => getMoveJob(connection!) });
+  const issueQuery = useQuery({ enabled: workflowEnabled, queryKey: workflowKeys.fieldIssues(session?.actor.job_id ?? ""), queryFn: () => listFieldIssues(connection!) });
   const sessionsQuery = useQuery({
-    enabled: Boolean(connection),
+    enabled: workflowEnabled,
     queryKey: [...workflowKeys.root(session?.actor.job_id ?? ""), "media-sessions"],
     queryFn: () => listCaptureSessions({ accessToken: connection!.accessToken, jobId: connection!.jobId }),
     refetchInterval: (query) => query.state.data?.some((capture) => capture.media_assets.some((asset) => ["uploaded", "processing"].includes(asset.status))) ? 2_000 : false,
@@ -160,6 +161,8 @@ export function LiveCrewWorkflow() {
 
   return (
     <WorkflowShell retryAfter={retryAfter} title="오늘 현장 작업">
+      <InvitationPanel />
+      {session.actor.invitation?.status === "pending" ? null : <>
       <Card className="p-5">
         <p className="text-sm font-bold text-primary-700">배차 · 체크인</p><h2 className="mt-1 text-xl font-extrabold">현장 브리프</h2>
         {briefQuery.isLoading ? <EmptyState>확정된 배차와 작업범위를 불러오는 중입니다.</EmptyState> : null}
@@ -186,6 +189,7 @@ export function LiveCrewWorkflow() {
         {brief?.completion_submission_id ? <div className="mt-4 rounded-xl bg-success-bg p-4 font-bold text-success-ink"><Check className="mr-1 inline" /> 완료 기록 제출됨</div> : <><div className="mt-4 space-y-2">{brief?.completion_check_items.map((item) => <label className="flex min-h-12 items-center gap-3 rounded-xl border border-line p-3" key={item.key}><input checked={completionKeys.includes(item.key)} onChange={(event) => setCompletionKeys((current) => event.target.checked ? [...current, item.key] : current.filter((key) => key !== item.key))} type="checkbox" /><span className="font-bold">{item.label}</span></label>)}</div><label className="mt-4 flex min-h-12 items-center gap-3 rounded-xl border border-line p-3"><input checked={onsiteConfirmed} onChange={(event) => setOnsiteConfirmed(event.target.checked)} type="checkbox" /><span className="font-bold">고객이 현장에서 완료를 확인했어요</span></label><Label className="mt-3 flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-xl border border-line bg-white px-4 font-bold"><Camera /> {completionMedia?.status === "ready" ? "완료 사진 준비됨" : completionMedia ? `완료 사진 ${completionMedia.status}` : "완료 사진 선택 (선택)"}<input accept="image/jpeg,image/png,video/mp4" className="sr-only" disabled={uploadMutation.isPending} onChange={uploadFile("completion")} type="file" /></Label><p className="mt-2 text-xs text-ink-600">사진 없이도 제출할 수 있으며, 선택한 사진은 READY 이후 포함됩니다.</p><Button className="mt-4 w-full" disabled={!brief?.checked_in_at || !allCompletion || !onsiteConfirmed || completionMutation.isPending || Boolean(completionMedia && completionMedia.status !== "ready")} onClick={() => completionMutation.mutate()} size="cta">{completionMutation.isPending ? <><LoaderCircle className="animate-spin" /> 제출 중...</> : "작업 완료 기록 제출"}</Button></>}
         <ApiNotice error={completionMutation.error} title="완료 기록을 제출하지 못했어요" />
       </Card>
+      </>}
     </WorkflowShell>
   );
 }
