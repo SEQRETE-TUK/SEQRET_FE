@@ -4,7 +4,9 @@
 
 ## 현재 상태
 
-역할별 핵심 화면과 데모 상호작용을 구현한 UI 프로토타입입니다. 화면 데이터는 대부분 예시 값이며, 공통 API 클라이언트만 준비된 상태라 인증·저장·AI 분석·업로드·버전 잠금의 실제 백엔드 연동은 완료되지 않았습니다.
+역할별 핵심 화면을 FastAPI v1 계약에 연결했습니다. 고객 onboarding과 초대, 촬영·업로드·AI 초안 검토, 범위·변경 제안, 배차·체크인, 완료 제출·확인과 문서 다운로드가 TanStack Query 기반의 실제 query·mutation을 사용합니다.
+
+접근 secret과 signed upload 정보는 React 메모리에서만 사용하며 URL, 브라우저 저장소와 로그에 보관하지 않습니다. 새로고침하면 역할 연결이 종료됩니다. 공개 배포와 실제 staging 브라우저 E2E는 별도 운영 절차로 검증합니다.
 
 제품 범위와 문서별 기준은 [문서 안내](docs/README.md)에서 확인합니다.
 
@@ -51,6 +53,7 @@ VITE_API_BASE_URL=http://localhost:8000
 | `pnpm dev` | Vite 개발 서버 실행 |
 | `pnpm typecheck` | TypeScript 프로젝트 검사 |
 | `pnpm lint` | ESLint 검사 |
+| `pnpm test:e2e` | Chromium에서 역할별 API 계약과 브라우저 흐름 검사 |
 | `pnpm build` | 타입 검사 후 정적 프로덕션 빌드 생성 |
 | `pnpm preview` | `dist/` 빌드 결과 로컬 미리보기 |
 
@@ -107,4 +110,5 @@ Vercel 설정값:
 pnpm typecheck
 pnpm lint
 pnpm build
+pnpm test:e2e
 ```
