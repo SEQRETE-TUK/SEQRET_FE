@@ -164,7 +164,7 @@ export function PageIntro({
   return (
     <header>
       {eyebrow ? <p className="text-sm font-bold text-primary-700">{eyebrow}</p> : null}
-      <h2 className="mt-2 max-w-[21rem] text-[30px] leading-[1.22] font-extrabold tracking-[-0.045em]">{title}</h2>
+      <h2 className="mt-2 max-w-[22rem] text-[32px] leading-[1.2] font-black tracking-[-0.05em]">{title}</h2>
       {description ? <p className="mt-2 max-w-[22rem] text-[15px] leading-6 text-ink-600">{description}</p> : null}
     </header>
   );
@@ -177,7 +177,7 @@ export function StatusTag({ children, tone = "primary" }: { children: ReactNode;
     success: "bg-success-bg text-success-ink",
     warning: "bg-warning-bg text-warning-ink",
   }[tone];
-  return <span className={cn("inline-flex min-h-7 items-center rounded-lg px-2.5 text-xs font-extrabold", toneClass)}>{children}</span>;
+  return <span className={cn("inline-flex min-h-8 items-center rounded-full px-3 text-xs font-extrabold", toneClass)}>{children}</span>;
 }
 
 export function PriorityPanel({
@@ -233,6 +233,47 @@ export function SectionHeader({ aside, children, className }: { aside?: ReactNod
   );
 }
 
+export function SegmentedTabs<T extends string>({
+  current,
+  items,
+  label,
+  onChange,
+  variant = "underline",
+}: {
+  current: T;
+  items: Array<{ id: T; label: string }>;
+  label: string;
+  onChange: (id: T) => void;
+  variant?: "underline" | "filled";
+}) {
+  return (
+    <div aria-label={label} className={cn("mt-5 grid overflow-hidden border border-line bg-surface shadow-[var(--shadow-card)]", variant === "underline" ? "rounded-[var(--radius-card)]" : "rounded-[var(--radius-input)] p-1")} role="tablist" style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}>
+      {items.map((item) => {
+        const active = item.id === current;
+        return (
+          <button
+            aria-selected={active}
+            className={cn(
+              "relative min-h-[52px] min-w-0 px-2 text-[15px] font-extrabold transition-colors",
+              variant === "filled" && "rounded-lg",
+              variant === "filled" && active && "bg-gradient-to-r from-primary-600 to-primary-700 text-accent-ink shadow-[var(--shadow-card)]",
+              variant === "filled" && !active && "text-ink-600 hover:text-ink-900",
+              variant === "underline" && active && "text-primary-700 after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:bg-primary-600",
+              variant === "underline" && !active && "text-ink-400 hover:text-ink-900",
+            )}
+            key={item.id}
+            onClick={() => onChange(item.id)}
+            role="tab"
+            type="button"
+          >
+            <span className="block truncate">{item.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export function ListGroup({
   children,
   className,
@@ -249,7 +290,7 @@ export function ListGroup({
       aria-label={label}
       className={cn(
         "mt-3 overflow-hidden",
-        variant === "contained" && "rounded-[var(--radius-input)] border border-line bg-surface",
+        variant === "contained" && "rounded-[var(--radius-card)] border border-line bg-surface shadow-[var(--shadow-card)]",
         variant === "plain" && "app-list-plain border-y border-line",
         className,
       )}
@@ -294,7 +335,7 @@ export function ListRow({
 
 export function InfoCallout({ children, icon }: { children: ReactNode; icon: ReactNode }) {
   return (
-    <aside className="mt-6 flex items-start gap-3 rounded-[var(--radius-input)] border border-line bg-surface-muted px-4 py-3 text-sm leading-5 text-ink-600">
+    <aside className="mt-6 flex items-start gap-3 rounded-[var(--radius-card)] border border-line bg-surface px-4 py-4 text-sm leading-5 text-ink-600 shadow-[var(--shadow-card)]">
       <span className="mt-0.5 shrink-0 text-primary-700">{icon}</span>
       <p>{children}</p>
     </aside>

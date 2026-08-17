@@ -36,6 +36,8 @@ const CUSTOMER_ID = "22222222-2222-4222-8222-222222222222";
 const PROVIDER_ID = "33333333-3333-4333-8333-333333333333";
 const WORKER_ID = "44444444-4444-4444-8444-444444444444";
 const ORIGIN_ZONE_ID = "55555555-5555-4555-8555-555555555555";
+const KITCHEN_ZONE_ID = "55555555-5555-4555-8555-555555555556";
+const ENTRANCE_ZONE_ID = "55555555-5555-4555-8555-555555555557";
 const DESTINATION_ZONE_ID = "66666666-6666-4666-8666-666666666666";
 const SCOPE_ID = "77777777-7777-4777-8777-777777777777";
 const DISPATCH_ID = "88888888-8888-4888-8888-888888888888";
@@ -97,8 +99,8 @@ function createState(): MockState {
       { id: WORKER_ID, role: "field_worker", display_name: "박현장" },
     ],
     locations: [
-      { id: crypto.randomUUID(), kind: "origin", label: "성수동 아파트", room_zones: [{ id: ORIGIN_ZONE_ID, name: "거실", sort_order: 0 }] },
-      { id: crypto.randomUUID(), kind: "destination", label: "합정동 오피스텔", room_zones: [{ id: DESTINATION_ZONE_ID, name: "전체 공간", sort_order: 0 }] },
+      { id: crypto.randomUUID(), kind: "origin", label: "성수동 아파트", room_zones: [{ id: ORIGIN_ZONE_ID, name: "침실", sort_order: 0 }, { id: KITCHEN_ZONE_ID, name: "주방", sort_order: 1 }, { id: ENTRANCE_ZONE_ID, name: "현관", sort_order: 2 }] },
+      { id: crypto.randomUUID(), kind: "destination", label: "자양동 오피스텔", room_zones: [{ id: DESTINATION_ZONE_ID, name: "전체 공간", sort_order: 0 }] },
     ],
   };
   const jobHeader = {
@@ -110,35 +112,51 @@ function createState(): MockState {
     company_display_name: "안심이사",
     viewer_display_name: "Mock 사용자",
     viewer_role: "customer" as ParticipantRole,
-    origin_summary: "성수동 아파트 · 거실",
-    destination_summary: "합정동 오피스텔",
+    origin_summary: "성수동 1가",
+    destination_summary: "자양동 오피스텔",
   };
-  const quote = { base_amount_krw: 1_200_000, adjustments: [], total_amount_krw: 1_200_000 };
+  const quote = {
+    base_amount_krw: 820_000,
+    adjustments: [{ label: "출발지 계단 3층 운반", amount_krw: 30_000 }],
+    total_amount_krw: 850_000,
+  };
   const scope: ScopeReview = {
     job: jobHeader,
     scope: {
       id: SCOPE_ID,
-      version_label: "v1.0",
+      version_label: "v3",
       status: "customer_review",
-      item_count: 4,
-      work_count: 3,
+      item_count: 12,
+      work_count: 4,
       exclusion_count: 1,
       review_required_count: 0,
       room_groups: [{
         room_zone_id: ORIGIN_ZONE_ID,
-        label: "거실",
-        item_count: 4,
+        label: "침실",
+        item_count: 6,
         review_required_count: 0,
-        items: ["소파", "TV", "책장", "화분"].map((description, index) => ({
-          item_key: `item-${index + 1}`,
+        items: ["침대 프레임", "매트리스", "책상", "의자", "서랍장", "스탠드"].map((description, index) => ({
+          item_key: `bedroom-item-${index + 1}`,
           room_zone_id: ORIGIN_ZONE_ID,
           description,
           review_required: false,
           source_media_asset_ids: [],
         })),
+      }, {
+        room_zone_id: KITCHEN_ZONE_ID,
+        label: "주방",
+        item_count: 4,
+        review_required_count: 0,
+        items: ["냉장고", "전자레인지", "식탁", "주방 의자"].map((description, index) => ({ item_key: `kitchen-item-${index + 1}`, room_zone_id: KITCHEN_ZONE_ID, description, review_required: false, source_media_asset_ids: [] })),
+      }, {
+        room_zone_id: ENTRANCE_ZONE_ID,
+        label: "현관",
+        item_count: 2,
+        review_required_count: 0,
+        items: ["신발장", "우산꽂이"].map((description, index) => ({ item_key: `entrance-item-${index + 1}`, room_zone_id: ENTRANCE_ZONE_ID, description, review_required: false, source_media_asset_ids: [] })),
       }],
-      included_works: ["포장", "운반", "배치"],
-      exclusions: ["에어컨 설치"],
+      included_works: ["포장 및 운반", "기본 가구 분해·조립", "가구 배치", "보호 포장"],
+      exclusions: ["에어컨 탈부착"],
     },
     proposal_id: "scope-proposal-1",
     quote,
@@ -158,7 +176,7 @@ function createState(): MockState {
     setup_id: "setup-1",
     dispatch_id: DISPATCH_ID,
     source_scope_version_id: SCOPE_ID,
-    source_scope_version_label: "v1.0",
+    source_scope_version_label: "v3",
     requirements: { start_at: job.scheduled_at!, expected_duration_minutes: 480, required_vehicle_count: 1, required_vehicle_capacity_m2: 28, required_worker_count: 1, required_skills: [], required_certifications: [] },
     vehicle_options: [vehicle],
     worker_options: [{ id: "worker-option-1", external_reference: "mock-worker", display_name: "박현장", role_label: "팀장", skills: [], certifications: [], available: true, conflict_reason: null, participant_id: WORKER_ID }],
@@ -199,7 +217,7 @@ function createState(): MockState {
     quote,
     completion_request: completionRequest,
     approved_scope_version_id: SCOPE_ID,
-    approved_scope_version_label: "v1.0",
+    approved_scope_version_label: "v3",
     documents: [{ key: "completion", name: "작업 완료 확인서", status: "ready" }],
     archive_ready: true,
     retention_until: future(),
@@ -217,8 +235,8 @@ function createState(): MockState {
     review_scope_version_id: null,
     analysis_completed_at: createdAt,
     review_completed_at: null,
-    zones: [{ room_zone_id: ORIGIN_ZONE_ID, name: "거실", sort_order: 0, total_media_count: 1, ready_media_count: 1, failed_media_count: 0 }],
-    items: scope.scope.room_groups[0].items.map((item) => ({ ...item, source: "ai" as const, confidence: 0.94 })),
+    zones: scope.scope.room_groups.map((group, index) => ({ room_zone_id: group.room_zone_id, name: group.label, sort_order: index, total_media_count: index === 0 ? 1 : 0, ready_media_count: index === 0 ? 1 : 0, failed_media_count: 0 })),
+    items: scope.scope.room_groups.flatMap((group) => group.items).map((item) => ({ ...item, source: "ai" as const, confidence: 0.94 })),
   };
   const scopeVersions: ScopeVersionSummary[] = [{
     id: SCOPE_ID,
@@ -241,13 +259,26 @@ function createState(): MockState {
     completion,
     dispatch,
     fieldBrief: {
-      job: { ...jobHeader, viewer_role: "field_worker" }, dispatch_id: DISPATCH_ID, scope_version_id: SCOPE_ID, scope_version_label: "v1.0", start_at: job.scheduled_at!, masked_origin: "성수동 아파트", masked_destination: "합정동 오피스텔", lead_worker_name: "박현장", origin_conditions: ["엘리베이터 사용 가능"], field_check_required_count: 3,
+      job: { ...jobHeader, viewer_role: "field_worker" }, dispatch_id: DISPATCH_ID, scope_version_id: SCOPE_ID, scope_version_label: "v3", start_at: job.scheduled_at!, masked_origin: "성수동 원룸", masked_destination: "자양동 오피스텔", lead_worker_name: "박현장", origin_conditions: ["엘리베이터 양쪽 모두 사용 가능", "출발지 건물 앞 주차"], field_check_required_count: 3,
       check_in_items: [{ key: "vehicle_checked", label: "차량과 적재 장비 확인", confirmed: false }, { key: "scope_checked", label: "최신 작업범위 확인", confirmed: false }, { key: "safety_checked", label: "현장 안전사항 확인", confirmed: false }],
-      completion_check_items: [{ key: "inventory", label: "물품 운반 완료", confirmed: false }, { key: "placement", label: "요청 위치 배치 완료", confirmed: false }, { key: "cleanup", label: "현장 정리 완료", confirmed: false }], completion_required_count: 3, completion_submission_id: null, assigned_vehicle: vehicle, assigned_worker_count: 1,
+      completion_check_items: [{ key: "packing", label: "포장 및 운반", confirmed: false }, { key: "assembly", label: "침대 분해·조립", confirmed: false }, { key: "placement", label: "요청 위치 배치", confirmed: false }, { key: "cleanup", label: "현장 정리", confirmed: false }], completion_required_count: 4, completion_submission_id: null, assigned_vehicle: vehicle, assigned_worker_count: 1,
       assigned_workers: [{ worker_id: WORKER_ID, external_reference: "mock-worker", display_name: "박현장", role_label: "팀장", is_lead: true }], required_skills: [], safety_notice: "승인 범위 밖 작업은 먼저 이슈로 보고해 주세요.", checked_in_at: null,
     },
     invitations,
-    issues: [],
+    issues: [{
+      field_issue_id: "field-issue-elevator",
+      client_reference: "mock-elevator-outage",
+      job_id: JOB_ID,
+      base_scope_version_id: SCOPE_ID,
+      issue_type: "site_blocker",
+      title: "엘리베이터 운행 중단",
+      description: "점검 중이라 5층까지 계단 운반이 필요합니다.",
+      evidence_media_asset_ids: ["mock-elevator-evidence"],
+      reported_by_participant_id: WORKER_ID,
+      reported_at: createdAt,
+      status: "open",
+      change_proposal_id: null,
+    }],
     job,
     proposals: {},
     scope,

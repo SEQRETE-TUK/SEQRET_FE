@@ -67,6 +67,7 @@ export function ProviderApp() {
           completion={completionQuery.data}
           dispatch={dispatchQuery.data}
           issueCount={issueQuery.data?.filter(({ status }) => status === "open").length ?? 0}
+          onDashboard={() => navigate("/provider/web")}
           onWork={() => changeTab("work")}
           scope={scopeQuery.data}
         />
@@ -85,10 +86,11 @@ export function ProviderApp() {
   );
 }
 
-function ProviderHome({ completion, dispatch, issueCount, onWork, scope }: {
+function ProviderHome({ completion, dispatch, issueCount, onDashboard, onWork, scope }: {
   completion: Awaited<ReturnType<typeof getCompletionSummary>> | undefined;
   dispatch: Awaited<ReturnType<typeof getDispatch>> | undefined;
   issueCount: number;
+  onDashboard: () => void;
   onWork: () => void;
   scope: Awaited<ReturnType<typeof getScopeReview>> | undefined;
 }) {
@@ -115,6 +117,7 @@ function ProviderHome({ completion, dispatch, issueCount, onWork, scope }: {
         title="멈춘 작업부터 처리하세요"
         description="범위, 배차, 현장 이슈와 완료 요청을 현재 담당 순서로 정리했습니다."
       />
+      <Button className="mt-5 w-full" onClick={onDashboard} variant="outline">웹 대시보드 열기</Button>
 
       {route ? <WorkContext
         code={route.job_code}
