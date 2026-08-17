@@ -11,7 +11,7 @@ function CardHeader({ className, ...props }: ComponentProps<"div">) {
 }
 
 function CardTitle({ className, ...props }: ComponentProps<"h2">) {
-  return <h2 className={cn("text-[17px] leading-6 font-bold tracking-[-0.3px]", className)} {...props} />;
+  return <h2 className={cn("text-ui-component leading-6 font-bold tracking-[var(--tracking-display)]", className)} {...props} />;
 }
 
 function CardDescription({ className, ...props }: ComponentProps<"p">) {

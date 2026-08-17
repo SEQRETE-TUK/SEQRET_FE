@@ -33,7 +33,7 @@ export function DemoLinkState({ state, roleLabel }: DemoLinkStateProps) {
         <AlertTriangle size={28} />
       </span>
       <p className="mt-5 text-ui-support font-bold text-ink-400">{roleLabel} 링크 확인</p>
-      <h1 className="mt-2 text-ui-title-lg font-extrabold leading-[32px]">{title}</h1>
+      <h1 className="mt-2 text-ui-title-lg font-extrabold">{title}</h1>
       <p className="mt-3 text-lg leading-6 text-ink-600">{description}</p>
       <div className="mt-6 rounded-2xl bg-white p-4 text-ui-support leading-5 text-ink-400">
         <Link2 className="mr-2 inline" size={16} />

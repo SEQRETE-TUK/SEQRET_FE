@@ -54,7 +54,7 @@ function Header({
           {close ? <X size={24} strokeWidth={2} /> : <ArrowLeft size={24} strokeWidth={2} />}
         </button>
       )}
-      <h1 className="text-ui-section font-bold leading-6 tracking-[-0.3px] text-ink-900">{title}</h1>
+      <h1 className="text-ui-section text-ink-900">{title}</h1>
       {badge && <Badge className="ml-auto" variant="success">{badge}</Badge>}
     </header>
   );
@@ -106,7 +106,7 @@ function Assignment({ next }: { next: () => void }) {
         </div>
 
         <p className="mt-8 text-base font-bold text-primary-600">오늘 배정된 작업</p>
-        <h1 className="mt-2 text-ui-step-title font-extrabold leading-[34px] tracking-[-0.5px] text-ink-900">
+        <h1 className="mt-2 text-ui-step-title font-extrabold text-ink-900">
           9월 12일 작업에<br />배정됐어요
         </h1>
         <p className="mt-2 text-lg leading-5 text-ink-600">한빛이사 · 김도윤 팀장 · 김철수 작업자</p>
@@ -168,7 +168,7 @@ function CheckIn({ next, back }: { next: () => void; back: () => void }) {
       <Header title="현장 도착" back={back} />
       <main className="px-5 pb-6 pt-3">
         <p className="text-base font-bold text-primary-600">작업 시작 전</p>
-        <h2 className="mt-2 text-ui-title font-extrabold leading-[30px] tracking-[-0.5px] text-ink-900">3가지만 확인해 주세요</h2>
+        <h2 className="mt-2 text-ui-section font-extrabold text-ink-900">3가지만 확인해 주세요</h2>
         <p className="mt-2 text-base text-ink-600">체크 기록은 오늘 작업 기록에 남아요.</p>
 
         <Panel className="mt-6 p-2">
@@ -245,7 +245,7 @@ function Scope({ next, back, demoState = "" }: { next: () => void; back: () => v
     <div className="flex min-h-[calc(100dvh-48px)] flex-col md:min-h-[832px]">
       <Header title="작업범위" back={back} badge={latestApproved ? "v4 양측 수락" : "v3 양측 수락"} />
       <main className="px-5 pb-6 pt-3">
-        <h2 className="text-ui-title font-extrabold leading-[30px] tracking-[-0.5px] text-ink-900">오늘 할 작업을<br />확인해 주세요</h2>
+        <h2 className="text-ui-section font-extrabold text-ink-900">오늘 할 작업을<br />확인해 주세요</h2>
         <p className="mt-2 text-base leading-5 text-ink-600">목록에 없는 작업은 시작하기 전에 보고해 주세요.</p>
 
         <Panel className="mt-5 p-4">
@@ -348,7 +348,7 @@ function IssueReport({ next, back, demoState = "" }: { next: () => void; back: (
     <div className="flex min-h-[calc(100dvh-48px)] flex-col md:min-h-[832px]">
       <Header title="현장 이슈 보고" close={back} />
       <main className="px-5 pb-6 pt-3">
-        <h2 className="text-ui-title font-extrabold leading-[30px] tracking-[-0.5px] text-ink-900">무슨 일이 생겼나요?</h2>
+        <h2 className="text-ui-section font-extrabold text-ink-900">무슨 일이 생겼나요?</h2>
         <p className="mt-2 text-base text-ink-600">작업자는 상황만 보고해요. 금액은 업체가 검토합니다.</p>
 
         {paused && <p className="mt-4 rounded-xl bg-warning-bg px-4 py-3 text-base font-bold text-warning-ink">작업 일시 중지 상태로 기록했어요.</p>}
@@ -456,7 +456,7 @@ function Completion({ back, demoState = "" }: { back: () => void; demoState?: st
       <Header title="작업 완료 기록" back={back} badge={`${stage + 1}/3`} />
       <main className="px-5 pb-6 pt-3">
         <Progress current={stage} />
-        <h2 className="mt-5 text-ui-title font-extrabold leading-[30px] tracking-[-0.5px] text-ink-900">{titles[stage]}</h2>
+        <h2 className="mt-5 text-ui-section font-extrabold text-ink-900">{titles[stage]}</h2>
         <p className="mt-2 text-base text-ink-600">{subtitles[stage]}</p>
 
         {!online && (

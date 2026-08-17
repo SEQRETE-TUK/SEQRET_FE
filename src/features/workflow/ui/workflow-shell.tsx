@@ -8,14 +8,11 @@ import {
   UserPlusIcon as UserPlus,
   XIcon as X,
 } from "@phosphor-icons/react";
-import {
-  InfoStatusIcon as Info,
-  SecurityWarningIcon as ShieldAlert,
-} from "@/components/icons";
+import { InfoStatusIcon as Info } from "@/components/icons";
 import { useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
-import { Button, ButtonLink } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -42,24 +39,6 @@ const roleLabel: Record<ParticipantRole, string> = {
   company_manager: "업체",
   field_worker: "현장기사",
 };
-
-export function SessionRequired({ role }: { role: ParticipantRole }) {
-  const { session } = useAuth();
-  if (session?.actor.role === role) return null;
-  return (
-    <main className="mobile-stage" id="main-content">
-      <div className="mobile-frame px-5">
-        <header className="app-safe-header pb-3"><strong className="text-lg font-black tracking-[-0.04em] text-primary-800">SEQRET</strong></header>
-        <section className="pt-14">
-          <span className="grid size-12 place-items-center rounded-full bg-primary-50 text-primary-700"><ShieldAlert aria-hidden="true" className="size-6" /></span>
-          <h1 className="mt-6 max-w-[18rem] text-[28px] leading-9 font-extrabold tracking-[-0.04em]">보안코드로 다시 연결해 주세요</h1>
-          <p className="mt-3 max-w-[21rem] text-base leading-6 text-ink-600">접근 정보는 저장하지 않기 때문에 새로고침하면 연결이 안전하게 종료됩니다.</p>
-          <ButtonLink className="mt-8 w-full" href="/" size="cta">역할 선택으로 이동</ButtonLink>
-        </section>
-      </div>
-    </main>
-  );
-}
 
 export function WorkflowShell({
   children,
@@ -90,7 +69,7 @@ export function WorkflowShell({
       {context}
       <section className={cn(embedded ? "pb-6" : "rounded-[var(--radius-card)] border border-line bg-surface p-5 shadow-[var(--shadow-card)]")}>
         <p className="text-sm font-bold text-primary-700">공동 거래 기록</p>
-        <h2 className="mt-2 text-[26px] leading-8 font-extrabold tracking-[-0.04em]">{embedded ? title : "처리할 작업"}</h2>
+        <h2 className="mt-2 text-ui-section leading-8 font-extrabold tracking-[var(--tracking-display)]">{embedded ? title : "처리할 작업"}</h2>
         <p className="mt-2 text-sm leading-5 text-ink-600">{summary ?? "각 단계의 최신 상태를 확인하고 필요한 작업만 열어 처리할 수 있습니다."}</p>
         <div className="mt-5 flex min-h-12 items-center justify-between border-y border-line py-3 text-sm">
           <span className="font-bold">현재 처리 단계</span>
@@ -205,7 +184,7 @@ export function InvitationPanel() {
   const pendingInvitationCount = invitationQuery.data?.invitations.filter((invitation) => invitation.status === "pending").length ?? 0;
   return (
     <fieldset className="contents" disabled={retryAfter > 0}><WorkflowTask
-      description="일회성 보안코드는 저장하지 않고 필요한 상대에게만 전달해요"
+      description="일회성 초대 코드는 저장하지 않고 필요한 상대에게만 전달해요"
       leading={<UserPlus aria-hidden="true" className="size-4" />}
       status={issued ? "전달 필요" : pendingInvitationCount > 0 ? `${pendingInvitationCount}명 대기` : "초대하기"}
       title={`${targetRole} 초대`}
@@ -215,10 +194,10 @@ export function InvitationPanel() {
       {issued ? (
         <div className="mt-4 rounded-xl bg-primary-50 p-4">
           <div className="flex items-center justify-between gap-2">
-            <p className="font-bold text-primary-800">지금 전달할 보안코드</p>
+            <p className="font-bold text-primary-800">지금 전달할 초대 코드</p>
             <Button onClick={() => { void navigator.clipboard.writeText(issued.access_link.secret).then(() => setNotice("클립보드에 복사했어요.")).catch(() => setNotice("복사하지 못했어요. 브라우저 권한을 확인해 주세요.")); }} size="chip" variant="outline"><Copy /> 복사</Button>
           </div>
-          <p className="mt-3 rounded-lg bg-surface p-3 text-sm text-ink-600">보안코드는 화면·URL·로그에 표시하지 않고 복사 동작에만 사용합니다.</p>
+          <p className="mt-3 rounded-lg bg-surface p-3 text-sm text-ink-600">초대 코드는 화면·URL·로그에 표시하지 않고 복사 동작에만 사용합니다.</p>
           <Button className="mt-3 w-full" onClick={() => setIssued(null)} variant="ghost">표시 닫기</Button>
         </div>
       ) : null}
@@ -247,5 +226,5 @@ export function InvitationPanel() {
 }
 
 export function BackToConnection() {
-  return <Link className="inline-flex min-h-11 items-center font-bold text-primary-700" to="/">다른 보안코드로 연결</Link>;
+  return <Link className="inline-flex min-h-11 items-center font-bold text-primary-700" to="/">다른 초대 코드로 연결</Link>;
 }

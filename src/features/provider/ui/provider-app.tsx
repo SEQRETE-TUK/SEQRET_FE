@@ -148,7 +148,7 @@ function ProviderHome({ completion, dispatch, issueCount, onDashboard, onWork, s
         </ListGroup>
       </section>
 
-      <InfoCallout icon={<Archive aria-hidden="true" size={18} weight="fill" />}>업체가 제안한 변경은 고객이 승인한 뒤에만 새 범위와 금액으로 반영됩니다.</InfoCallout>
+      <InfoCallout icon={<Archive aria-hidden="true" size="var(--icon-sm)" weight="fill" />}>업체가 제안한 변경은 고객이 승인한 뒤에만 새 범위와 금액으로 반영됩니다.</InfoCallout>
     </div>
   );
 }
@@ -175,7 +175,7 @@ function ProviderRecords({ completion, dispatch, issues, scope }: {
         <SectionHeader aside={`${activity.length}건`}>운영 이력</SectionHeader>
         {activity.length > 0 ? <ActivityTimeline items={activity} /> : <p className="mt-3 border-y border-line py-5 text-sm text-ink-600">아직 기록된 운영 이력이 없습니다.</p>}
       </section>
-      {issues.length === 0 ? <InfoCallout icon={<Archive aria-hidden="true" size={18} weight="fill" />}>현재 보고된 현장 변경이 없습니다.</InfoCallout> : null}
+      {issues.length === 0 ? <InfoCallout icon={<Archive aria-hidden="true" size="var(--icon-sm)" weight="fill" />}>현재 보고된 현장 변경이 없습니다.</InfoCallout> : null}
     </div>
   );
 }

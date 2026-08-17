@@ -188,7 +188,7 @@ export function LiveConsumerWorkflow({ embedded = false }: { embedded?: boolean 
                 <StatusTag tone={scopeQuery.data.scope.status === "customer_review" ? "primary" : "success"}>{scopeQuery.data.scope.status === "customer_review" ? "공동확인 대기" : "확인된 기준"}</StatusTag>
                 <span className="text-sm font-bold text-ink-600">버전 {scopeQuery.data.scope.version_label}</span>
               </div>
-              <p className="mt-5 text-[17px] leading-6 font-extrabold">{scopeQuery.data.job.origin_summary ?? "출발지 미정"} → {scopeQuery.data.job.destination_summary ?? "도착지 미정"}</p>
+              <p className="mt-5 text-ui-component leading-6 font-extrabold">{scopeQuery.data.job.origin_summary ?? "출발지 미정"} → {scopeQuery.data.job.destination_summary ?? "도착지 미정"}</p>
               <HandoffStatus
                 action={scopeQuery.data.scope.status === "customer_review" ? "제안 내용을 검토해 주세요" : scopeQuery.data.scope.status === "revision_requested" ? "업체의 새 제안을 기다리고 있어요" : "최신 기준을 함께 확인했어요"}
                 actor={scopeQuery.data.scope.status === "customer_review" ? "고객" : scopeQuery.data.scope.status === "revision_requested" ? "업체" : "고객·업체"}
@@ -201,13 +201,13 @@ export function LiveConsumerWorkflow({ embedded = false }: { embedded?: boolean 
                     : "새 제안이 생기면 양측은 새 버전을 다시 확인합니다."}
               </HandoffStatus>
               <div className="mt-5 grid grid-cols-2 divide-x divide-line rounded-[var(--radius-input)] bg-primary-50 py-4 text-center">
-                <div><p className="text-xs font-bold text-primary-700">작업 항목</p><strong className="mt-1 block text-[22px]">{scopeQuery.data.scope.item_count}개</strong></div>
-                <div><p className="text-xs font-bold text-primary-700">제안 금액</p><strong className="mt-1 block text-[22px] text-primary-800">{money(scopeQuery.data.quote?.total_amount_krw)}</strong></div>
+                <div><p className="text-xs font-bold text-primary-700">작업 항목</p><strong className="mt-1 block text-ui-section">{scopeQuery.data.scope.item_count}개</strong></div>
+                <div><p className="text-xs font-bold text-primary-700">제안 금액</p><strong className="mt-1 block text-ui-section text-primary-800">{money(scopeQuery.data.quote?.total_amount_krw)}</strong></div>
               </div>
 
               <div className="mt-5 grid grid-cols-2 border-b border-line" role="tablist" aria-label="작업 범위 보기">
-                <button aria-controls="scope-panel" aria-selected={scopeTab === "summary"} className={`relative min-h-12 text-sm font-extrabold ${scopeTab === "summary" ? "text-ink-900 after:absolute after:inset-x-0 after:bottom-[-1px] after:h-0.5 after:bg-primary-600" : "text-ink-600"}`} id="scope-tab-summary" onClick={() => setScopeTab("summary")} role="tab" type="button">제안 요약</button>
-                <button aria-controls="scope-panel" aria-selected={scopeTab === "all"} className={`relative min-h-12 text-sm font-extrabold ${scopeTab === "all" ? "text-ink-900 after:absolute after:inset-x-0 after:bottom-[-1px] after:h-0.5 after:bg-primary-600" : "text-ink-600"}`} id="scope-tab-all" onClick={() => setScopeTab("all")} role="tab" type="button">작업 범위</button>
+                <button aria-controls="scope-panel" aria-selected={scopeTab === "summary"} className={`relative min-h-12 text-sm font-semibold ${scopeTab === "summary" ? "text-ink-900 after:absolute after:inset-x-0 after:bottom-[-1px] after:h-0.5 after:bg-primary-600" : "text-ink-600"}`} id="scope-tab-summary" onClick={() => setScopeTab("summary")} role="tab" type="button">제안 요약</button>
+                <button aria-controls="scope-panel" aria-selected={scopeTab === "all"} className={`relative min-h-12 text-sm font-semibold ${scopeTab === "all" ? "text-ink-900 after:absolute after:inset-x-0 after:bottom-[-1px] after:h-0.5 after:bg-primary-600" : "text-ink-600"}`} id="scope-tab-all" onClick={() => setScopeTab("all")} role="tab" type="button">작업 범위</button>
               </div>
 
               <section aria-labelledby={scopeTab === "summary" ? "scope-tab-summary" : "scope-tab-all"} className="mt-6" id="scope-panel" role="tabpanel">
@@ -330,11 +330,11 @@ export function LiveConsumerWorkflow({ embedded = false }: { embedded?: boolean 
                 <div className="grid grid-cols-2 overflow-hidden rounded-[var(--radius-input)] border border-line bg-canvas">
                   <span className="relative border-r border-line">
                     <img alt="거실 작업 전" className="h-28 w-full object-cover" height="112" loading="lazy" src="/built-in-wardrobe-evidence.png" width="176" />
-                    <span className="absolute top-2 left-2 rounded-md bg-ink-900/75 px-2 py-1 text-[11px] font-bold text-white">작업 전</span>
+                    <span className="absolute top-2 left-2 rounded-md bg-ink-900/75 px-2 py-1 text-ui-micro font-bold text-white">작업 전</span>
                   </span>
                   <span className="relative">
                     <img alt="거실 작업 후" className="h-28 w-full object-cover" height="112" loading="lazy" src="/room-after-evidence.png" width="176" />
-                    <span className="absolute top-2 left-2 rounded-md bg-ink-900/75 px-2 py-1 text-[11px] font-bold text-white">작업 후</span>
+                    <span className="absolute top-2 left-2 rounded-md bg-ink-900/75 px-2 py-1 text-ui-micro font-bold text-white">작업 후</span>
                   </span>
                 </div>
                 <figcaption className="mt-2 text-sm leading-5 text-ink-600">현장에서 제출한 완료 사진 {completionQuery.data.completion_media_count}장 중 대표 기록입니다.</figcaption>

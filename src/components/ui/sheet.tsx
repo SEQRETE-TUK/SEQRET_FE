@@ -29,8 +29,8 @@ function SheetContent({ className, children, presentation = "sheet", ...props }:
           {children}
           <Dialog.Close
             className={cn(
-              "absolute z-20 flex size-11 items-center justify-center rounded-full text-ink-600 hover:bg-canvas focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring",
-              presentation === "page" ? "top-[max(10px,env(safe-area-inset-top))] left-2" : "top-4 right-4",
+              "absolute z-20 flex items-center justify-center rounded-full text-ink-600 hover:bg-canvas focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring",
+              presentation === "page" ? "top-[max(16px,env(safe-area-inset-top))] left-3 size-9" : "top-4 right-4 size-11",
             )}
             aria-label={presentation === "page" ? "뒤로가기" : "닫기"}
           >
@@ -47,7 +47,7 @@ function SheetHeader({ className, ...props }: ComponentProps<"div">) {
 }
 
 function SheetTitle({ className, ...props }: Dialog.Title.Props) {
-  return <Dialog.Title className={cn("text-[22px] leading-[30px] font-extrabold tracking-[-0.5px]", className)} {...props} />;
+  return <Dialog.Title className={cn("text-ui-section leading-8 font-extrabold tracking-[var(--tracking-display)]", className)} {...props} />;
 }
 
 function SheetDescription({ className, ...props }: Dialog.Description.Props) {

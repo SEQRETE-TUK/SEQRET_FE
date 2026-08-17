@@ -25,7 +25,7 @@ import {
 import {
   WarningStatusIcon as AlertTriangle,
 } from "@/components/icons";
-import { useState, type FormEvent } from "react";
+import type { FormEvent } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -93,7 +93,6 @@ export function ManualScopeEditor({
   onRemove: (itemKey: string) => void;
   onSubmit: () => void;
 }) {
-  const [category, setCategory] = useState<ManualCategory>("가구");
   const selected = new Map(draftItems.map((item) => [item.description, item.itemKey]));
   const toggle = (label: string) => {
     const itemKey = selected.get(label);
@@ -102,18 +101,8 @@ export function ManualScopeEditor({
   };
   return (
     <form id={MANUAL_SCOPE_FORM_ID} onSubmit={(event) => { event.preventDefault(); onSubmit(); }}>
-      <section className="mt-5">
-        <div className="grid grid-cols-3 rounded-2xl bg-surface-muted p-1" role="tablist" aria-label="짐 종류">
-          {(["가구", "가전", "기타"] as ManualCategory[]).map((item) => <button aria-selected={category === item} className={`min-h-11 rounded-xl text-sm font-extrabold ${category === item ? "bg-surface text-ink-900" : "text-ink-600"}`} key={item} onClick={() => setCategory(item)} role="tab" type="button">{item}</button>)}
-        </div>
-        <div className="mt-7 flex items-center justify-between"><h2 className="text-[22px] font-black">{category}</h2><span className="text-sm font-bold text-primary-700">{draftItems.length}개 선택</span></div>
-        <div className="mt-3 grid grid-cols-3 gap-x-2 gap-y-5 min-[400px]:grid-cols-4">
-          {manualCatalog.filter((item) => item.category === category).map(({ icon: CatalogIcon, label }) => {
-            const active = selected.has(label);
-            return <button aria-pressed={active} className={`relative flex min-h-[116px] min-w-0 flex-col items-center justify-center rounded-2xl px-1 text-center ${active ? "bg-primary-50 text-primary-800 ring-2 ring-primary-600" : "bg-surface text-ink-900"}`} key={label} onClick={() => toggle(label)} type="button"><span className={`grid size-14 place-items-center rounded-2xl ${manualCategoryTone[category]}`}><CatalogIcon aria-hidden="true" size={35} weight="duotone" /></span><span className="mt-2 line-clamp-2 text-[13px] font-extrabold">{label}</span>{active ? <span className="absolute right-2 top-2 grid size-6 place-items-center rounded-full bg-primary-600 text-white"><Check aria-hidden="true" size={15} weight="bold" /></span> : null}</button>;
-          })}
-        </div>
-        {draftItems.length > 0 ? <button className="mx-auto mt-8 flex min-h-11 items-center gap-2 px-4 text-sm font-bold text-ink-600" onClick={() => draftItems.forEach((item) => onRemove(item.itemKey))} type="button"><RotateCcw aria-hidden="true" size={17} />선택 초기화</button> : null}
+      <section>
+        {(["가구", "가전", "기타"] as ManualCategory[]).map((category) => <section className="mt-7 first:mt-0" key={category}><h3 className="text-ui-section font-black">{category}</h3><div className="mt-3 grid grid-cols-3 gap-x-2 gap-y-5 min-[400px]:grid-cols-4">{manualCatalog.filter((item) => item.category === category).map(({ icon: CatalogIcon, label }) => { const active = selected.has(label); return <button aria-pressed={active} className={`press-static relative flex min-h-[116px] min-w-0 flex-col items-center justify-center rounded-2xl px-1 text-center ${active ? "bg-primary-50 text-primary-800 ring-2 ring-primary-600" : "bg-surface text-ink-900"}`} key={label} onClick={() => toggle(label)} type="button"><span className={`grid size-14 place-items-center rounded-2xl ${manualCategoryTone[category]}`}><CatalogIcon aria-hidden="true" size="var(--icon-category)" weight="duotone" /></span><span className="mt-2 line-clamp-2 text-ui-data font-extrabold">{label}</span>{active ? <span className="absolute right-2 top-2 grid size-6 place-items-center rounded-full bg-primary-600 text-white"><Check aria-hidden="true" size="var(--icon-xs)" weight="bold" /></span> : null}</button>; })}</div></section>)}
       </section>
     </form>
   );
@@ -163,7 +152,7 @@ export function AnalysisReviewPanel({
             {review.zones.map((zone) => (
               <li className="flex min-h-14 items-center justify-between gap-3 border-b border-line py-2 last:border-b-0" key={zone.room_zone_id}>
                 <div className="flex min-w-0 items-center gap-2">
-                  <Image aria-hidden="true" className="text-primary-700" size={16} />
+                  <Image aria-hidden="true" className="text-primary-700" size="var(--icon-xs)" />
                   <p className="truncate text-ui-support font-bold">{zone.name}</p>
                 </div>
                 <p className="shrink-0 text-sm text-ink-400">
@@ -194,14 +183,14 @@ export function AnalysisReviewPanel({
                 type="button"
                 variant="outline"
               >
-                <RotateCcw aria-hidden="true" size={15} /> 되돌리기
+                <RotateCcw aria-hidden="true" size="var(--icon-xs)" /> 되돌리기
               </Button>
             </div>
           )}
 
           {draftItems.length === 0 && (
             <div className="bg-warning-bg p-4 text-center">
-              <AlertTriangle aria-hidden="true" className="mx-auto text-warning" size={22} />
+              <AlertTriangle aria-hidden="true" className="mx-auto text-warning" size="var(--icon-sm)" />
               <p className="mt-2 text-base font-bold">최소 한 개의 항목이 필요해요</p>
             </div>
           )}
@@ -227,7 +216,7 @@ export function AnalysisReviewPanel({
                       onClick={() => onRemove(draft.itemKey)}
                       type="button"
                     >
-                      <Trash2 aria-hidden="true" size={17} />
+                      <Trash2 aria-hidden="true" size="var(--icon-xs)" />
                     </button>
                   )}
                 </div>
@@ -289,7 +278,7 @@ export function AnalysisReviewPanel({
               type="button"
               variant="secondary"
             >
-              <Plus aria-hidden="true" size={17} />
+              <Plus aria-hidden="true" size="var(--icon-xs)" />
               {canAdd ? "빠진 항목 직접 추가" : "항목은 최대 500개까지 추가할 수 있어요"}
             </Button>
           )}

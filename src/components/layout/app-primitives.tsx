@@ -1,4 +1,4 @@
-import { CaretRightIcon as ChevronRight } from "@phosphor-icons/react";
+import { CaretRightIcon as ChevronRight, CheckIcon as Check } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
@@ -34,7 +34,7 @@ export function WorkContext({
         <p className="min-w-0 truncate text-xs font-bold text-ink-600">{code ? `작업 ${code}` : "현재 이사"}</p>
         {status}
       </div>
-      <strong className="mt-2 block min-w-0 break-words text-[17px] leading-6">{title}</strong>
+      <strong className="mt-2 block min-w-0 break-words text-ui-component leading-6">{title}</strong>
       {route ? <p className="mt-1 min-w-0 break-words text-sm leading-5 text-ink-600">{route}</p> : null}
       <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">
         <div>
@@ -64,7 +64,7 @@ export function HandoffStatus({
   return (
     <section aria-label="현재 담당자와 다음 행동" className="mt-6 border-l-2 border-primary-600 pl-4">
       <p className="text-xs font-extrabold text-primary-700">현재 담당 · {actor}</p>
-      <h3 className="mt-1 text-[18px] leading-6 font-extrabold tracking-[-0.025em]">{action}</h3>
+      <h3 className="mt-1 text-lg leading-6 font-extrabold tracking-[var(--tracking-display)]">{action}</h3>
       <p className="mt-1 text-sm leading-5 text-ink-600">{children}</p>
       {updatedAt ? <p className="mt-2 text-xs font-semibold text-ink-400">마지막 변경 {compactDateTimeFormatter.format(new Date(updatedAt))}</p> : null}
     </section>
@@ -141,7 +141,7 @@ export function ActivityTimeline({
           <div className="min-w-0">
             <div className="flex min-w-0 items-start justify-between gap-3">
               <strong className="min-w-0 break-words text-sm leading-5">{title}</strong>
-              {time ? <time className="shrink-0 text-[11px] font-semibold text-ink-400" dateTime={time}>{compactDateTimeFormatter.format(new Date(time))}</time> : null}
+              {time ? <time className="shrink-0 text-ui-micro font-semibold text-ink-400" dateTime={time}>{compactDateTimeFormatter.format(new Date(time))}</time> : null}
             </div>
             <p className="mt-1 text-xs font-semibold text-ink-600">{actor}</p>
             {detail ? <p className="mt-1 text-sm leading-5 text-ink-600">{detail}</p> : null}
@@ -164,8 +164,8 @@ export function PageIntro({
   return (
     <header>
       {eyebrow ? <p className="text-sm font-bold text-primary-700">{eyebrow}</p> : null}
-      <h2 className="mt-2 max-w-[22rem] text-[32px] leading-[1.2] font-black tracking-[-0.05em]">{title}</h2>
-      {description ? <p className="mt-2 max-w-[22rem] text-[15px] leading-6 text-ink-600">{description}</p> : null}
+      <h2 className="mt-2 max-w-[22rem] text-ui-section leading-9 font-extrabold tracking-[var(--tracking-display)]">{title}</h2>
+      {description ? <p className="mt-2 max-w-[22rem] text-ui-control leading-6 text-ink-600">{description}</p> : null}
     </header>
   );
 }
@@ -180,35 +180,21 @@ export function StatusTag({ children, tone = "primary" }: { children: ReactNode;
   return <span className={cn("inline-flex min-h-8 items-center rounded-full px-3 text-xs font-extrabold", toneClass)}>{children}</span>;
 }
 
-export function PriorityPanel({
-  action,
-  description,
-  label,
-  meta,
-  title,
-  tone = "primary",
-}: {
-  action: ReactNode;
-  description?: ReactNode;
-  label: ReactNode;
-  meta?: ReactNode;
-  title: ReactNode;
-  tone?: "primary" | "warning";
-}) {
-  return (
-    <section
-      className={cn(
-        "mt-7 rounded-[var(--radius-card)] border px-5 py-5",
-        tone === "primary" ? "border-primary-100 bg-primary-50/70" : "border-warning bg-warning-bg",
-      )}
-    >
-      <StatusTag tone={tone}>{label}</StatusTag>
-      <h3 className="mt-4 text-[21px] leading-7 font-extrabold tracking-[-0.03em]">{title}</h3>
-      {description ? <p className="mt-2 text-sm leading-5 text-ink-600">{description}</p> : null}
-      {meta ? <div className="mt-4 border-t border-current/10 pt-3 text-sm font-bold text-ink-600">{meta}</div> : null}
-      <div className="mt-5">{action}</div>
-    </section>
-  );
+export function FilterChip({ active = false, children, onClick }: { active?: boolean; children: ReactNode; onClick: () => void }) {
+  return <button aria-pressed={active} className={cn("min-h-9 whitespace-nowrap rounded-full border px-3 text-sm font-semibold", active ? "border-primary-600 bg-primary-50 text-primary-700" : "border-line bg-surface text-ink-600")} onClick={onClick} type="button">{children}</button>;
+}
+
+export function ActiveMoveCard({ children, heading, leading, meta, onOpen, route }: { children?: ReactNode; heading: ReactNode; leading?: ReactNode; meta: ReactNode; onOpen: () => void; route: ReactNode }) {
+  return <section className="mt-4 rounded-[var(--radius-feature)] border border-line bg-surface p-3 shadow-[var(--shadow-card)]"><h2 className="text-ui-component font-black">{heading}</h2><button className="mt-1.5 flex min-h-13 w-full items-center gap-3 text-left" onClick={onOpen} type="button">{leading}<span className="min-w-0 flex-1"><strong className="block truncate text-ui-component">{route}</strong><span className="mt-1 block text-sm text-ink-600">{meta}</span></span><ChevronRight aria-hidden="true" className="shrink-0 text-ink-400" size="var(--icon-md)" /></button>{children}</section>;
+}
+
+export function MoveJourneyProgress({ current }: { current: number }) {
+  const steps = ["촬영과 짐 검수", "작업범위와\n금액 확인", "공동확인 완료"];
+  return <ol className="mt-3 grid grid-cols-3">{steps.map((label, index) => { const step = index + 1; const done = step < current; const active = step === current; return <li className="relative text-center" key={label}>{index > 0 ? <span aria-hidden="true" className={`absolute top-3.5 right-1/2 h-0.5 w-full ${step <= current ? "bg-success" : "bg-line"}`} /> : null}<span className={`relative z-10 mx-auto grid size-7 place-items-center rounded-full border-2 text-xs font-black ${done ? "border-success bg-success text-white" : active ? "border-primary-600 bg-primary-600 text-white" : "border-line bg-surface text-ink-400"}`}>{done ? <Check aria-hidden="true" size="var(--icon-xs)" weight="bold" /> : step}</span><span className={`mt-1.5 block whitespace-pre-line text-ui-micro leading-3.5 font-bold ${active ? "text-primary-700" : done ? "text-ink-900" : "text-ink-600"}`}>{label}</span></li>; })}</ol>;
+}
+
+export function PriorityPanel({ action, description, label, meta, title, tone = "primary" }: { action: ReactNode; description?: ReactNode; label: ReactNode; meta?: ReactNode; title: ReactNode; tone?: "primary" | "warning" }) {
+  return <section className={cn("mt-7 rounded-[var(--radius-feature)] border px-5 py-5", tone === "primary" ? "border-primary-100 bg-primary-50/70" : "border-warning bg-warning-bg")}><StatusTag tone={tone}>{label}</StatusTag><h3 className="mt-4 text-ui-section leading-7 font-extrabold tracking-[var(--tracking-display)]">{title}</h3>{description ? <p className="mt-2 text-sm leading-5 text-ink-600">{description}</p> : null}{meta ? <div className="mt-4 border-t border-current/10 pt-3 text-sm font-bold text-ink-600">{meta}</div> : null}<div className="mt-5">{action}</div></section>;
 }
 
 export function PriorityFacts({ items }: { items: Array<{ label: ReactNode; value: ReactNode }> }) {
@@ -216,8 +202,8 @@ export function PriorityFacts({ items }: { items: Array<{ label: ReactNode; valu
     <dl className="grid divide-x divide-current/10" style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}>
       {items.map(({ label, value }, index) => (
         <div className={cn("min-w-0", index === 0 ? "pr-2" : "px-2 last:pr-0")} key={String(label)}>
-          <dt className="truncate text-[11px] font-bold text-ink-600">{label}</dt>
-          <dd className="mt-1 min-w-0 break-keep text-[13px] leading-5 font-extrabold text-ink-900 tabular-nums">{value}</dd>
+          <dt className="truncate text-ui-micro font-bold text-ink-600">{label}</dt>
+          <dd className="mt-1 min-w-0 break-keep text-ui-data leading-5 font-extrabold text-ink-900 tabular-nums">{value}</dd>
         </div>
       ))}
     </dl>
@@ -227,7 +213,7 @@ export function PriorityFacts({ items }: { items: Array<{ label: ReactNode; valu
 export function SectionHeader({ aside, children, className }: { aside?: ReactNode; children: ReactNode; className?: string }) {
   return (
     <div className={cn("flex min-h-8 items-end justify-between gap-3", className)}>
-      <h3 className="text-[19px] leading-7 font-extrabold tracking-[-0.035em]">{children}</h3>
+      <h3 className="text-ui-section leading-7 font-extrabold tracking-[var(--tracking-display)]">{children}</h3>
       {aside ? <div className="pb-0.5 text-xs font-bold text-ink-600">{aside}</div> : null}
     </div>
   );
@@ -254,9 +240,9 @@ export function SegmentedTabs<T extends string>({
           <button
             aria-selected={active}
             className={cn(
-              "relative min-h-[52px] min-w-0 px-2 text-[15px] font-extrabold transition-colors",
+              "relative min-h-11 min-w-0 px-2 text-sm font-semibold transition-colors",
               variant === "filled" && "rounded-lg",
-              variant === "filled" && active && "bg-gradient-to-r from-primary-600 to-primary-700 text-accent-ink shadow-[var(--shadow-card)]",
+              variant === "filled" && active && "bg-primary-600 text-accent-ink",
               variant === "filled" && !active && "text-ink-600 hover:text-ink-900",
               variant === "underline" && active && "text-primary-700 after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:bg-primary-600",
               variant === "underline" && !active && "text-ink-400 hover:text-ink-900",
@@ -290,8 +276,8 @@ export function ListGroup({
       aria-label={label}
       className={cn(
         "mt-3 overflow-hidden",
-        variant === "contained" && "rounded-[var(--radius-card)] border border-line bg-surface shadow-[var(--shadow-card)]",
-        variant === "plain" && "app-list-plain border-y border-line",
+        variant === "contained" && "rounded-[var(--radius-control)] border border-line bg-surface shadow-[var(--shadow-card)]",
+        variant === "plain" && "app-list-plain",
         className,
       )}
     >
@@ -319,7 +305,7 @@ export function ListRow({
     <>
       {leading ? <span className="shrink-0 overflow-hidden">{leading}</span> : null}
       <span className="min-w-0 flex-1">
-        <strong className="block min-w-0 break-keep text-[15px] leading-6">{children}</strong>
+        <strong className="block min-w-0 break-keep text-ui-control leading-6">{children}</strong>
         {description ? <span className="mt-0.5 block min-w-0 text-sm leading-5 text-ink-600">{description}</span> : null}
       </span>
       {end ? <span className="max-w-[48%] shrink-0 text-right text-sm font-bold text-ink-600">{end}</span> : null}
@@ -327,7 +313,7 @@ export function ListRow({
     </>
   );
   const classes = cn(
-    "interactive-row flex min-h-[68px] w-full items-center gap-3 border-b border-line px-4 py-3 text-left last:border-b-0",
+    "interactive-row flex min-h-16 w-full items-center gap-3 border-b border-line px-4 py-3 text-left last:border-b-0",
     selected && "bg-primary-50/70",
   );
   return onClick ? <button className={classes} onClick={onClick} type="button">{content}</button> : <div className={classes}>{content}</div>;

@@ -3,73 +3,73 @@ name: SEQRET
 description: 소비자·이사업체·현장 작업자가 범위, 근거, 버전, 금액과 다음 행동을 같은 기록으로 이해하는 모바일 우선 업무형 디자인 시스템.
 
 colors:
-  background: "oklch(0.978 0.002 255)"
-  foreground: "oklch(0.205 0.018 262)"
-  card: "oklch(1 0 0)"
-  card-foreground: "oklch(0.205 0.018 262)"
-  primary: "oklch(0.511 0.262 276.966)"
-  primary-hover: "oklch(0.457 0.24 277.023)"
-  primary-soft: "oklch(0.962 0.018 272.314)"
-  primary-muted: "oklch(0.93 0.034 272.788)"
-  muted-foreground: "oklch(0.535 0.014 262)"
-  secondary-foreground: "oklch(0.405 0.016 262)"
-  border: "oklch(0.91 0.004 255)"
-  success: "oklch(0.642 0.15 157)"
-  success-background: "oklch(0.966 0.035 157)"
-  warning: "oklch(0.75 0.17 75)"
-  warning-background: "oklch(0.974 0.04 82)"
-  destructive: "oklch(0.61 0.21 25)"
-  destructive-background: "oklch(0.965 0.035 22)"
-  kakao: "oklch(0.91 0.19 101)"
-  focus-ring: "oklch(0.673 0.182 276.935)"
+  background: "--color-paper"
+  foreground: "--color-ink"
+  card: "--color-paper-2"
+  card-foreground: "--color-ink"
+  primary: "--color-accent"
+  primary-hover: "--color-accent-hover"
+  primary-soft: "--color-accent-50"
+  primary-muted: "--color-accent-100"
+  muted-foreground: "--color-muted"
+  secondary-foreground: "--color-ink-2"
+  border: "--color-rule"
+  success: "--color-success"
+  success-background: "--color-success-bg"
+  warning: "--color-warning"
+  warning-background: "--color-warning-bg"
+  destructive: "--color-danger"
+  destructive-background: "--color-danger-bg"
+  kakao: "--color-kakao"
+  focus-ring: "--color-focus"
 
 typography:
   font-sans:
     fontFamily: "'Pretendard', Inter, ui-sans-serif, system-ui, sans-serif"
     description: "본문과 UI 전체에 사용한다."
-  screen-title:
-    fontSize: "32px"
-    fontWeight: 800
-    lineHeight: "38px"
-  page-title:
-    fontSize: "28px"
-    fontWeight: 800
-    lineHeight: "36px"
   section-title:
-    fontSize: "22px"
-    fontWeight: 700
-    lineHeight: "29px"
+    fontSize: "--text-xl"
+    fontWeight: "--weight-strong"
+    lineHeight: "28px"
   card-title:
-    fontSize: "17px"
-    fontWeight: 700
+    fontSize: "--text-component"
+    fontWeight: "--weight-component"
     lineHeight: "24px"
   body:
-    fontSize: "16px"
-    fontWeight: 500
+    fontSize: "--text-md"
+    fontWeight: "--weight-body"
     lineHeight: "24px"
+  control:
+    fontSize: "--text-control"
+    fontWeight: "--weight-control"
+    lineHeight: "20px"
   supporting:
-    fontSize: "14px"
-    fontWeight: 500
+    fontSize: "--text-support"
+    fontWeight: "--weight-support"
+    lineHeight: "20px"
+  data:
+    fontSize: "--text-data"
+    fontWeight: "--weight-data"
     lineHeight: "20px"
   label:
-    fontSize: "12px"
-    fontWeight: 700
+    fontSize: "--text-xs"
+    fontWeight: "--weight-strong"
     lineHeight: "16px"
 
 rounded:
-  small: "0.5rem"
-  control: "0.625rem"
-  card: "0.875rem"
-  feature: "1.125rem"
-  sheet: "20px 20px 0 0"
-  full: "9999px"
+  small: "--radius-small"
+  control: "--radius-control"
+  card: "--radius-card"
+  feature: "--radius-feature"
+  sheet: "--radius-sheet"
+  full: "--radius-pill"
 
 spacing:
-  base: "Tailwind 기본 4px 단위"
-  screen-x: "20px ~ 24px"
-  card-padding: "16px ~ 20px"
-  control-gap: "8px ~ 12px"
-  section-gap: "24px ~ 32px"
+  base: "--space-3xs"
+  screen-x: "--content-gutter"
+  card-padding: "--space-sm ~ --space-md"
+  control-gap: "--space-2xs ~ --space-xs"
+  section-gap: "--space-md ~ --space-lg"
 
 icons:
   family: "@phosphor-icons/react"
@@ -87,7 +87,7 @@ utilities:
     className: "mobile-frame"
   focus-ring:
     description: "키보드 포커스 표시"
-    css: "2px solid oklch(0.673 0.182 276.935); outline-offset: 2px"
+    css: "2px solid var(--color-focus); outline-offset: var(--rule-fine)"
 
 components:
   button-primary:
@@ -116,7 +116,19 @@ components:
 
 # SEQRET 디자인 시스템
 
-> 단일 원본: `design-system.md`(계약) → `tokens.css`(값) → `src/app/styles.css`(Tailwind 연결) → `src/components/ui`(primitive) → `src/components/layout`·`src/components/workflow`(제품 패턴) → `/design-system`(실제 표본)
+> 단일 원본 체계: `design-system.md`(계약) · `tokens.css`(값) · `src/pages/design-system/design-system-data.ts`(문서 목차) · 실제 공용 컴포넌트(동작) · `/design-system`(검수 표본)
+
+## 정보 소유권
+
+같은 사실을 여러 파일에서 독립적으로 관리하지 않는다. 색상·크기·간격·그림자의 실제 값은 `tokens.css`만 수정하고, 이 문서와 `/design-system`에는 토큰 이름을 표시한다. `/design-system`의 색상과 간격 실측값은 브라우저의 계산된 CSS 값을 읽어 표시한다.
+
+| 정보 | 단일 원본 | 다른 위치의 역할 |
+|---|---|---|
+| 원칙과 사용 조건 | `design-system.md` | 페이지에는 검수용 요약만 표시 |
+| 색상·타입·간격·형태·동작 값 | `tokens.css` | `src/app/styles.css`는 Tailwind 이름만 연결 |
+| 문서 섹션과 사이드바 항목 | `src/pages/design-system/design-system-data.ts` | rail과 본문 anchor가 같은 ID 사용 |
+| 컴포넌트 API와 상태 | `src/components/ui` | `/design-system`은 실제 컴포넌트를 그대로 렌더링 |
+| 제품 조합 패턴 | `src/components/layout`·`src/components/workflow` | 역할별 화면은 해당 패턴을 조합 |
 
 ## Overview
 
@@ -148,28 +160,28 @@ SEQRET은 거래 상태를 오해 없이 전달하는 것을 시각적 장식보
 | 구현 | `src/components/ui` → `layout` → `workflow` | primitive에서 역할별 업무 패턴까지 조합 |
 | 표본 | `/design-system` | 토큰 실측, 실제 컴포넌트, 사용 계약, 화면 순서 검수 |
 
-전시 페이지는 `Foundations → Components → Patterns → Behavior/Quality` 순서로 구성한다. 각 컴포넌트 표본에는 이름, 목적, 사용 계약과 실제 렌더링을 함께 제공한다. 문서 전용으로 비슷한 가짜 컴포넌트를 다시 만들지 않는다.
+전시 페이지는 `사용 원칙 → 기초 → 컴포넌트 → 조합 규칙`만 보여준다. 각 컴포넌트 표본에는 이름, 목적, 사용 계약과 실제 렌더링을 함께 제공한다. 역할 안내·검수 문구·외부 참고 링크처럼 구현의 원천이 아닌 정보는 전시 페이지에 반복하지 않는다.
 
 ## Colors
 
 ### Brand Accent
 
-- **Primary** (`{colors.primary}` — `oklch(0.511 0.262 276.966)`): 주요 CTA, 현재 단계, 선택 상태
-- **Primary Hover** (`{colors.primary-hover}` — `oklch(0.457 0.24 277.023)`): 주요 CTA hover
-- **Primary Soft** (`{colors.primary-soft}` — `oklch(0.962 0.018 272.314)`): 선택 영역과 약한 강조 배경
-- **Primary Muted** (`{colors.primary-muted}` — `oklch(0.93 0.034 272.788)`): primary badge와 보조 강조
+- **Primary** (`{colors.primary}`): 주요 CTA, 현재 단계, 선택 상태
+- **Primary Hover** (`{colors.primary-hover}`): 주요 CTA hover
+- **Primary Soft** (`{colors.primary-soft}`): 선택 영역과 약한 강조 배경
+- **Primary Muted** (`{colors.primary-muted}`): primary badge와 보조 강조
 
 ### Surface
 
-- **Background** (`{colors.background}` — `oklch(0.978 0.002 255)`): 화면 전체 canvas
-- **Card** (`{colors.card}` — `oklch(1 0 0)`): 작업 카드, 입력 영역, sheet와 고정 CTA
-- **Border** (`{colors.border}` — `oklch(0.91 0.004 255)`): 목록 구분·입력·작업 카드 경계
+- **Background** (`{colors.background}`): 화면 전체 canvas
+- **Card** (`{colors.card}`): 작업 카드, 입력 영역, sheet와 고정 CTA
+- **Border** (`{colors.border}`): 목록 구분·입력·작업 카드 경계
 
 ### Text
 
-- **Foreground** (`{colors.foreground}` — `oklch(0.218 0.024 285)`): 제목과 핵심 본문
-- **Secondary Foreground** (`{colors.secondary-foreground}` — `oklch(0.395 0.025 285)`): 설명과 보조 행동
-- **Muted Foreground** (`{colors.muted-foreground}` — `oklch(0.52 0.02 285)`): 시간, metadata, 비활성 설명
+- **Foreground** (`{colors.foreground}`): 제목과 핵심 본문
+- **Secondary Foreground** (`{colors.secondary-foreground}`): 설명과 보조 행동
+- **Muted Foreground** (`{colors.muted-foreground}`): 시간, metadata, 비활성 설명
 
 ### Semantic
 
@@ -193,12 +205,12 @@ semantic color는 장식용으로 사용하지 않는다. 금액 증가와 오�
 
 | Role | Size / Line height | Weight | Tracking | Use |
 | --- | --- | ---: | --- | --- |
-| screen-title | 32 / 38px | 800 | −0.025em | 역할 홈의 현재 과업, 최종 금액 |
-| page-title | 28 / 36px | 800 | −0.025em | 상세 화면과 업무 목록 제목 |
-| section-title | 22 / 29px | 700 | −0.025em | 서로 다른 판단 단위의 제목 |
-| component-title | 17 / 24px | 700 | 0 | 카드와 목록 묶음 제목 |
-| body | 16 / 24px | 500 | 0 | 설명, 입력과 주요 목록 내용 |
-| supporting | 14 / 20px | 500 | 0 | 시간, metadata와 보조 설명 |
+| section-title | 20 / 28px | 700 | −0.025em | 화면과 서로 다른 판단 단위의 제목 |
+| component-title | 17 / 24px | 600 | 0 | 카드와 목록 묶음 제목 |
+| body | 16 / 24px | 400 | 0 | 설명, 입력과 주요 목록 내용 |
+| control | 14 / 20px | 500 | 0 | 버튼, 탭과 짧은 조작 label |
+| supporting | 14 / 20px | 400 | 0 | 시간, metadata와 보조 설명 |
+| data | 13 / 20px | 600 | 0 | 버전, 금액과 조밀한 실측값 |
 | status-label | 12 / 16px | 700 | 0 | 상태, 버전과 짧은 label |
 
 ### Principles
@@ -233,14 +245,15 @@ semantic color는 장식용으로 사용하지 않는다. 금액 증가와 오�
 
 | 대상 | Value | Rule |
 | --- | ---: | --- |
-| 기본 Button·Input | 44px | 일반 행동과 입력의 기본 높이이자 최소 터치 영역 |
-| Primary CTA | 52px | 화면의 단일 우선 행동 |
+| 작은 Button | `--control-compact` · 32px | 데스크톱의 필터와 짧은 inline action |
+| 기본 Button | `--control-default` · 36px | 데스크톱의 일반 행동 |
+| Mobile CTA·Input | `--control-touch` · 44px | 모바일 조작과 입력의 최소 터치 영역 |
 | List row | 64px 이상 | 제목, 보조 정보와 상태를 포함 |
 | Card inset | 16~20px | 정보 밀도에 맞춰 두 값 중 선택 |
 | Mobile gutter | 20~24px | 320~432px viewport에 적용 |
 | Section rhythm | 24~32px | 같은 문맥은 24px, 문맥 전환은 32px |
 
-참고 저장소의 24~40px dense control은 크기 단계의 개념만 참고한다. SEQRET은 mobile touch 업무가 중심이므로 터치 영역은 44px 이상을 지키고, 일반 control 44px와 화면 CTA 52px 두 높이로 단순화한다.
+LIKELION TUK의 조밀한 control 단계에서 `32px → 36px → 44px`의 역할 분리를 참고한다. SEQRET은 실제 버튼 높이를 이 세 단계로 제한하고, `(pointer: coarse)` 환경에서는 작은 버튼도 최소 44px 터치 영역을 확보한다.
 
 ### Mobile Frame
 
@@ -260,9 +273,9 @@ semantic color는 장식용으로 사용하지 않는다. 금액 증가와 오�
 
 | Level | Treatment | Use |
 | --- | --- | --- |
-| Canvas | `oklch(0.975 0.004 277)` | 화면 배경 |
-| Surface | `oklch(0.992 0.003 277)` | 카드, 입력, CTA 영역 |
-| Bordered | `1px solid oklch(0.925 0.009 277)` | 정보 단위와 입력 경계 |
+| Canvas | `--color-paper` | 화면 배경 |
+| Surface | `--color-paper-2` | 카드, 입력, CTA 영역 |
+| Bordered | `1px solid --color-rule` | 정보 단위와 입력 경계 |
 | Selected | primary border + soft background | 선택된 항목과 현재 단계 |
 | Overlay | 반투명 backdrop + white sheet | modal, bottom sheet |
 
@@ -272,11 +285,11 @@ semantic color는 장식용으로 사용하지 않는다. 금액 증가와 오�
 
 | Token | Value | Use |
 | --- | --- | --- |
-| `--radius-small` | 8px | 작은 상태 영역과 조밀한 내부 surface |
-| `--radius-control` | 10px | Button, 입력, 선택 control |
-| `--radius-card` | 14px | 목록과 구분해야 하는 일반 Card |
-| `--radius-feature` | 18px | Hero, 현재 작업처럼 상위 surface |
-| `--radius-sheet` | 상단 20px | Sheet |
+| `--radius-small` | 6px | 작은 상태 영역과 조밀한 내부 surface |
+| `--radius-control` | 8px | Button, 입력, 선택 control |
+| `--radius-card` | 10px | 목록과 구분해야 하는 일반 Card |
+| `--radius-feature` | 12px | Hero, 현재 작업처럼 상위 surface |
+| `--radius-sheet` | 상단 16px | Sheet |
 | `rounded-full` | 9999px | Badge, icon button, 진행 표시 |
 
 일반 card에는 shadow를 사용하지 않는다. 고정 navigation, 떠 있는 action bar와 sheet처럼 실제로 다른 층에 놓인 surface에만 raised shadow를 사용한다.
@@ -405,12 +418,12 @@ variant를 나열하는 것만으로 끝내지 않고 기본, 선택, 대기, �
 
 | Size | Height | Use |
 | --- | ---: | --- |
-| `chip` | 44px | 필터와 짧은 inline action. 글자와 좌우 padding만 작게 한다. |
-| `default` | 44px | 입력과 나란히 쓰는 일반 행동 |
-| `cta` | 52px | 화면 또는 sheet의 단일 우선 행동 |
-| `icon` | 44×44px | 아이콘만 있는 조작. 접근 가능한 이름을 제공한다. |
+| `chip` | 32px | 데스크톱의 필터와 짧은 inline action |
+| `default` | 36px | 입력과 나란히 쓰는 일반 행동 |
+| `cta` | 44px | 화면 또는 sheet의 단일 우선 행동 |
+| `icon` | 36×36px | 아이콘만 있는 조작. 접근 가능한 이름을 제공한다. |
 
-모바일 터치 영역은 44px보다 작게 만들지 않는다. 크기 차이는 높이만 키우지 않고 label 크기와 좌우 padding, 배치 맥락으로 구분한다. 한 화면에 primary CTA를 여러 개 두지 않는다.
+모바일의 `(pointer: coarse)` 환경에서는 모든 크기의 터치 영역을 최소 44px로 확장한다. 크기 차이는 label과 좌우 padding, 배치 맥락으로 구분하며 한 화면에 primary CTA를 여러 개 두지 않는다.
 
 ### Badges
 
@@ -447,7 +460,7 @@ Badge만으로 상태를 설명하지 않는다. 가까운 제목이나 본문�
 ### List rows and tabs
 
 - 목록 행은 `left / contents / right` 세 영역으로 구성한다. 왼쪽에는 실제 근거 이미지나 항목 이해에 필요한 아이콘만 둔다.
-- 설정·기록 목록은 바깥 카드 테두리 없이 화면 구분선으로 묶고, 하나의 판단 대상만 contained surface로 감싼다.
+- 설정·기록 목록은 `ListGroup`/`ListRow`, 다중 보조 정보 목록은 `InfoList`를 사용한다. 목록에는 항목 사이 구분선만 두고 위·아래 외곽선은 두지 않는다.
 - 사진은 완료·현장 증빙처럼 사진 자체가 판단 근거일 때 72px 썸네일로 제공하고 `alt`, `width`, `height`, 지연 로딩을 함께 적용한다.
 - 같은 화면의 동등한 콘텐츠 전환은 44–48px 높이의 underline tab을 사용한다. 선택 상태는 굵기·텍스트 색·2px indicator로 표시한다.
 
@@ -520,5 +533,5 @@ Badge만으로 상태를 설명하지 않는다. 가까운 제목이나 본문�
 - [shadcn/ui](https://ui.shadcn.com/docs)는 패키지 전체를 덧붙이는 대신 기존 Base UI primitive와 CVA variant를 조합하는 코드 소유 방식으로 사용한다.
 - [Vercel Web Interface Guidelines](https://github.com/vercel-labs/web-interface-guidelines)의 URL 상태, focus-visible, semantic control, safe area, 이미지 크기, 파괴적 행동 확인 기준을 모바일 공통 규칙으로 사용한다.
 - [Trading Dashboard Design](https://github.com/january2w0/trading-dashboard-design)의 `DESIGN.md → token data → specimen component → design-system page` 분리와 spacing 실측 표본 구조를 참고한다. 글자 크기·두께·간격 전시 방식만 적용하고 dark palette, font family와 dense desktop control 크기는 가져오지 않는다.
-- [Likelion TUK](https://github.com/january2w0/likelion-tuk)의 `buttonVariants` 크기 분리와 2·4·6·10px radius 단계 개념을 참고한다. 실제 값은 모바일 최소 터치 영역과 SEQRET의 기존 surface에 맞춰 44·52px control과 8·10·14·18·20px shape 단계로 조정한다.
+- [Likelion TUK](https://github.com/january2w0/likelion-tuk)의 `buttonVariants` 크기 분리와 조밀한 문서 사이드바를 참고한다. SEQRET은 기존 색과 surface를 유지하면서 32·36·44px control, 6·8·10·12·16px shape 단계로 조정하고 모바일 터치 영역은 44px 이상을 보장한다.
 - 외부 디자인 시스템의 시각적 모양이나 브랜드 자산은 복제하지 않는다. 정보 위계, 상태, 접근성, component governance 원칙만 참고한다.

@@ -51,7 +51,7 @@ export function ProgressSteps({
             >
               {done ? <Check aria-hidden="true" className="size-3.5" /> : index + 1}
             </span>
-            <span className={cn("mt-2 block truncate text-[11px] font-bold", active ? "text-ink-900" : "text-ink-400")}>{item}</span>
+            <span className={cn("mt-2 block truncate text-ui-micro font-bold", active ? "text-ink-900" : "text-ink-400")}>{item}</span>
           </li>
         );
       })}
@@ -90,7 +90,7 @@ export function WorkflowTask({
       >
         {leading ? <span className="shrink-0 text-primary-700">{leading}</span> : null}
         <span className="min-w-0 flex-1">
-          <strong className="block min-w-0 truncate text-[15px] leading-6">{title}</strong>
+          <strong className="block min-w-0 truncate text-ui-support leading-6">{title}</strong>
           <span className="mt-1 block truncate text-sm leading-5 text-ink-600">{description}</span>
         </span>
         <Badge className="max-w-24 shrink-0" variant={tone}>{status}</Badge>

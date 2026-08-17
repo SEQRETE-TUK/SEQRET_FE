@@ -11,7 +11,7 @@ export function RouteLoading() {
           aria-hidden="true"
           className="mx-auto block size-9 animate-spin rounded-full border-4 border-primary-100 border-t-primary-700"
         />
-        <p className="mt-4 text-[14px] font-bold">화면을 준비하고 있어요</p>
+        <p className="mt-4 text-sm font-bold">화면을 준비하고 있어요</p>
       </div>
     </div>
   );

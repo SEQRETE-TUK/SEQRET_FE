@@ -508,7 +508,7 @@ export function apiErrorMessage(error: unknown): string {
   }
   switch (error.status) {
     case 401:
-      return "접근 정보가 만료되었어요. 보안코드로 다시 연결해 주세요.";
+      return "접근 정보가 만료되었어요. 초대 코드로 다시 연결해 주세요.";
     case 403:
       return "현재 역할로는 이 작업을 할 수 없어요.";
     case 404:

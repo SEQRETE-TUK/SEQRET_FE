@@ -36,7 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const accessToken = secret.trim();
     const actor = await getActorSelf(accessToken);
     if (expectedRole && actor.role !== expectedRole) {
-      throw new Error("선택한 역할과 보안코드의 역할이 달라요.");
+      throw new Error("선택한 역할과 초대 코드의 역할이 달라요.");
     }
     const next = { accessToken, actor };
     replaceSession(next);

@@ -334,7 +334,7 @@ export async function mockApiRequest<T>(path: string, init: RequestInit, accessT
   }
   if (path === "/api/v1/me" && method === "GET") {
     const found = accessToken ? state.actors[accessToken] : undefined;
-    if (!found) throw new Error("Mock 보안코드를 확인해 주세요.");
+    if (!found) throw new Error("Mock 초대 코드를 확인해 주세요.");
     return result(found) as Promise<T>;
   }
   if (!accessToken || !state.actors[accessToken]) throw new Error("Mock 연결 정보가 없습니다.");

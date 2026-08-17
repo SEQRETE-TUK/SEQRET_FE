@@ -100,7 +100,7 @@ function Invite({ next, jump }: { next: () => void; jump: (screen: number) => vo
           <strong className="text-2xl font-black tracking-[-1px] text-primary-600">SEQRET</strong>
           <Badge variant="primary">업체용</Badge>
         </div>
-        <h1 className={`mt-6 text-ui-title font-extrabold leading-[30px] tracking-[-0.5px] ${ink}`}>조건이 맞는 이사 건이<br />도착했어요</h1>
+        <h1 className={`mt-6 text-ui-section font-extrabold ${ink}`}>조건이 맞는 이사 건이<br />도착했어요</h1>
         <p className={`mt-1 text-base ${muted}`}>AI가 정리한 짐 목록을 보고 견적을 신청할 수 있어요</p>
 
         <Card className="mt-4 p-5">
@@ -141,7 +141,7 @@ function Quote({ next, back, itemIds, setItemIds }: { next: () => void; back: ()
     <div className="flex min-h-[calc(100dvh-48px)] flex-col md:min-h-[832px]">
       <MobileHeader onBack={back} title="짐 검토 · 견적" trailing={<Badge variant="primary">한빛이사</Badge>} />
       <main className="px-5">
-        <h1 className={`mt-2 text-ui-title font-extrabold leading-[30px] tracking-[-0.5px] ${ink}`}>확인할 건 1가지,<br />나머진 준비됐어요</h1>
+        <h1 className={`mt-2 text-ui-section font-extrabold ${ink}`}>확인할 건 1가지,<br />나머진 준비됐어요</h1>
         <Card className="mt-3 p-4">
           <Badge variant="warning">확인 필요</Badge>
           <div className="mt-3 flex gap-3">
@@ -159,7 +159,7 @@ function Quote({ next, back, itemIds, setItemIds }: { next: () => void; back: ()
           {selectedItems.map((item) => <div className="mt-3 flex min-h-11 items-center gap-2 text-base" key={item.id}><span className={`min-w-0 flex-1 ${muted}`}>{item.label}</span><b>{item.amount.toLocaleString("ko-KR")}</b><button aria-label={`${item.label} 제외`} className="grid size-11 place-items-center text-ink-400" onClick={() => toggleItem(item.id)} type="button"><X size={17} /></button></div>)}
           <Button className="mt-3" onClick={() => setItemsOpen(true)} size="chip" variant="outline"><Plus size={16} /> 항목 선택</Button>
           <div className="my-3 h-px bg-line" />
-          <div className="flex items-end justify-between"><b className={ink}>제안 총액</b><strong className="text-ui-display font-extrabold tracking-[-0.5px] text-ink-900">{total.toLocaleString("ko-KR")}원</strong></div>
+          <div className="flex items-end justify-between"><b className={ink}>제안 총액</b><strong className="text-ui-display font-extrabold text-ink-900">{total.toLocaleString("ko-KR")}원</strong></div>
           <p className={`mt-2 text-xs ${muted}`}>포함 포장·운반·정리 · 제외 폐기물/입주청소</p>
         </Card>
         <div className="mt-5 px-5"><b className={`text-base ${ink}`}>고객에게 보낼 한마디</b><p className={`mt-1 text-base ${muted}`}>피아노 전문 인력이 안전하게 옮겨드릴게요.</p></div>
@@ -193,7 +193,7 @@ function Revision({ next, back, itemIds }: { next: () => void; back: () => void;
     <div className="flex min-h-[calc(100dvh-48px)] flex-col md:min-h-[832px]">
       <MobileHeader onBack={back} title="수정안 확인" />
       <main className="px-5">
-        <h1 className={`mt-2 whitespace-nowrap text-ui-title font-extrabold ${ink}`}>고객에게 보낼 내용을 확인해 주세요</h1>
+        <h1 className={`mt-2 whitespace-nowrap text-ui-section font-extrabold ${ink}`}>고객에게 보낼 내용을 확인해 주세요</h1>
         <p className={`mt-2 text-base ${muted}`}>새 수정안을 보내면 기존 v2 확인은 종료되고 v3 수락을 기다려요.</p>
 
         <Card className="mt-5 divide-y divide-line px-4">
@@ -229,7 +229,7 @@ function Assignment({ next, back, demoState = "" }: { next: () => void; back: ()
     <div className="flex min-h-[calc(100dvh-48px)] flex-col md:min-h-[832px]">
       <MobileHeader onBack={back} title="배차 · 인력" trailing={<Badge variant="warning">피아노 포함</Badge>} />
       <main className="px-5">
-        <h1 className={`mt-2 text-ui-title font-extrabold ${ink}`}>{conflict ? "확인할 배차 문제가 있어요" : "팀 구성이 끝났어요"}</h1><p className={`mt-1 text-xs ${muted}`}>확정 범위 v3 · 일정·용량·자격·근무시간 7종 검사</p>
+        <h1 className={`mt-2 text-ui-section font-extrabold ${ink}`}>{conflict ? "확인할 배차 문제가 있어요" : "팀 구성이 끝났어요"}</h1><p className={`mt-1 text-xs ${muted}`}>확정 범위 v3 · 일정·용량·자격·근무시간 7종 검사</p>
         <div className={`mt-4 flex items-center gap-4 rounded-3xl p-4 ${conflict ? "border border-warning bg-warning-bg" : "bg-success-bg"}`}><span className={`grid size-9 place-items-center rounded-full text-white ${conflict ? "bg-warning" : "bg-success"}`}>{conflict ? <AlertTriangle size={20} /> : <Check size={20} />}</span><div><b className={ink}>{conflict ? "충돌 해결 필요" : "충돌 없음 · 배정 가능"}</b><p className={`text-xs ${conflict ? "text-warning-ink" : muted}`}>{conflict ? conflictLabel : "일정·용량·자격·근무시간 7종 검사 통과"}</p></div></div>
         <h2 className={`mb-2 mt-5 text-lg font-bold ${ink}`}>차량</h2><Card className="border-primary-400 p-4"><div className="flex items-center gap-3"><Truck className="text-primary-600" /><div className="flex-1"><b className={ink}>5톤 리프트 · 12가3456</b><p className={`text-xs ${muted}`}>적재함 28㎡ ≥ 필요 24㎡</p></div><Badge variant="primary">선택</Badge></div></Card>
         <div className="mt-5 flex items-center justify-between"><h2 className={`text-lg font-bold ${ink}`}>작업자 4명</h2><Badge variant="success">필수 역량 충족</Badge></div>
@@ -323,7 +323,7 @@ function Completion({ back, demoState = "" }: { back: () => void; demoState?: st
     <div className="flex min-h-[calc(100dvh-48px)] flex-col md:min-h-[832px]">
       <MobileHeader onBack={back} title="완료 · 정산" trailing={<Badge variant="success">작업 종료</Badge>} />
       <main className="px-5">
-        <h1 className={`mt-2 text-ui-title font-extrabold leading-[30px] ${ink}`}>기록까지 마치면<br />이 건은 끝나요</h1>
+        <h1 className={`mt-2 text-ui-section font-extrabold ${ink}`}>기록까지 마치면<br />이 건은 끝나요</h1>
         <Card className="mt-4 border-primary-400 p-5"><span className={`text-xs ${muted}`}>최종 확정액 (v4 · 승인 변경 포함)</span><strong className={`mt-2 block text-ui-display font-extrabold ${ink}`}>1,430,000원</strong><Badge className="mt-3" variant="success">미승인 추가금 0원 · 분쟁 없음</Badge></Card>
         <div className="mt-5 flex items-center justify-between"><h2 className={`text-lg font-bold ${ink}`}>완료 증빙</h2><Badge variant="warning">1구역 대기</Badge></div>
         <div className="mt-2 grid grid-cols-3 gap-2">{[['거실 5장',true],['침실 6장',true],['주방·베란다',false]].map(([label,done]) => <button onClick={() => notify(done ? `${label} 완료 기록을 열었어요.` : `${label} 완료 미디어를 기다리고 있어요.`)} className={`grid h-24 place-items-center rounded-xl border ${done ? 'border-transparent bg-line' : 'border-dashed border-warning bg-warning-bg'}`} key={String(label)} type="button">{done ? <Check className="rounded-full bg-success p-1 text-white" /> : <Video className="text-warning" />}<span className={`-mt-3 text-sm font-bold ${done ? ink : 'text-warning-ink'}`}>{label}</span></button>)}</div>

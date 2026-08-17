@@ -1,9 +1,6 @@
 import {
   ArrowLeftIcon as ArrowLeft,
   CameraIcon as Camera,
-  CheckIcon as Check,
-  CaretRightIcon as ChevronRight,
-  ArrowSquareOutIcon as ExternalLink,
   HouseIcon as Home,
 } from "@phosphor-icons/react";
 import {
@@ -14,18 +11,12 @@ import { Link } from "react-router-dom";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ListGroup, ListRow, PriorityFacts } from "@/components/layout/app-primitives";
+import { FilterChip, ListGroup, ListRow } from "@/components/layout/app-primitives";
 import { Input } from "@/components/ui/input";
+import { InfoList, type InfoListColumn } from "@/components/ui/info-list";
 import { Label } from "@/components/ui/label";
-
-const navigation = [
-  ["principles", "사용 원칙"],
-  ["foundations", "기초"],
-  ["components", "컴포넌트"],
-  ["patterns", "화면 패턴"],
-  ["roles", "역할별 적용"],
-  ["quality", "검수 기준"],
-] as const;
+import { designSystemNavigation } from "./design-system-data";
+import { DesignSystemRail } from "./design-system-rail";
 
 const principles = [
   {
@@ -48,72 +39,132 @@ const principles = [
 
 const systemLayers = [
   {
-    step: "01",
     title: "계약",
     source: "design-system.md",
     body: "원칙, 타입 위계, 간격, 상태와 컴포넌트 사용 조건을 정의합니다.",
   },
   {
-    step: "02",
     title: "토큰",
     source: "tokens.css",
     body: "색상, 타입 크기, 4px 간격, 형태와 동작 값을 단일 원본으로 관리합니다.",
   },
   {
-    step: "03",
     title: "구현",
     source: "ui → layout → workflow",
     body: "primitive를 조합해 역할별 업무 패턴을 만들고 임의 값을 반복하지 않습니다.",
   },
   {
-    step: "04",
     title: "표본",
     source: "/design-system",
     body: "토큰의 실측값, 실제 컴포넌트, 사용 계약과 화면 순서를 함께 검수합니다.",
   },
 ] as const;
 
-const colors = [
-  { name: "Primary", token: "--color-accent", use: "주요 CTA · 선택 · 현재 단계", className: "bg-primary-600" },
-  { name: "Primary soft", token: "--color-accent-50", use: "선택 배경 · 정보 상태", className: "bg-primary-50" },
-  { name: "Ink", token: "--color-ink", use: "제목 · 본문 핵심 정보", className: "bg-ink-900" },
-  { name: "Muted ink", token: "--color-ink-2", use: "설명 · 보조 상태", className: "bg-ink-600" },
-  { name: "Surface", token: "--color-paper-2", use: "앱 화면 · 시트 · 입력 표면", className: "bg-surface" },
-  { name: "Rule", token: "--color-rule", use: "목록 구분 · 입력 테두리", className: "bg-line" },
-  { name: "Success", token: "--color-success", use: "완료 · 연결됨", className: "bg-success" },
-  { name: "Warning", token: "--color-warning", use: "대기 · 현장 주의", className: "bg-warning" },
-  { name: "Danger", token: "--color-danger", use: "오류 · 종료 · 거절", className: "bg-danger" },
-];
+const colorGroups = [
+  {
+    name: "브랜드와 상호작용",
+    colors: [
+      { name: "Primary", token: "--color-accent", use: "주요 CTA · 선택 · 현재 단계" },
+      { name: "Primary soft", token: "--color-accent-50", use: "선택 배경 · 정보 상태" },
+    ],
+  },
+  {
+    name: "콘텐츠와 표면",
+    colors: [
+      { name: "Ink", token: "--color-ink", use: "제목 · 본문 핵심 정보" },
+      { name: "Muted ink", token: "--color-ink-2", use: "설명 · 보조 상태" },
+      { name: "Surface", token: "--color-paper-2", use: "앱 화면 · 시트 · 입력 표면" },
+      { name: "Rule", token: "--color-rule", use: "목록 구분 · 입력 테두리" },
+    ],
+  },
+  {
+    name: "상태",
+    colors: [
+      { name: "Success", token: "--color-success", use: "완료 · 연결됨" },
+      { name: "Warning", token: "--color-warning", use: "대기 · 현장 주의" },
+      { name: "Danger", token: "--color-danger", use: "오류 · 종료 · 거절" },
+    ],
+  },
+] as const;
 
 const typeScale = [
-  { name: "화면 제목", spec: "32 / 38 · 800 · −0.025em", className: "text-[32px] leading-[38px] font-extrabold tracking-[-0.025em]", sample: "이사 준비 현황" },
-  { name: "페이지 제목", spec: "28 / 36 · 800 · −0.025em", className: "text-[28px] leading-9 font-extrabold tracking-[-0.025em]", sample: "오늘 작업" },
-  { name: "섹션 제목", spec: "22 / 29 · 700 · −0.025em", className: "text-[22px] leading-[29px] font-bold tracking-[-0.025em]", sample: "확인할 내용" },
-  { name: "컴포넌트 제목", spec: "17 / 24 · 700 · 0", className: "text-[17px] leading-6 font-bold", sample: "작업 범위와 금액" },
-  { name: "본문", spec: "16 / 24 · 500 · 0", className: "text-base leading-6 font-medium", sample: "현재 상태와 다음 작업을 설명합니다." },
-  { name: "보조 정보", spec: "14 / 20 · 500 · 0", className: "text-sm leading-5 font-medium text-ink-600", sample: "1월 15일 화요일 · 오전 10:00" },
+  { name: "섹션 제목", spec: "20 / 28 · 700 · −0.025em", className: "text-ui-section", sample: "확인할 내용" },
+  { name: "컴포넌트 제목", spec: "17 / 24 · 600 · 0", className: "text-ui-component", sample: "작업 범위와 금액" },
+  { name: "본문", spec: "16 / 24 · 400 · 0", className: "text-base leading-6 font-medium", sample: "현재 상태와 다음 작업을 설명합니다." },
+  { name: "컨트롤", spec: "14 / 20 · 500 · 0", className: "text-ui-control", sample: "변경 내용 확인" },
+  { name: "보조 정보", spec: "14 / 20 · 400 · 0", className: "text-ui-support text-ink-600", sample: "1월 15일 화요일 · 오전 10:00" },
+  { name: "데이터", spec: "13 / 20 · 600 · 0", className: "text-ui-data tabular-nums", sample: "v1.0 · 480,000원" },
   { name: "상태·라벨", spec: "12 / 16 · 700 · 0", className: "text-xs leading-4 font-bold text-primary-700", sample: "확인 대기" },
 ];
 
+type TypeScaleItem = (typeof typeScale)[number];
+
+const typeScaleColumns: Array<InfoListColumn<TypeScaleItem>> = [
+  {
+    id: "role",
+    label: "역할·값",
+    render: (type) => (
+      <div>
+        <strong className="block text-sm">{type.name}</strong>
+        <span className="mt-1 block text-xs text-ink-600">{type.spec}</span>
+      </div>
+    ),
+  },
+  { id: "sample", label: "표본", render: (type) => <p className={type.className}>{type.sample}</p> },
+];
+
 const spacingScale = [
-  { name: "3XS", token: "--space-3xs", value: 4, use: "아이콘 내부·미세 정렬" },
-  { name: "2XS", token: "--space-2xs", value: 8, use: "인접한 조작·라벨 간격" },
-  { name: "XS", token: "--space-xs", value: 12, use: "컨트롤 내부 여백" },
-  { name: "SM", token: "--space-sm", value: 16, use: "기본 카드 여백" },
-  { name: "Gutter", token: "--content-gutter", value: 20, use: "320–389px 화면 좌우 여백" },
-  { name: "MD", token: "--space-md", value: 24, use: "432px 화면 여백·섹션 내부" },
-  { name: "LG", token: "--space-lg", value: 32, use: "섹션 사이 분리" },
-  { name: "XL", token: "--space-xl", value: 40, use: "큰 문맥 전환" },
+  { name: "3XS", token: "--space-3xs", use: "아이콘 내부·미세 정렬" },
+  { name: "2XS", token: "--space-2xs", use: "인접한 조작·라벨 간격" },
+  { name: "XS", token: "--space-xs", use: "컨트롤 내부 여백" },
+  { name: "SM", token: "--space-sm", use: "기본 카드 여백" },
+  { name: "Gutter", token: "--content-gutter", use: "화면 좌우 여백" },
+  { name: "MD", token: "--space-md", use: "넓은 화면 여백·섹션 내부" },
+  { name: "LG", token: "--space-lg", use: "섹션 사이 분리" },
+  { name: "XL", token: "--space-xl", use: "큰 문맥 전환" },
 ] as const;
 
-const layoutMetrics = [
-  { name: "기본 control", value: "44px", use: "버튼·입력과 최소 터치 영역" },
-  { name: "주요 CTA", value: "52px", use: "화면의 단일 우선 행동" },
-  { name: "목록 행", value: "64px 이상", use: "제목·설명·상태를 가진 탐색 행" },
-  { name: "카드 안쪽", value: "16–20px", use: "정보 밀도에 따른 surface padding" },
-  { name: "화면 좌우", value: "20–24px", use: "mobile content gutter" },
-  { name: "섹션 리듬", value: "24–32px", use: "서로 다른 판단 단위 사이" },
+type SpacingItem = (typeof spacingScale)[number];
+
+const spacingColumns: Array<InfoListColumn<SpacingItem>> = [
+  { id: "name", label: "단계", cellClassName: "text-sm font-bold", render: (space) => space.name },
+  { id: "token", label: "토큰", render: (space) => <code className="text-xs text-ink-600">{space.token}</code> },
+  { id: "value", label: "값", cellClassName: "text-xs font-semibold tabular-nums", render: (space) => <TokenValue token={space.token} /> },
+  {
+    id: "measure",
+    label: "실측",
+    render: (space) => <span aria-hidden="true" className="block h-2 max-w-40 rounded-full bg-primary-600" style={{ width: `calc(var(${space.token}) * 2)` }} />,
+  },
+  { id: "use", label: "사용", cellClassName: "text-sm text-ink-600", render: (space) => space.use },
+];
+
+const radiusScale = [
+  { name: "작은 surface", token: "--radius-small", use: "문서 표본·조밀한 내부 영역" },
+  { name: "Control", token: "--radius-control", use: "버튼·입력·목록 묶음" },
+  { name: "Card", token: "--radius-card", use: "독립된 정보 단위" },
+  { name: "Feature", token: "--radius-feature", use: "화면당 하나의 우선 작업" },
+  { name: "Sheet", token: "--radius-sheet", use: "하단 시트의 상단 모서리" },
 ] as const;
+
+type RadiusItem = (typeof radiusScale)[number];
+
+const radiusColumns: Array<InfoListColumn<RadiusItem>> = [
+  {
+    id: "shape",
+    label: "형태",
+    render: (radius) => (
+      <span aria-hidden="true" className="block size-8 border border-primary-200 bg-primary-50" style={{ borderRadius: `var(${radius.token})` }} />
+    ),
+  },
+  { id: "name", label: "이름", cellClassName: "text-sm font-bold", render: (radius) => radius.name },
+  {
+    id: "token",
+    label: "토큰·값",
+    cellClassName: "flex flex-wrap items-center gap-2",
+    render: (radius) => <><code className="text-xs text-ink-600">{radius.token}</code><TokenValue token={radius.token} /></>,
+  },
+  { id: "use", label: "사용", cellClassName: "text-sm text-ink-600", render: (radius) => radius.use },
+];
 
 const patterns = [
   {
@@ -154,179 +205,136 @@ const patterns = [
   },
 ];
 
-const roleGuides = [
-  {
-    role: "고객",
-    intent: "내 결정이 필요한 변경과 현재 합의 기준을 놓치지 않게 한다.",
-    order: "결정 요청 → 현재 버전·금액 → 기록과 준비",
-    primary: "범위·변경·완료 확인",
-  },
-  {
-    role: "이사업체",
-    intent: "운영이 멈춘 지점과 처리 순서를 빠르게 판단한다.",
-    order: "우선 처리 → 현재 기준 → 배차·현장 변경·문서",
-    primary: "범위·배차·현장 이슈 처리",
-  },
-  {
-    role: "현장기사",
-    intent: "도착 후 행동을 순서대로 수행하고 기록을 남긴다.",
-    order: "체크인·다음 행동 → 확인된 범위 → 경로·배차 → 현장 기록",
-    primary: "체크인 또는 작업 이어가기",
-  },
-];
+type PatternItem = (typeof patterns)[number];
 
-const checks = [
-  "상단 제목만 읽어도 화면의 목적을 알 수 있다.",
-  "스크롤 전 영역에 현재 상태와 다음 행동이 보인다.",
-  "같은 위계의 텍스트는 같은 크기·두께·색을 사용한다.",
-  "44px 미만의 터치 영역과 12px 미만의 본문 텍스트가 없다.",
-  "아이콘 없이도 버튼과 목록의 의미를 이해할 수 있다.",
-  "오류·대기·빈 상태가 원인과 다음 행동을 함께 설명한다.",
-  "320·375·414·768px에서 가로 스크롤과 잘림이 없다.",
+const patternColumns: Array<InfoListColumn<PatternItem>> = [
+  { id: "screen", label: "화면", cellClassName: "text-ui-control", render: (pattern) => pattern.name },
+  { id: "top", label: "상단", cellClassName: "text-sm leading-5 text-ink-600", render: (pattern) => pattern.first },
+  { id: "body", label: "본문", cellClassName: "text-sm leading-5 text-ink-600", render: (pattern) => pattern.middle },
+  { id: "last", label: "마지막", cellClassName: "text-sm leading-5 text-ink-600", render: (pattern) => pattern.last },
 ];
 
 export function DesignSystemPage() {
   return (
     <main className="min-h-dvh bg-canvas text-ink-900" id="main-content">
       <header className="sticky top-0 z-[var(--z-sticky)] border-b border-line bg-surface/98 backdrop-blur">
-        <div className="mx-auto flex min-h-16 max-w-[1280px] items-center justify-between gap-4 px-5 lg:px-8">
+        <div className="mx-auto flex min-h-16 max-w-[1440px] items-center gap-4 px-5 lg:px-8">
           <Link className="inline-flex min-h-11 items-center gap-2 text-sm font-bold text-ink-600" to="/">
             <ArrowLeft aria-hidden="true" className="size-4" />
             서비스로 돌아가기
           </Link>
-          <Badge variant="primary">Product UI v1.6</Badge>
         </div>
       </header>
 
-      <div className="mx-auto max-w-[1280px] lg:grid lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-12 lg:px-8">
-        <aside className="no-scrollbar overflow-x-auto border-b border-line px-5 py-3 lg:sticky lg:top-16 lg:h-[calc(100dvh-4rem)] lg:overflow-visible lg:border-r lg:border-b-0 lg:px-0 lg:py-8">
-          <nav aria-label="디자인 시스템 목차" className="flex min-w-max gap-1 lg:min-w-0 lg:flex-col lg:pr-8">
-            {navigation.map(([id, label]) => (
-              <a className="inline-flex min-h-11 items-center rounded-lg px-3 text-sm font-bold text-ink-600 hover:bg-surface-muted" href={`#${id}`} key={id}>
-                {label}
-              </a>
-            ))}
-          </nav>
-        </aside>
+      <div className="mx-auto max-w-[1440px] lg:grid lg:grid-cols-[200px_minmax(0,1fr)] lg:gap-10 lg:pr-8">
+        <DesignSystemRail groups={designSystemNavigation} />
 
         <div className="min-w-0 px-5 pb-24 lg:px-0">
-          <section className="border-b border-line py-12 md:py-16">
-            <p className="text-sm font-bold text-primary-700">SEQRET 디자인 시스템</p>
-            <h1 className="mt-3 max-w-[760px] text-[34px] leading-[1.18] font-extrabold tracking-[-0.045em] md:text-[48px]">
-              제품 화면의 공통 기준
+          <section className="border-b border-line pt-10 pb-14 md:pt-12 md:pb-16">
+            <h1 className="min-w-0 max-w-[760px] break-keep text-[32px] leading-10 font-extrabold tracking-[-0.035em] [overflow-wrap:anywhere] md:text-[36px]">
+              SEQRET 디자인 시스템
             </h1>
-            <p className="mt-5 max-w-[720px] text-base leading-7 text-ink-600 md:text-lg">
+            <p className="mt-4 max-w-[720px] text-ui-support text-ink-600">
               고객·이사업체·현장기사가 같은 이사 정보를 서로 다른 역할로 확인할 때, 상태와 다음 행동을 일관되게 전달하기 위한 기준입니다.
             </p>
-            <div className="mt-7 flex flex-wrap gap-2">
-              <Button nativeButton={false} render={<Link to="/consumer" />}>고객 화면 보기 <ChevronRight aria-hidden="true" /></Button>
-              <Button nativeButton={false} render={<Link to="/provider" />} variant="outline">업체 화면 보기</Button>
-              <Button nativeButton={false} render={<Link to="/crew" />} variant="outline">현장 화면 보기</Button>
-            </div>
           </section>
 
-          <DocSection id="principles" kicker="01" title="사용 원칙" summary="화면을 구성하기 전에 정보의 역할을 먼저 정합니다.">
-            <Subsection title="문서와 구현의 연결">
-              <ol className="border-t border-line">
+          <DocSection id="principles" title="사용 원칙" summary="화면을 구성하기 전에 정보의 역할을 먼저 정합니다.">
+            <Subsection id="system-connection" title="문서와 구현의 연결">
+              <div className="border-t border-line">
                 {systemLayers.map((layer) => (
-                  <li className="grid gap-2 border-b border-line py-5 sm:grid-cols-[3rem_7rem_12rem_minmax(0,1fr)] sm:items-start" key={layer.step}>
-                    <span className="text-xs font-bold text-primary-700">{layer.step}</span>
-                    <strong className="text-[17px] leading-6">{layer.title}</strong>
+                  <div className="grid gap-2 border-b border-line px-4 py-4 sm:grid-cols-[6rem_11rem_minmax(0,1fr)] sm:items-start" key={layer.title}>
+                    <strong className="text-ui-control leading-5">{layer.title}</strong>
                     <code className="text-xs leading-5 text-ink-600">{layer.source}</code>
                     <p className="text-sm leading-5 text-ink-600">{layer.body}</p>
-                  </li>
+                  </div>
                 ))}
-              </ol>
+              </div>
             </Subsection>
 
-            <Subsection title="제품 원칙">
-            <div className="grid border-t border-line md:grid-cols-2">
-              {principles.map((item, index) => (
-                <article className="border-b border-line py-5 md:px-5 md:first:pl-0 md:nth-[2n]:border-l" key={item.title}>
-                  <p className="text-xs font-bold text-ink-400">{String(index + 1).padStart(2, "0")}</p>
-                  <h3 className="mt-2 text-lg font-extrabold">{item.title}</h3>
+            <Subsection id="product-principles" title="제품 원칙">
+              <div className="grid border-t border-line md:grid-cols-2">
+              {principles.map((item) => (
+                <article className="border-b border-line px-4 py-5 md:nth-[2n]:border-l" key={item.title}>
+                  <h3 className="text-ui-component leading-6 font-bold">{item.title}</h3>
                   <p className="mt-2 text-sm leading-6 text-ink-600">{item.body}</p>
                 </article>
               ))}
-            </div>
+              </div>
             </Subsection>
           </DocSection>
 
-          <DocSection id="foundations" kicker="02" title="기초" summary="Pretendard, 중립 표면, 인디고 상호작용색, 4px 간격 체계를 사용합니다.">
-            <Subsection title="색상 역할">
-              <div className="border-t border-line">
-                {colors.map((color) => (
-                  <div className="grid min-h-16 grid-cols-[2.5rem_minmax(0,1fr)] items-center gap-3 border-b border-line py-3 sm:grid-cols-[2.5rem_9rem_12rem_minmax(0,1fr)]" key={color.token}>
-                    <span aria-hidden="true" className={`size-8 rounded-lg border border-line ${color.className}`} />
-                    <strong className="text-sm">{color.name}</strong>
-                    <code className="hidden text-xs text-ink-600 sm:block">{color.token}</code>
-                    <span className="col-start-2 text-sm text-ink-600 sm:col-start-auto">{color.use}</span>
-                  </div>
-                ))}
-              </div>
-            </Subsection>
-
-            <Subsection title="타이포그래피">
-              <div className="border-t border-line">
-                {typeScale.map((type) => (
-                  <div className="grid gap-2 border-b border-line py-5 md:grid-cols-[9rem_minmax(0,1fr)]" key={type.name}>
-                    <div>
-                      <strong className="block text-sm">{type.name}</strong>
-                      <span className="mt-1 block text-xs text-ink-600">{type.spec}</span>
+          <DocSection id="foundations" title="기초" summary="Pretendard, 중립 표면, 인디고 상호작용색, 4px 간격 체계를 사용합니다.">
+            <Subsection id="color-roles" title="색상 역할">
+              <div className="space-y-8">
+                {colorGroups.map((group) => (
+                  <section key={group.name}>
+                    <h4 className="mb-3 text-sm font-bold">{group.name}</h4>
+                    <div
+                      className="grid gap-px overflow-hidden rounded-[var(--radius-small)] border border-line bg-line [grid-template-columns:repeat(auto-fit,minmax(10rem,1fr))]"
+                    >
+                      {group.colors.map((color) => (
+                        <article className="min-w-0 bg-surface" key={color.token}>
+                          <div aria-hidden="true" className="h-24 w-full sm:h-28" style={{ backgroundColor: `var(${color.token})` }} />
+                          <div className="border-t border-line p-3">
+                            <strong className="block text-sm">{color.name}</strong>
+                            <span className="mt-1 block min-h-10 text-xs leading-5 text-ink-600">{color.use}</span>
+                            <code className="mt-2 block break-all text-xs text-ink-600">{color.token}</code>
+                            <span className="mt-1 block break-all"><TokenValue token={color.token} /></span>
+                          </div>
+                        </article>
+                      ))}
                     </div>
-                    <p className={type.className}>{type.sample}</p>
-                  </div>
+                  </section>
                 ))}
               </div>
             </Subsection>
 
-            <Subsection title="간격과 실측">
-              <div className="overflow-x-auto border-t border-line" role="region" aria-label="간격 토큰 표">
-                <table className="w-full min-w-[680px] border-collapse text-left text-sm">
-                  <thead>
-                    <tr className="border-b border-line text-ink-600">
-                      <th className="px-3 py-4 font-bold">단계</th>
-                      <th className="px-3 py-4 font-bold">토큰</th>
-                      <th className="px-3 py-4 font-bold">값</th>
-                      <th className="px-3 py-4 font-bold">실측</th>
-                      <th className="px-3 py-4 font-bold">사용</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {spacingScale.map((space) => (
-                      <tr className="border-b border-line" key={space.name}>
-                        <th className="px-3 py-4 font-bold" scope="row">{space.name}</th>
-                        <td className="px-3 py-4"><code className="text-xs text-ink-600">{space.token}</code></td>
-                        <td className="px-3 py-4 font-semibold tabular-nums">{space.value}px</td>
-                        <td className="px-3 py-4"><span aria-hidden="true" className="block h-2 rounded-full bg-primary-600" style={{ width: `${space.value * 2}px` }} /></td>
-                        <td className="px-3 py-4 text-ink-600">{space.use}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+            <Subsection id="typography-scale" title="타이포그래피">
+              <InfoList
+                aria-label="타이포그래피 역할"
+                columns={typeScaleColumns}
+                getKey={(type) => type.name}
+                gridTemplateColumns="10rem minmax(18rem, 1fr)"
+                items={typeScale}
+                minWidth="520px"
+                showHeader={false}
+                variant="contained"
+              />
+            </Subsection>
 
-              <div className="mt-6 grid gap-px overflow-hidden border border-line bg-line sm:grid-cols-2 lg:grid-cols-3">
-                {layoutMetrics.map((metric) => (
-                  <TokenFact description={`${metric.value} · ${metric.use}`} key={metric.name} term={metric.name} />
-                ))}
-              </div>
+            <Subsection id="spacing-and-shape" title="간격과 형태">
+              <InfoList
+                aria-label="간격 토큰"
+                columns={spacingColumns}
+                getKey={(space) => space.token}
+                gridTemplateColumns="5rem 10rem 10rem 8rem minmax(12rem, 1fr)"
+                items={spacingScale}
+                minWidth="760px"
+                showHeader={false}
+                variant="contained"
+              />
 
-              <dl className="mt-6 grid gap-px overflow-hidden border border-line bg-line sm:grid-cols-3">
-                <TokenFact term="작은 surface·control" description="8px · 10px 모서리" />
-                <TokenFact term="일반·상위 카드" description="14px · 18px 모서리" />
-                <TokenFact term="하단 시트" description="20px 상단 모서리" />
-              </dl>
+              <h4 className="mt-8 mb-3 text-ui-component leading-6 font-bold">모서리</h4>
+              <InfoList
+                aria-label="모서리 토큰"
+                columns={radiusColumns}
+                getKey={(radius) => radius.token}
+                gridTemplateColumns="3rem 8rem 12rem minmax(0, 1fr)"
+                items={radiusScale}
+                minWidth="680px"
+                showHeader={false}
+                variant="contained"
+              />
             </Subsection>
           </DocSection>
 
-          <DocSection id="components" kicker="03" title="컴포넌트" summary="공통 컴포넌트는 상태와 행동의 차이를 분명하게 보여야 합니다.">
+          <DocSection id="components" title="컴포넌트" summary="공통 컴포넌트는 상태와 행동의 차이를 분명하게 보여야 합니다.">
             <ComponentSpecimen
+              id="icon-standard"
               title="아이콘"
-              description="같은 기능은 역할이 달라도 같은 glyph와 크기 체계를 유지합니다."
-              contract="텍스트만으로 의미가 충분하면 생략하고, icon-only 조작에는 접근 가능한 이름을 제공합니다."
             >
-              <div className="max-w-[680px] border-y border-line">
+              <div className="max-w-[680px]">
                 <IconRule
                   label="하단 내비게이션"
                   description="모든 탭에 같은 fill 아이콘 계열을 쓰고, 선택 상태는 색과 라벨 두께로만 구분합니다."
@@ -359,9 +367,8 @@ export function DesignSystemPage() {
             </ComponentSpecimen>
 
             <ComponentSpecimen
+              id="button-standard"
               title="버튼"
-              description="variant의 시각 차이는 행동 우선순위와 결과의 차이를 나타냅니다."
-              contract="화면 또는 시트 하나에 primary CTA 한 개를 기본으로 하고 인접한 터치 대상은 8px 이상 띄웁니다."
             >
               <div className="flex flex-wrap gap-2">
                 <Button>다음 단계</Button>
@@ -370,17 +377,25 @@ export function DesignSystemPage() {
                 <Button variant="destructive">연결 종료</Button>
               </div>
               <div className="mt-5 grid max-w-[560px] gap-3 border-t border-line pt-5 sm:grid-cols-3 sm:items-end">
-                <Button size="chip" variant="secondary">필터 · 44px</Button>
-                <Button>기본 · 44px</Button>
-                <Button size="cta">주요 CTA · 52px</Button>
+                <Button size="chip" variant="secondary">작게</Button>
+                <Button>기본</Button>
+                <Button size="cta">모바일 CTA</Button>
               </div>
-              <p className="mt-4 text-sm leading-6 text-ink-600">주요 버튼은 화면 또는 시트 하나에 한 개를 기본으로 합니다. 동일 위계의 버튼을 나란히 반복하지 않습니다.</p>
+              <p className="mt-4 text-sm leading-6 text-ink-600">포인터가 거친 모바일 환경에서는 모든 조작 영역을 최소 44px로 확장합니다. 주요 버튼은 화면 또는 시트 하나에 한 개를 기본으로 합니다.</p>
+            </ComponentSpecimen>
+
+            <ComponentSpecimen id="filter-chip-standard" title="필터 칩">
+              <div className="flex flex-wrap gap-2">
+                <FilterChip active onClick={() => undefined}>전체 12</FilterChip>
+                <FilterChip onClick={() => undefined}>거실 5</FilterChip>
+                <FilterChip onClick={() => undefined}>침실 3</FilterChip>
+              </div>
+              <p className="mt-4 max-w-[560px] text-sm leading-6 text-ink-600">필터 칩은 높이 36px, 좌우 여백 12px, 500 두께의 글자를 사용해 목록보다 가볍게 보이도록 합니다.</p>
             </ComponentSpecimen>
 
             <ComponentSpecimen
+              id="input-standard"
               title="입력"
-              description="라벨, 실제 형식에 가까운 예시와 보조 설명을 한 묶음으로 제공합니다."
-              contract="placeholder로 label을 대신하지 않고 오류는 해당 입력 바로 아래에서 원인과 해결 방법을 설명합니다."
             >
               <div className="max-w-[440px]">
                 <Label htmlFor="design-system-address">출발지 표시명</Label>
@@ -390,9 +405,8 @@ export function DesignSystemPage() {
             </ComponentSpecimen>
 
             <ComponentSpecimen
-              title="상태와 목록 행"
-              description="left·contents·right 구조로 정보와 상태, 이동 가능 여부를 빠르게 비교합니다."
-              contract="행 전체가 이동 동작이면 전체를 하나의 interactive element로 만들고 상태를 색상만으로 구분하지 않습니다."
+              id="list-standard"
+              title="목록"
             >
               <div className="max-w-[560px]">
                 <ListGroup className="mt-0" variant="plain">
@@ -400,114 +414,26 @@ export function DesignSystemPage() {
                   <ListRow description="차량·현장기사 배정 완료" end={<Badge variant="success">확정</Badge>}>배차</ListRow>
                   <ListRow
                     description="완료 사진과 최종 금액"
-                    leading={<img alt="완료 사진 예시" className="size-[72px] rounded-xl object-cover" height="72" loading="lazy" src="/room-after-evidence.png" width="72" />}
+                    leading={<img alt="완료 사진 예시" className="size-[72px] rounded-[var(--radius-control)] object-cover" height="72" loading="lazy" src="/room-after-evidence.png" width="72" />}
                   >완료 기록</ListRow>
                 </ListGroup>
               </div>
               <p className="mt-4 max-w-[560px] text-sm leading-6 text-ink-600">목록은 left·contents·right 영역으로 구성합니다. 사진이 판단 근거일 때만 왼쪽 썸네일을 쓰고, 설정·기록 목록은 바깥 카드 없이 화면 구분선으로 묶습니다.</p>
             </ComponentSpecimen>
 
-            <ComponentSpecimen
-              title="다음 작업 카드"
-              description="현재 판단 대상, 핵심 값과 다음 행동을 한 경계 안에서 연결합니다."
-              contract="우선 작업 한 개에만 사용하며 요약 카드가 연속으로 반복되지 않게 구분선 목록과 조합합니다."
-            >
-              <article className="app-panel max-w-[560px] p-5">
-                <p className="text-sm font-bold text-primary-700">다음 작업</p>
-                <h3 className="mt-1 text-[22px] leading-7 font-extrabold">업체가 보낸 범위와 견적을 확인해 주세요</h3>
-                <div className="mt-4 border-t border-line pt-3">
-                  <PriorityFacts items={[{ label: "버전", value: "v1.0" }, { label: "확인 금액", value: "480,000원" }, { label: "작업", value: "24개" }]} />
-                </div>
-                <Button className="mt-5 w-full">범위와 견적 확인</Button>
-              </article>
-            </ComponentSpecimen>
           </DocSection>
 
-          <DocSection id="patterns" kicker="04" title="화면 패턴" summary="페이지 유형마다 정보가 나타나는 순서를 고정합니다.">
-            <div className="overflow-x-auto border-t border-line">
-              <table className="w-full min-w-[680px] border-collapse text-left text-sm">
-                <thead>
-                  <tr className="border-b border-line text-ink-600">
-                    <th className="px-3 py-4 font-bold">화면</th>
-                    <th className="px-3 py-4 font-bold">상단</th>
-                    <th className="px-3 py-4 font-bold">본문</th>
-                    <th className="px-3 py-4 font-bold">마지막</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {patterns.map((pattern) => (
-                    <tr className="border-b border-line align-top" key={pattern.name}>
-                      <th className="px-3 py-4 font-extrabold">{pattern.name}</th>
-                      <td className="px-3 py-4 text-ink-600">{pattern.first}</td>
-                      <td className="px-3 py-4 text-ink-600">{pattern.middle}</td>
-                      <td className="px-3 py-4 text-ink-600">{pattern.last}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            <Subsection title="모바일 홈 구조">
-              <div className="max-w-[390px] overflow-hidden border-y border-line bg-surface">
-                <div className="border-b border-line bg-surface px-5 py-4"><p className="text-[22px] font-black tracking-[-0.055em]">SEQRET</p></div>
-                <div className="p-5">
-                  <p className="text-sm font-bold text-primary-700">8월 23일 이사 · D-7</p>
-                  <h3 className="mt-2 text-[28px] leading-9 font-extrabold">고객님, 확인할 내용이 있어요</h3>
-                  <div className="mt-5 rounded-[var(--radius-card)] border border-primary-100 bg-primary-50/70 p-5">
-                    <Badge variant="primary">공동확인 대기</Badge>
-                    <p className="mt-4 text-xl font-extrabold">업체가 작업 범위를 제안했어요</p>
-                    <p className="mt-2 text-sm text-ink-600">v1.0 · 1,200,000원 · 4개 항목</p>
-                    <Button className="mt-5 w-full">변경 내용 확인</Button>
-                  </div>
-                  <p className="mt-7 text-lg font-extrabold">현재 기준</p>
-                  <div className="mt-3 overflow-hidden border-y border-line">
-                    <ExampleRow title="작업 범위" meta="v1.0 · 고객 확인 대기" />
-                    <ExampleRow title="확인 금액" meta="1,200,000원" />
-                    <ExampleRow title="이사 경로" meta="성수동 → 합정동" />
-                  </div>
-                </div>
-              </div>
-            </Subsection>
-          </DocSection>
-
-          <DocSection id="roles" kicker="05" title="역할별 적용" summary="같은 기능이라도 역할의 판단 순서에 맞춰 첫 화면을 다르게 구성합니다.">
-            <div className="border-t border-line">
-              {roleGuides.map((guide) => (
-                <article className="grid gap-3 border-b border-line py-6 md:grid-cols-[8rem_minmax(0,1fr)]" key={guide.role}>
-                  <h3 className="text-xl font-extrabold">{guide.role}</h3>
-                  <dl className="grid gap-3 text-sm sm:grid-cols-3">
-                    <div><dt className="font-bold">목적</dt><dd className="mt-1 leading-5 text-ink-600">{guide.intent}</dd></div>
-                    <div><dt className="font-bold">정보 순서</dt><dd className="mt-1 leading-5 text-ink-600">{guide.order}</dd></div>
-                    <div><dt className="font-bold">주요 행동</dt><dd className="mt-1 leading-5 text-ink-600">{guide.primary}</dd></div>
-                  </dl>
-                </article>
-              ))}
-            </div>
-          </DocSection>
-
-          <DocSection id="quality" kicker="06" title="검수 기준" summary="화면 완성 여부는 장식이 아니라 이해·행동·상태 전달로 판단합니다.">
-            <ol className="border-t border-line">
-              {checks.map((check, index) => (
-                <li className="flex min-h-16 items-start gap-3 border-b border-line py-4" key={check}>
-                  <span className="grid size-7 shrink-0 place-items-center rounded-full bg-success-bg text-success-ink"><Check aria-hidden="true" className="size-4" /></span>
-                  <span className="pt-1 text-sm leading-5 font-semibold">{check}</span>
-                  <span className="ml-auto pt-1 text-xs font-bold text-ink-400">{String(index + 1).padStart(2, "0")}</span>
-                </li>
-              ))}
-            </ol>
-
-            <Subsection title="참고 기준">
-              <div className="grid gap-2 text-sm">
-                <ReferenceLink href="https://designsystem.line.me/" label="LINE Design System" description="내비게이션, 타이포그래피, 컴포넌트 기준" />
-                <ReferenceLink href="https://seed-design.io/" label="SEED Design System" description="Foundation → Component → Pattern 구조" />
-                <ReferenceLink href="https://developers-apps-in-toss.toss.im/design/components.html" label="Apps in Toss" description="모바일 공통 컴포넌트의 역할과 조합" />
-                <ReferenceLink href="https://github.com/january2w0/trading-dashboard-design" label="Trading Dashboard Design" description="계약·토큰 data·실제 specimen·전시 page 분리와 실측 중심 문서 구조" />
-                <ReferenceLink href="https://github.com/january2w0/likelion-tuk" label="Likelion TUK" description="버튼 size variant와 역할별 radius 단계 구성" />
-                <div className="flex min-h-14 items-center gap-3 border-b border-line py-3">
-                  <ShieldCheck aria-hidden="true" className="size-5 shrink-0 text-primary-700" />
-                  <span className="min-w-0"><strong className="block">프로젝트 레퍼런스 이미지</strong><span className="mt-0.5 block text-ink-600">짐싸·이사로·숨고·미소의 정보 밀도와 화면 구조를 참고하며 시각 복제는 하지 않습니다.</span></span>
-                </div>
-              </div>
+          <DocSection id="patterns" title="조합 규칙" summary="페이지 유형마다 상태·근거·행동이 나타나는 순서를 고정합니다.">
+            <Subsection id="screen-order" title="화면 유형별 순서">
+              <InfoList
+                aria-label="화면 유형별 정보 순서"
+                columns={patternColumns}
+                getKey={(pattern) => pattern.name}
+                gridTemplateColumns="7rem repeat(3, minmax(0, 1fr))"
+                items={patterns}
+                minWidth="760px"
+                variant="contained"
+              />
             </Subsection>
           </DocSection>
         </div>
@@ -519,32 +445,29 @@ export function DesignSystemPage() {
 function DocSection({
   children,
   id,
-  kicker,
   summary,
   title,
 }: {
   children: ReactNode;
   id: string;
-  kicker: string;
   summary: string;
   title: string;
 }) {
   return (
-    <section className="scroll-mt-20 border-b border-line py-12 md:py-16" id={id}>
-      <div className="mb-8">
-        <p className="text-xs font-extrabold text-primary-700">{kicker}</p>
-        <h2 className="mt-2 text-[28px] leading-9 font-extrabold tracking-[-0.04em] md:text-[32px]">{title}</h2>
-        <p className="mt-3 max-w-[680px] text-base leading-6 text-ink-600">{summary}</p>
+    <section className="scroll-mt-20 py-10 md:py-12" id={id}>
+      <div className="mb-6">
+        <h2 className="min-w-0 text-ui-section [overflow-wrap:anywhere]">{title}</h2>
+        <p className="mt-2 max-w-[680px] text-ui-support leading-6 text-ink-600">{summary}</p>
       </div>
       {children}
     </section>
   );
 }
 
-function Subsection({ children, title }: { children: ReactNode; title: string }) {
+function Subsection({ children, id, title }: { children: ReactNode; id?: string; title: string }) {
   return (
-    <section className="mt-10 first:mt-0">
-      <h3 className="mb-4 text-lg font-extrabold">{title}</h3>
+    <section className="scroll-mt-20 mt-8 first:mt-0" id={id}>
+      <h3 className="mb-3 text-ui-component leading-6 font-bold">{title}</h3>
       {children}
     </section>
   );
@@ -552,41 +475,26 @@ function Subsection({ children, title }: { children: ReactNode; title: string })
 
 function ComponentSpecimen({
   children,
-  contract,
-  description,
+  id,
   title,
 }: {
   children: ReactNode;
-  contract: string;
-  description: string;
+  id: string;
   title: string;
 }) {
   return (
-    <section className="mt-10 first:mt-0">
-      <header className="grid gap-4 border-t border-line pt-5 md:grid-cols-[minmax(0,1fr)_minmax(16rem,0.8fr)]">
-        <div>
-          <h3 className="text-lg font-bold">{title}</h3>
-          <p className="mt-2 max-w-[620px] text-sm leading-5 text-ink-600">{description}</p>
-        </div>
-        <dl className="border-l-2 border-primary-100 pl-4">
-          <dt className="text-xs font-bold text-primary-700">사용 계약</dt>
-          <dd className="mt-1 text-sm leading-5 text-ink-600">{contract}</dd>
-        </dl>
-      </header>
-      <div className="mt-5 rounded-[var(--radius-card)] border border-line bg-surface p-4 md:p-6">
+    <section className="scroll-mt-20 mt-8 first:mt-0" id={id}>
+      <h3 className="text-ui-component leading-6 font-bold">{title}</h3>
+      <div className="mt-4 rounded-[var(--radius-small)] border border-line bg-surface p-4 md:p-5">
         {children}
       </div>
     </section>
   );
 }
 
-function TokenFact({ description, term }: { description: string; term: string }) {
-  return (
-    <div className="bg-surface p-4">
-      <dt className="text-sm font-bold">{term}</dt>
-      <dd className="mt-1 text-sm text-ink-600">{description}</dd>
-    </div>
-  );
+function TokenValue({ token }: { token: string }) {
+  const value = window.getComputedStyle(document.documentElement).getPropertyValue(token).trim();
+  return <code className="text-xs text-ink-600">{value || token}</code>;
 }
 
 function IconRule({
@@ -600,40 +508,9 @@ function IconRule({
 }) {
   return (
     <div className="grid min-h-20 grid-cols-[4rem_minmax(0,1fr)] items-center gap-4 border-b border-line py-4 last:border-b-0 sm:grid-cols-[6rem_10rem_minmax(0,1fr)]">
-      <span className="flex min-h-12 items-center justify-center rounded-xl bg-surface-muted text-ink-600">{example}</span>
+      <span className="flex min-h-12 items-center justify-center rounded-[var(--radius-control)] bg-surface-muted text-ink-600">{example}</span>
       <strong className="text-sm">{label}</strong>
       <span className="col-start-2 text-sm leading-5 text-ink-600 sm:col-start-auto">{description}</span>
     </div>
-  );
-}
-
-function ExampleRow({
-  icon,
-  meta,
-  title,
-  tone = "neutral",
-}: {
-  icon?: "camera";
-  meta: string;
-  title: string;
-  tone?: "neutral" | "primary" | "success" | "warning";
-}) {
-  const toneClass = tone === "primary" ? "text-primary-700" : tone === "success" ? "text-success-ink" : tone === "warning" ? "text-warning-ink" : "text-ink-600";
-  return (
-    <div className="flex min-h-16 items-center gap-3 border-b border-line px-1 last:border-b-0">
-      {icon === "camera" ? <Camera aria-hidden="true" className="size-5 shrink-0 text-primary-700" /> : null}
-      <span className="min-w-0 flex-1"><strong className="block text-sm">{title}</strong><span className={`mt-0.5 block text-sm ${toneClass}`}>{meta}</span></span>
-      <ChevronRight aria-hidden="true" className="size-5 shrink-0 text-ink-400" />
-    </div>
-  );
-}
-
-function ReferenceLink({ description, href, label }: { description: string; href: string; label: string }) {
-  return (
-    <a className="interactive-row flex min-h-14 items-center gap-3 border-b border-line py-3" href={href} rel="noreferrer" target="_blank">
-      <ExternalLink aria-hidden="true" className="size-5 shrink-0 text-primary-700" />
-      <span className="min-w-0 flex-1"><strong className="block">{label}</strong><span className="mt-0.5 block text-ink-600">{description}</span></span>
-      <ChevronRight aria-hidden="true" className="size-5 shrink-0 text-ink-400" />
-    </a>
   );
 }
