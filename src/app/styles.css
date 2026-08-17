@@ -14,6 +14,7 @@
   --color-ink-600: var(--ink-600);
   --color-ink-400: var(--ink-400);
   --color-line: var(--line);
+  --color-input: var(--input);
   --color-canvas: var(--bg);
   --color-success: var(--success);
   --color-success-bg: var(--success-bg);
@@ -30,8 +31,6 @@
   --color-focus-ring: var(--color-focus);
   --font-sans: var(--font-body);
   --font-code: var(--font-outlier);
-  --radius-control: var(--radius-input);
-  --radius-panel: var(--radius-card);
   --text-ui-support: var(--text-support);
   --text-ui-section: var(--text-xl);
   --text-ui-step-title: var(--text-step-title);
@@ -214,22 +213,16 @@ p {
   background: var(--color-paper-2);
 }
 
-.app-list-plain .interactive-row {
-  padding-inline: 0;
-}
-
 .app-panel {
   border: 1px solid var(--line);
   border-radius: var(--radius-card);
   background: var(--color-paper-2);
-  box-shadow: var(--shadow-card);
 }
 
 .ui-card {
   border: 1px solid var(--line);
   border-radius: var(--radius-card);
   background: var(--color-paper-2);
-  box-shadow: var(--shadow-card);
 }
 
 .ui-card-pad {

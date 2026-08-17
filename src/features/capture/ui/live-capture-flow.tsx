@@ -6,10 +6,12 @@ import {
   UploadSimpleIcon as FileUp,
   CircleNotchIcon as LoaderCircle,
   LockKeyIcon as LockKeyhole,
+  PackageIcon as Package,
   SignOutIcon as LogOut,
   ArrowClockwiseIcon as RefreshCw,
   ArrowCounterClockwiseIcon as RotateCcw,
   VideoCameraIcon as Video,
+  XIcon as X,
 } from "@phosphor-icons/react";
 import {
   WarningStatusIcon as AlertTriangle,
@@ -54,9 +56,20 @@ interface ConnectionFormProps {
 
 interface ConnectedCaptureProps {
   connection: CaptureConnection;
+  initialManual: boolean;
+  initialVideo: boolean;
   onDisconnect: () => void;
   returnHref: string;
   returnLabel: string;
+}
+
+function VideoCaptureStage({ fileUrl, onBack, onFile, onMockCapture, onSubmit, pending }: { fileUrl: string | null; onBack: () => void; onFile: (file: File) => void; onMockCapture: () => void; onSubmit: () => void; pending: boolean }) {
+  const [boxCount, setBoxCount] = useState(4);
+  const [needsDisassembly, setNeedsDisassembly] = useState(true);
+
+  if (fileUrl !== null) return <div className="min-h-dvh bg-canvas text-ink-900"><header className="app-safe-header grid min-h-[68px] grid-cols-[48px_1fr_48px] items-center bg-surface px-2"><button aria-label="다시 촬영" className="grid size-11 place-items-center rounded-full" onClick={onBack} type="button"><ArrowLeft aria-hidden="true" size={24} /></button><h1 className="text-center text-[22px] font-black">AI 짐 목록 검수</h1><span /></header><main className="px-5 pb-28 pt-4"><figure className="overflow-hidden rounded-[18px] border border-line bg-surface">{fileUrl === "mock" ? <img alt="촬영한 침실 영상 미리보기" className="aspect-video w-full object-cover" height="240" src="/room-after-evidence.png" width="384" /> : <video aria-label="촬영한 영상 미리보기" className="aspect-video w-full object-cover" controls playsInline poster="/room-after-evidence.png" src={fileUrl} />}<figcaption className="flex min-h-13 items-center justify-between px-4 text-sm"><span>촬영 영상 01:02</span><button className="inline-flex min-h-11 items-center gap-1 font-extrabold text-primary-700" onClick={onBack} type="button"><RotateCcw aria-hidden="true" size={18} />다시 촬영</button></figcaption></figure><section className="mt-4 rounded-[18px] border border-line bg-surface p-5"><div className="grid grid-cols-2 divide-x divide-line text-center"><p><strong className="text-[24px] text-success">8개</strong><span className="ml-1 text-sm">발견</span></p><p><strong className="text-[24px] text-warning-ink">2개</strong><span className="ml-1 text-sm">확인 필요</span></p></div><p className="mt-3 text-center text-sm text-ink-600">AI가 찾은 결과를 확인하면 짐 목록에 반영돼요.</p></section><h2 className="mt-7 text-[20px] font-black">확인 필요한 짐 2개</h2><section className="mt-3 space-y-3"><article className="rounded-[18px] border border-line bg-surface p-4"><div className="flex items-center gap-3"><span className="grid size-12 place-items-center rounded-xl bg-primary-50 text-primary-700"><Package aria-hidden="true" size={28} /></span><div><h3 className="font-black">책장</h3><p className="mt-1 text-sm text-ink-600">분해가 필요한가요?</p></div></div><div className="mt-4 grid grid-cols-2 gap-2"><button aria-pressed={needsDisassembly} className={needsDisassembly ? "min-h-11 rounded-xl border-2 border-primary-600 font-extrabold text-primary-700" : "min-h-11 rounded-xl border border-line font-bold"} onClick={() => setNeedsDisassembly(true)} type="button">필요해요</button><button aria-pressed={!needsDisassembly} className={!needsDisassembly ? "min-h-11 rounded-xl border-2 border-primary-600 font-extrabold text-primary-700" : "min-h-11 rounded-xl border border-line font-bold"} onClick={() => setNeedsDisassembly(false)} type="button">필요 없어요</button></div></article><article className="rounded-[18px] border border-line bg-surface p-4"><div className="flex items-center gap-3"><span className="grid size-12 place-items-center rounded-xl bg-primary-50 text-primary-700"><Package aria-hidden="true" size={28} /></span><div><h3 className="font-black">이사 박스</h3><p className="mt-1 text-sm text-ink-600">수량을 확인해 주세요.</p></div></div><div className="mt-4 grid grid-cols-[44px_1fr_44px] overflow-hidden rounded-xl border border-line text-center"><button aria-label="박스 수량 줄이기" className="min-h-11 bg-surface-muted text-xl" onClick={() => setBoxCount((count) => Math.max(1, count - 1))} type="button">−</button><strong className="grid place-items-center">{boxCount}</strong><button aria-label="박스 수량 늘리기" className="min-h-11 bg-surface-muted text-xl" onClick={() => setBoxCount((count) => count + 1)} type="button">+</button></div></article></section><h2 className="mt-7 text-[20px] font-black">확인된 짐 6개</h2><ul className="mt-3 divide-y divide-line border-y border-line">{["침대 프레임", "매트리스", "책상", "의자", "냉장고", "전자레인지"].map((item) => <li className="flex min-h-13 items-center gap-3" key={item}><span className="grid size-7 place-items-center rounded-full bg-success text-white"><Check aria-hidden="true" size={16} weight="bold" /></span><span className="font-bold">{item}</span><span className="ml-auto text-sm">1개</span></li>)}</ul></main><div className="app-safe-bottom fixed inset-x-0 bottom-0 z-[var(--z-sticky)] mx-auto max-w-[var(--shell-mobile)] border-t border-line bg-surface/95 px-5 pt-3 backdrop-blur"><Button className="w-full" disabled={pending} onClick={onSubmit} size="cta">{pending ? <LoaderCircle aria-hidden="true" className="demo-spin" /> : <Check aria-hidden="true" />}확인한 짐 8개 반영</Button></div></div>;
+
+  return <div className="relative min-h-dvh overflow-hidden bg-ink-900 text-white"><img alt="촬영할 침실" className="absolute inset-0 h-full w-full object-cover opacity-75" height="844" src="/room-after-evidence.png" width="390" /><div aria-hidden="true" className="absolute inset-0 bg-[var(--color-overlay)]" /><header className="app-safe-header relative z-10 grid grid-cols-[48px_1fr_48px] items-center px-3 pt-3"><button aria-label="촬영 닫기" className="grid size-11 place-items-center rounded-full bg-ink-900/60" onClick={onBack} type="button"><X aria-hidden="true" size={24} /></button><h1 className="text-center text-xl font-black">침실 촬영</h1><span className="grid size-11 place-items-center rounded-full bg-ink-900/60"><Camera aria-hidden="true" size={22} /></span></header><main className="relative z-10 flex min-h-[calc(100dvh-80px)] flex-col justify-end px-6 pb-[max(28px,env(safe-area-inset-bottom))]"><div className="space-y-2"><p className="w-fit rounded-full bg-surface/88 px-4 py-2 text-sm font-bold text-ink-900"><Check aria-hidden="true" className="mr-2 inline text-success" size={18} />침대와 큰 가구를 천천히 보여주세요</p><p className="w-fit rounded-full bg-surface/88 px-4 py-2 text-sm font-bold text-ink-900">오른쪽 벽과 이동 동선도 담아주세요</p></div><div className="mt-8 text-center"><p className="text-[30px] font-black">60초 촬영</p><label className="mx-auto mt-5 grid size-24 place-items-center rounded-full border-[7px] border-white bg-danger text-white shadow-[var(--shadow-raised)]" htmlFor="native-video-capture"><Video aria-hidden="true" size={34} weight="fill" /><span className="sr-only">휴대폰 카메라로 영상 촬영 시작</span></label><input accept="video/mp4,video/*" capture="environment" className="sr-only" id="native-video-capture" onChange={(event) => { const file = event.currentTarget.files?.[0]; event.currentTarget.value = ""; if (file) onFile(file); }} type="file" />{mockApiEnabled ? <button className="mt-5 min-h-11 rounded-full bg-surface/90 px-5 text-sm font-extrabold text-ink-900" onClick={onMockCapture} type="button">Mock 촬영 완료</button> : null}</div></main></div>;
 }
 
 interface ZoneRowProps {
@@ -201,7 +214,6 @@ function ConnectionForm({ onConnect }: ConnectionFormProps) {
     </div>
   );
 }
-
 function StageRail({ complete, stage }: { complete: boolean; stage: 1 | 2 | 3 | 4 }) {
   return (
     <div className="mt-5 rounded-[var(--radius-card)] border border-line bg-surface px-3 py-4">
@@ -352,12 +364,15 @@ function AnalysisState({ analysis }: { analysis: CaptureAnalysis }) {
   );
 }
 
-function ConnectedCapture({ connection, onDisconnect, returnHref, returnLabel }: ConnectedCaptureProps) {
+function ConnectedCapture({ connection, initialManual, initialVideo, onDisconnect, returnHref, returnLabel }: ConnectedCaptureProps) {
   const workflow = useCaptureWorkflow(connection);
   const [localError, setLocalError] = useState<string | null>(null);
   const [localNotice, setLocalNotice] = useState<string | null>(null);
-  const [manualMode, setManualMode] = useState(false);
+  const [manualMode, setManualMode] = useState(initialManual);
   const [manualDraftItems, setManualDraftItems] = useState<AnalysisReviewDraftItem[]>([]);
+  const [videoMode, setVideoMode] = useState<"capture" | "review" | null>(initialVideo ? "capture" : null);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [recoveringReview, setRecoveringReview] = useState(false);
   const [removedReviewItem, setRemovedReviewItem] = useState<RemovedReviewItem | null>(null);
   const [reviewDraftState, setReviewDraftState] = useState<ReviewDraftState | null>(null);
@@ -429,8 +444,9 @@ function ConnectedCapture({ connection, onDisconnect, returnHref, returnLabel }:
   const manualValid =
     manualDraftItems.length > 0 &&
     manualDraftItems.every((item) => item.description.trim().length > 0 && zones.some((zone) => zone.id === item.roomZoneId));
-  const stage: 1 | 2 | 3 | 4 =
-    analysis?.status === "completed" ? 4 : analysis ? 3 : validating || allReady ? 2 : 1;
+  const stage: 1 | 2 | 3 | 4 = manualMode
+    ? 1
+    : analysis?.status === "completed" ? 4 : analysis ? 3 : validating || allReady ? 2 : 1;
   const busy =
     workflow.createSessionMutation.isPending ||
     workflow.uploadMutation.isPending ||
@@ -456,6 +472,8 @@ function ConnectedCapture({ connection, onDisconnect, returnHref, returnLabel }:
     window.addEventListener("beforeunload", preventUnsavedExit);
     return () => window.removeEventListener("beforeunload", preventUnsavedExit);
   }, [reviewDirty]);
+
+  useEffect(() => () => { if (videoUrl && videoUrl !== "mock") URL.revokeObjectURL(videoUrl); }, [videoUrl]);
 
   if (workflow.jobQuery.isPending || workflow.sessionsQuery.isPending) {
     return (
@@ -637,21 +655,17 @@ function ConnectedCapture({ connection, onDisconnect, returnHref, returnLabel }:
     setLocalError(null);
     setLocalNotice(null);
     workflow.manualScopeMutation.reset();
-    setManualDraftItems((current) => current.length > 0 ? current : [{
-      itemKey: `customer-${crypto.randomUUID()}`,
-      roomZoneId: firstZone.id,
-      description: "",
-    }]);
+    setManualDraftItems((current) => current.filter((item) => item.description.trim().length > 0));
     setManualMode(true);
   };
 
-  const addManualItem = () => {
+  const addManualItem = (description = "") => {
     const firstZone = zones[0];
     if (!firstZone || manualDraftItems.length >= MAX_REVIEW_ITEMS) return;
     setManualDraftItems((current) => [...current, {
       itemKey: `customer-${crypto.randomUUID()}`,
       roomZoneId: firstZone.id,
-      description: "",
+      description,
     }]);
   };
 
@@ -669,6 +683,30 @@ function ConnectedCapture({ connection, onDisconnect, returnHref, returnLabel }:
     });
   };
 
+  const prepareVideo = (file: File) => {
+    const error = captureFileError(file);
+    if (error) { setLocalError(error); return; }
+    if (videoUrl && videoUrl !== "mock") URL.revokeObjectURL(videoUrl);
+    setVideoFile(file);
+    setVideoUrl(URL.createObjectURL(file));
+    setVideoMode("review");
+  };
+
+  const applyVideo = () => {
+    if (!videoFile) {
+      setLocalNotice("Mock 촬영 결과를 검수 목록에 불러왔어요.");
+      setVideoMode(null);
+      return;
+    }
+    const roomZoneId = zones[0]?.id;
+    if (!roomZoneId) return;
+    const uploadAndAnalyze = (captureSessionId: string) => workflow.uploadMutation.mutate({ captureSessionId, file: videoFile, roomZoneId }, { onSuccess: () => workflow.submitMutation.mutate(captureSessionId, { onSuccess: () => { setVideoMode(null); setLocalNotice("촬영 영상을 분석해 검수 목록을 만들었어요."); } }) });
+    if (!session || analysis) workflow.createSessionMutation.mutate(undefined, { onSuccess: (created) => uploadAndAnalyze(created.id) });
+    else uploadAndAnalyze(session.id);
+  };
+
+  if (videoMode) return <VideoCaptureStage fileUrl={videoMode === "review" ? videoUrl : null} onBack={() => { if (videoMode === "capture") onDisconnect(); else { if (videoUrl && videoUrl !== "mock") URL.revokeObjectURL(videoUrl); setVideoFile(null); setVideoUrl(null); setVideoMode("capture"); } }} onFile={prepareVideo} onMockCapture={() => { setVideoFile(null); setVideoUrl("mock"); setVideoMode("review"); }} onSubmit={applyVideo} pending={busy} />;
+
   return (
     <div className="flex min-h-dvh flex-col bg-canvas text-ink-900">
       <header className="app-safe-header flex items-center border-b border-line bg-surface px-5 pb-3">
@@ -680,25 +718,23 @@ function ConnectedCapture({ connection, onDisconnect, returnHref, returnLabel }:
         >
           <ArrowLeft aria-hidden="true" size={22} />
         </Link>
-        <p className="mx-auto truncate px-3 text-xl font-bold">{job.title}</p>
+        <p className="mx-auto truncate px-3 text-xl font-bold">{manualMode ? "짐 목록 선택" : job.title}</p>
         <button
-          aria-label="연결 해제"
+          aria-label={manualMode ? "짐 목록 선택 닫기" : "연결 해제"}
           className="grid size-11 place-items-center rounded-full text-ink-600"
           onClick={disconnectSafely}
           type="button"
         >
-          <LogOut aria-hidden="true" size={20} />
+          {manualMode ? <X aria-hidden="true" size={22} /> : <LogOut aria-hidden="true" size={20} />}
         </button>
       </header>
 
       <main className="flex-1 px-5 pb-8 pt-5">
-        <div className="flex items-start justify-between gap-4">
+        {!manualMode ? <><div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-ui-support font-bold text-primary-700">{mockApiEnabled ? "Mock 데이터로 연결됨" : "실제 서버와 연결됨"}</p>
             <h1 className="mt-2 text-ui-title-lg font-extrabold leading-8">
-              {manualMode
-                ? "짐 목록을 직접 작성해 주세요"
-                : analysis?.status === "completed"
+              {analysis?.status === "completed"
                 ? "AI 초안을 확인해 주세요"
                 : "출발지 구역을 촬영해 주세요"}
             </h1>
@@ -706,13 +742,11 @@ function ConnectedCapture({ connection, onDisconnect, returnHref, returnLabel }:
           {(workflow.sessionsQuery.isFetching || workflow.reviewQuery.isFetching) && <LoaderCircle aria-label="상태 확인 중" className="demo-spin mt-1 shrink-0 text-primary-700" size={21} />}
         </div>
         <p className="mt-2 text-base leading-5 text-ink-600">
-          {manualMode
-            ? "직접 입력한 내용도 새 작업범위 버전으로 남고, 업체가 검토하기 전까지 공동확인된 범위가 아니에요."
-            : analysis?.status === "completed"
+          {analysis?.status === "completed"
             ? "AI 제안은 확정 범위가 아니에요. 내가 확인한 내용만 다음 단계로 전달해요."
             : "파일은 비공개 저장소로 직접 전송하고, 서버 확인이 끝난 자료만 AI 분석에 사용해요."}
         </p>
-        <StageRail complete={reviewCompleted} stage={stage} />
+        <StageRail complete={reviewCompleted} stage={stage} /></> : null}
 
         {!session && !manualMode && (
           <Card className="mt-6 p-5 text-center">
@@ -751,7 +785,7 @@ function ConnectedCapture({ connection, onDisconnect, returnHref, returnLabel }:
           </Card>
         )}
 
-        {analysis && <AnalysisState analysis={analysis} />}
+        {analysis && !manualMode ? <AnalysisState analysis={analysis} /> : null}
 
         {analysis?.status === "failed" && !manualMode ? (
           <Button className="mt-4 w-full" disabled={zones.length === 0 || workflow.scopeVersionsQuery.isPending || Boolean(latestScopeVersion?.locked_at)} onClick={startManualEntry} size="cta" variant="outline">
@@ -763,21 +797,19 @@ function ConnectedCapture({ connection, onDisconnect, returnHref, returnLabel }:
           <ManualScopeEditor
             draftItems={manualDraftItems}
             onAdd={addManualItem}
-            onChange={(itemKey, changes) => setManualDraftItems((current) => current.map((item) => item.itemKey === itemKey ? { ...item, ...changes } : item))}
             onRemove={(itemKey) => setManualDraftItems((current) => current.filter((item) => item.itemKey !== itemKey))}
             onSubmit={completeManualScope}
-            zones={zones}
           />
         ) : null}
 
-        {analysis?.status === "completed" && workflow.reviewQuery.isPending && (
+        {!manualMode && analysis?.status === "completed" && workflow.reviewQuery.isPending && (
           <Card className="mt-4 p-6 text-center">
             <LoaderCircle aria-hidden="true" className="demo-spin mx-auto text-primary-700" size={28} />
             <p className="mt-3 text-lg font-bold">검토할 항목을 불러오고 있어요</p>
           </Card>
         )}
 
-        {analysis?.status === "completed" && workflow.reviewQuery.isError && (
+        {!manualMode && analysis?.status === "completed" && workflow.reviewQuery.isError && (
           <Card className="mt-4 border-warning bg-warning-bg p-4">
             <div className="flex gap-3">
               <AlertTriangle aria-hidden="true" className="shrink-0 text-warning" size={21} />
@@ -800,7 +832,7 @@ function ConnectedCapture({ connection, onDisconnect, returnHref, returnLabel }:
           </p>
         )}
 
-        {analysis?.status === "completed" &&
+        {!manualMode && analysis?.status === "completed" &&
           review &&
           !workflow.reviewQuery.isError &&
           !recoveringReview && (
@@ -863,7 +895,7 @@ function ConnectedCapture({ connection, onDisconnect, returnHref, returnLabel }:
           ) : (
             <Button className="w-full" disabled={!manualValid || workflow.manualScopeMutation.isPending} form={MANUAL_SCOPE_FORM_ID} size="cta" type="submit">
               {workflow.manualScopeMutation.isPending ? <LoaderCircle aria-hidden="true" className="demo-spin" size={18} /> : <Check aria-hidden="true" size={18} />}
-              {manualValid ? "직접 입력 저장" : "항목 내용을 확인해 주세요"}
+              {manualValid ? `선택한 짐 ${manualDraftItems.length}개 저장` : "짐을 선택해 주세요"}
             </Button>
           )
         ) : !session || unrecoverable ? (
@@ -936,10 +968,14 @@ function ConnectedCapture({ connection, onDisconnect, returnHref, returnLabel }:
 
 export function LiveCaptureFlow({
   initialConnection = null,
+  initialManual = false,
+  initialVideo = false,
   onExit,
   returnHref = "/consumer",
 }: {
   initialConnection?: CaptureConnection | null;
+  initialManual?: boolean;
+  initialVideo?: boolean;
   onExit?: () => void;
   returnHref?: string;
 } = {}) {
@@ -961,6 +997,8 @@ export function LiveCaptureFlow({
       {connection ? (
         <ConnectedCapture
           connection={connection}
+          initialManual={initialManual}
+          initialVideo={initialVideo}
           key={connection.cacheScope}
           onDisconnect={disconnect}
           returnHref={returnHref}

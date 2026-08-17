@@ -19,18 +19,18 @@ function SheetContent({ className, children, presentation = "sheet", ...props }:
         <Dialog.Popup
           data-presentation={presentation}
           className={cn(
-            "demo-sheet-popup no-scrollbar app-safe-bottom relative max-h-[calc(100dvh-40px)] w-full max-w-[var(--shell-mobile)] overflow-y-auto overscroll-contain rounded-t-[var(--radius-sheet)] bg-surface pt-5 text-ink-900 outline-2 outline-transparent focus-visible:outline-focus-ring",
+            "demo-sheet-popup no-scrollbar app-safe-bottom relative max-h-[calc(100dvh-40px)] w-full max-w-[var(--shell-mobile)] overflow-y-auto overscroll-contain rounded-t-[var(--radius-sheet)] bg-surface pt-4 text-ink-900 outline-2 outline-transparent focus-visible:outline-focus-ring",
             presentation === "page" && "h-dvh max-h-dvh rounded-none pt-0",
             className,
           )}
           {...props}
         >
-          {presentation === "sheet" ? <div className="mx-auto mb-4 h-1 w-12 rounded-full bg-line md:hidden" aria-hidden="true" /> : null}
+          {presentation === "sheet" ? <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-line md:hidden" aria-hidden="true" /> : null}
           {children}
           <Dialog.Close
             className={cn(
               "absolute z-20 flex size-11 items-center justify-center rounded-full text-ink-600 hover:bg-canvas focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring",
-              presentation === "page" ? "top-[max(10px,env(safe-area-inset-top))] left-2" : "top-5 right-5",
+              presentation === "page" ? "top-[max(10px,env(safe-area-inset-top))] left-2" : "top-4 right-4",
             )}
             aria-label={presentation === "page" ? "뒤로가기" : "닫기"}
           >
@@ -43,7 +43,7 @@ function SheetContent({ className, children, presentation = "sheet", ...props }:
 }
 
 function SheetHeader({ className, ...props }: ComponentProps<"div">) {
-  return <div className={cn("space-y-1.5 px-5 pb-4 pr-16", className)} {...props} />;
+  return <div className={cn("space-y-1.5 px-4 pb-4 pr-16", className)} {...props} />;
 }
 
 function SheetTitle({ className, ...props }: Dialog.Title.Props) {
@@ -55,7 +55,7 @@ function SheetDescription({ className, ...props }: Dialog.Description.Props) {
 }
 
 function SheetFooter({ className, ...props }: ComponentProps<"div">) {
-  return <div className={cn("sticky bottom-0 mt-4 border-t border-line bg-surface p-5 pb-[max(20px,env(safe-area-inset-bottom))]", className)} {...props} />;
+  return <div className={cn("sticky bottom-0 mt-4 border-t border-line bg-surface p-4 pb-[max(16px,env(safe-area-inset-bottom))]", className)} {...props} />;
 }
 
 export { Sheet, SheetClose, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger };

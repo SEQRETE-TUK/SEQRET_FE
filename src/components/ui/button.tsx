@@ -5,11 +5,11 @@ import type { ComponentProps } from "react";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex min-h-11 touch-manipulation items-center justify-center gap-2 whitespace-nowrap rounded-[var(--radius-input)] border text-[15px] font-extrabold select-none shadow-none transition-[transform,opacity,background-color,border-color,box-shadow] duration-[var(--dur-micro)] ease-[var(--ease-out)] disabled:cursor-not-allowed disabled:border-line disabled:bg-canvas disabled:text-ink-400 disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring active:translate-y-px [&_svg]:pointer-events-none [&_svg]:size-5 [&_svg]:shrink-0",
+  "inline-flex min-h-11 touch-manipulation items-center justify-center gap-2 whitespace-nowrap rounded-[var(--radius-control)] border text-[15px] font-extrabold select-none shadow-none transition-[transform,opacity,background-color,border-color] duration-[var(--dur-micro)] ease-[var(--ease-out)] disabled:cursor-not-allowed disabled:border-line disabled:bg-canvas disabled:text-ink-400 disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring active:translate-y-px [&_svg]:pointer-events-none [&_svg]:size-5 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        default: "border-primary-600 bg-gradient-to-r from-primary-600 to-primary-700 text-accent-ink shadow-[0_6px_14px_oklch(0.511_0.262_276.966/0.18)] hover:from-primary-700 hover:to-primary-800",
+        default: "border-primary-600 bg-primary-600 text-accent-ink hover:bg-primary-700",
         outline: "border-primary-400 bg-surface text-primary-700 hover:border-primary-600 hover:bg-primary-50",
         secondary: "border-transparent bg-primary-50 text-primary-700 hover:bg-primary-100",
         ghost: "border-transparent bg-transparent text-ink-600 hover:bg-surface-muted",
@@ -17,9 +17,9 @@ const buttonVariants = cva(
         kakao: "border-[var(--color-kakao)] bg-[var(--color-kakao)] text-[var(--color-kakao-ink)] hover:bg-[var(--color-kakao-hover)]",
       },
       size: {
-        default: "h-12 px-5",
-        cta: "h-[58px] px-6 text-[17px]",
-        chip: "h-11 px-4 text-[13px]",
+        default: "h-11 px-4",
+        cta: "h-[52px] px-5 text-base",
+        chip: "h-11 px-3 text-[13px]",
         icon: "size-11 rounded-full p-0",
       },
     },

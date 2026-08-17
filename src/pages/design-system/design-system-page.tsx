@@ -46,6 +46,33 @@ const principles = [
   },
 ];
 
+const systemLayers = [
+  {
+    step: "01",
+    title: "계약",
+    source: "design-system.md",
+    body: "원칙, 타입 위계, 간격, 상태와 컴포넌트 사용 조건을 정의합니다.",
+  },
+  {
+    step: "02",
+    title: "토큰",
+    source: "tokens.css",
+    body: "색상, 타입 크기, 4px 간격, 형태와 동작 값을 단일 원본으로 관리합니다.",
+  },
+  {
+    step: "03",
+    title: "구현",
+    source: "ui → layout → workflow",
+    body: "primitive를 조합해 역할별 업무 패턴을 만들고 임의 값을 반복하지 않습니다.",
+  },
+  {
+    step: "04",
+    title: "표본",
+    source: "/design-system",
+    body: "토큰의 실측값, 실제 컴포넌트, 사용 계약과 화면 순서를 함께 검수합니다.",
+  },
+] as const;
+
 const colors = [
   { name: "Primary", token: "--color-accent", use: "주요 CTA · 선택 · 현재 단계", className: "bg-primary-600" },
   { name: "Primary soft", token: "--color-accent-50", use: "선택 배경 · 정보 상태", className: "bg-primary-50" },
@@ -59,13 +86,34 @@ const colors = [
 ];
 
 const typeScale = [
-  { name: "화면 제목", spec: "28–32 / 1.2 · 800", className: "text-[30px] leading-[1.2] font-extrabold", sample: "이사 준비 현황" },
-  { name: "상단 제목", spec: "22 / 1.27 · 800", className: "text-[22px] leading-7 font-extrabold", sample: "오늘 작업" },
-  { name: "섹션 제목", spec: "22 / 1.3 · 800", className: "app-section-title", sample: "확인할 내용" },
-  { name: "본문", spec: "16 / 1.5 · 500", className: "text-base leading-6", sample: "현재 상태와 다음 작업을 설명합니다." },
-  { name: "보조 정보", spec: "14 / 1.43 · 500", className: "text-sm leading-5 text-ink-600", sample: "1월 15일 화요일 · 오전 10:00" },
-  { name: "상태", spec: "12 / 1.33 · 700", className: "text-xs font-bold text-primary-700", sample: "확인 대기" },
+  { name: "화면 제목", spec: "32 / 38 · 800 · −0.025em", className: "text-[32px] leading-[38px] font-extrabold tracking-[-0.025em]", sample: "이사 준비 현황" },
+  { name: "페이지 제목", spec: "28 / 36 · 800 · −0.025em", className: "text-[28px] leading-9 font-extrabold tracking-[-0.025em]", sample: "오늘 작업" },
+  { name: "섹션 제목", spec: "22 / 29 · 700 · −0.025em", className: "text-[22px] leading-[29px] font-bold tracking-[-0.025em]", sample: "확인할 내용" },
+  { name: "컴포넌트 제목", spec: "17 / 24 · 700 · 0", className: "text-[17px] leading-6 font-bold", sample: "작업 범위와 금액" },
+  { name: "본문", spec: "16 / 24 · 500 · 0", className: "text-base leading-6 font-medium", sample: "현재 상태와 다음 작업을 설명합니다." },
+  { name: "보조 정보", spec: "14 / 20 · 500 · 0", className: "text-sm leading-5 font-medium text-ink-600", sample: "1월 15일 화요일 · 오전 10:00" },
+  { name: "상태·라벨", spec: "12 / 16 · 700 · 0", className: "text-xs leading-4 font-bold text-primary-700", sample: "확인 대기" },
 ];
+
+const spacingScale = [
+  { name: "3XS", token: "--space-3xs", value: 4, use: "아이콘 내부·미세 정렬" },
+  { name: "2XS", token: "--space-2xs", value: 8, use: "인접한 조작·라벨 간격" },
+  { name: "XS", token: "--space-xs", value: 12, use: "컨트롤 내부 여백" },
+  { name: "SM", token: "--space-sm", value: 16, use: "기본 카드 여백" },
+  { name: "Gutter", token: "--content-gutter", value: 20, use: "320–389px 화면 좌우 여백" },
+  { name: "MD", token: "--space-md", value: 24, use: "432px 화면 여백·섹션 내부" },
+  { name: "LG", token: "--space-lg", value: 32, use: "섹션 사이 분리" },
+  { name: "XL", token: "--space-xl", value: 40, use: "큰 문맥 전환" },
+] as const;
+
+const layoutMetrics = [
+  { name: "기본 control", value: "44px", use: "버튼·입력과 최소 터치 영역" },
+  { name: "주요 CTA", value: "52px", use: "화면의 단일 우선 행동" },
+  { name: "목록 행", value: "64px 이상", use: "제목·설명·상태를 가진 탐색 행" },
+  { name: "카드 안쪽", value: "16–20px", use: "정보 밀도에 따른 surface padding" },
+  { name: "화면 좌우", value: "20–24px", use: "mobile content gutter" },
+  { name: "섹션 리듬", value: "24–32px", use: "서로 다른 판단 단위 사이" },
+] as const;
 
 const patterns = [
   {
@@ -146,7 +194,7 @@ export function DesignSystemPage() {
             <ArrowLeft aria-hidden="true" className="size-4" />
             서비스로 돌아가기
           </Link>
-          <Badge variant="primary">Product UI v1.4</Badge>
+          <Badge variant="primary">Product UI v1.6</Badge>
         </div>
       </header>
 
@@ -178,6 +226,20 @@ export function DesignSystemPage() {
           </section>
 
           <DocSection id="principles" kicker="01" title="사용 원칙" summary="화면을 구성하기 전에 정보의 역할을 먼저 정합니다.">
+            <Subsection title="문서와 구현의 연결">
+              <ol className="border-t border-line">
+                {systemLayers.map((layer) => (
+                  <li className="grid gap-2 border-b border-line py-5 sm:grid-cols-[3rem_7rem_12rem_minmax(0,1fr)] sm:items-start" key={layer.step}>
+                    <span className="text-xs font-bold text-primary-700">{layer.step}</span>
+                    <strong className="text-[17px] leading-6">{layer.title}</strong>
+                    <code className="text-xs leading-5 text-ink-600">{layer.source}</code>
+                    <p className="text-sm leading-5 text-ink-600">{layer.body}</p>
+                  </li>
+                ))}
+              </ol>
+            </Subsection>
+
+            <Subsection title="제품 원칙">
             <div className="grid border-t border-line md:grid-cols-2">
               {principles.map((item, index) => (
                 <article className="border-b border-line py-5 md:px-5 md:first:pl-0 md:nth-[2n]:border-l" key={item.title}>
@@ -187,6 +249,7 @@ export function DesignSystemPage() {
                 </article>
               ))}
             </div>
+            </Subsection>
           </DocSection>
 
           <DocSection id="foundations" kicker="02" title="기초" summary="Pretendard, 중립 표면, 인디고 상호작용색, 4px 간격 체계를 사용합니다.">
@@ -217,20 +280,52 @@ export function DesignSystemPage() {
               </div>
             </Subsection>
 
-            <Subsection title="간격과 형태">
-              <dl className="grid gap-px overflow-hidden border border-line bg-line sm:grid-cols-3">
-                <TokenFact term="간격" description="4 · 8 · 12 · 16 · 24 · 32px" />
-                <TokenFact term="화면 여백" description="16–24px" />
-                <TokenFact term="목록 행" description="최소 64px" />
-                <TokenFact term="입력·버튼" description="12px 모서리" />
-                <TokenFact term="작업 카드" description="16px 모서리" />
-                <TokenFact term="하단 시트" description="28px 상단 모서리" />
+            <Subsection title="간격과 실측">
+              <div className="overflow-x-auto border-t border-line" role="region" aria-label="간격 토큰 표">
+                <table className="w-full min-w-[680px] border-collapse text-left text-sm">
+                  <thead>
+                    <tr className="border-b border-line text-ink-600">
+                      <th className="px-3 py-4 font-bold">단계</th>
+                      <th className="px-3 py-4 font-bold">토큰</th>
+                      <th className="px-3 py-4 font-bold">값</th>
+                      <th className="px-3 py-4 font-bold">실측</th>
+                      <th className="px-3 py-4 font-bold">사용</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {spacingScale.map((space) => (
+                      <tr className="border-b border-line" key={space.name}>
+                        <th className="px-3 py-4 font-bold" scope="row">{space.name}</th>
+                        <td className="px-3 py-4"><code className="text-xs text-ink-600">{space.token}</code></td>
+                        <td className="px-3 py-4 font-semibold tabular-nums">{space.value}px</td>
+                        <td className="px-3 py-4"><span aria-hidden="true" className="block h-2 rounded-full bg-primary-600" style={{ width: `${space.value * 2}px` }} /></td>
+                        <td className="px-3 py-4 text-ink-600">{space.use}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="mt-6 grid gap-px overflow-hidden border border-line bg-line sm:grid-cols-2 lg:grid-cols-3">
+                {layoutMetrics.map((metric) => (
+                  <TokenFact description={`${metric.value} · ${metric.use}`} key={metric.name} term={metric.name} />
+                ))}
+              </div>
+
+              <dl className="mt-6 grid gap-px overflow-hidden border border-line bg-line sm:grid-cols-3">
+                <TokenFact term="작은 surface·control" description="8px · 10px 모서리" />
+                <TokenFact term="일반·상위 카드" description="14px · 18px 모서리" />
+                <TokenFact term="하단 시트" description="20px 상단 모서리" />
               </dl>
             </Subsection>
           </DocSection>
 
           <DocSection id="components" kicker="03" title="컴포넌트" summary="공통 컴포넌트는 상태와 행동의 차이를 분명하게 보여야 합니다.">
-            <Subsection title="아이콘">
+            <ComponentSpecimen
+              title="아이콘"
+              description="같은 기능은 역할이 달라도 같은 glyph와 크기 체계를 유지합니다."
+              contract="텍스트만으로 의미가 충분하면 생략하고, icon-only 조작에는 접근 가능한 이름을 제공합니다."
+            >
               <div className="max-w-[680px] border-y border-line">
                 <IconRule
                   label="하단 내비게이션"
@@ -261,27 +356,44 @@ export function DesignSystemPage() {
               <p className="mt-4 max-w-[680px] text-sm leading-6 text-ink-600">
                 시스템 아이콘은 Phosphor 한 세트만 사용합니다. 텍스트만으로 충분한 곳에는 아이콘을 추가하지 않고, 아이콘만으로 의미를 전달하지 않습니다.
               </p>
-            </Subsection>
+            </ComponentSpecimen>
 
-            <Subsection title="버튼">
+            <ComponentSpecimen
+              title="버튼"
+              description="variant의 시각 차이는 행동 우선순위와 결과의 차이를 나타냅니다."
+              contract="화면 또는 시트 하나에 primary CTA 한 개를 기본으로 하고 인접한 터치 대상은 8px 이상 띄웁니다."
+            >
               <div className="flex flex-wrap gap-2">
                 <Button>다음 단계</Button>
                 <Button variant="outline">이전</Button>
                 <Button variant="secondary">임시 저장</Button>
                 <Button variant="destructive">연결 종료</Button>
               </div>
+              <div className="mt-5 grid max-w-[560px] gap-3 border-t border-line pt-5 sm:grid-cols-3 sm:items-end">
+                <Button size="chip" variant="secondary">필터 · 44px</Button>
+                <Button>기본 · 44px</Button>
+                <Button size="cta">주요 CTA · 52px</Button>
+              </div>
               <p className="mt-4 text-sm leading-6 text-ink-600">주요 버튼은 화면 또는 시트 하나에 한 개를 기본으로 합니다. 동일 위계의 버튼을 나란히 반복하지 않습니다.</p>
-            </Subsection>
+            </ComponentSpecimen>
 
-            <Subsection title="입력">
+            <ComponentSpecimen
+              title="입력"
+              description="라벨, 실제 형식에 가까운 예시와 보조 설명을 한 묶음으로 제공합니다."
+              contract="placeholder로 label을 대신하지 않고 오류는 해당 입력 바로 아래에서 원인과 해결 방법을 설명합니다."
+            >
               <div className="max-w-[440px]">
                 <Label htmlFor="design-system-address">출발지 표시명</Label>
                 <Input className="mt-2" id="design-system-address" placeholder="예: 성수동 아파트" />
                 <p className="mt-2 text-sm text-ink-600">입력 목적이 분명한 라벨과 실제 형식에 가까운 예시를 제공합니다.</p>
               </div>
-            </Subsection>
+            </ComponentSpecimen>
 
-            <Subsection title="상태와 목록 행">
+            <ComponentSpecimen
+              title="상태와 목록 행"
+              description="left·contents·right 구조로 정보와 상태, 이동 가능 여부를 빠르게 비교합니다."
+              contract="행 전체가 이동 동작이면 전체를 하나의 interactive element로 만들고 상태를 색상만으로 구분하지 않습니다."
+            >
               <div className="max-w-[560px]">
                 <ListGroup className="mt-0" variant="plain">
                   <ListRow description="고객 확인 대기" end="v1.0">범위와 견적</ListRow>
@@ -293,9 +405,13 @@ export function DesignSystemPage() {
                 </ListGroup>
               </div>
               <p className="mt-4 max-w-[560px] text-sm leading-6 text-ink-600">목록은 left·contents·right 영역으로 구성합니다. 사진이 판단 근거일 때만 왼쪽 썸네일을 쓰고, 설정·기록 목록은 바깥 카드 없이 화면 구분선으로 묶습니다.</p>
-            </Subsection>
+            </ComponentSpecimen>
 
-            <Subsection title="다음 작업 카드">
+            <ComponentSpecimen
+              title="다음 작업 카드"
+              description="현재 판단 대상, 핵심 값과 다음 행동을 한 경계 안에서 연결합니다."
+              contract="우선 작업 한 개에만 사용하며 요약 카드가 연속으로 반복되지 않게 구분선 목록과 조합합니다."
+            >
               <article className="app-panel max-w-[560px] p-5">
                 <p className="text-sm font-bold text-primary-700">다음 작업</p>
                 <h3 className="mt-1 text-[22px] leading-7 font-extrabold">업체가 보낸 범위와 견적을 확인해 주세요</h3>
@@ -304,7 +420,7 @@ export function DesignSystemPage() {
                 </div>
                 <Button className="mt-5 w-full">범위와 견적 확인</Button>
               </article>
-            </Subsection>
+            </ComponentSpecimen>
           </DocSection>
 
           <DocSection id="patterns" kicker="04" title="화면 패턴" summary="페이지 유형마다 정보가 나타나는 순서를 고정합니다.">
@@ -385,6 +501,8 @@ export function DesignSystemPage() {
                 <ReferenceLink href="https://designsystem.line.me/" label="LINE Design System" description="내비게이션, 타이포그래피, 컴포넌트 기준" />
                 <ReferenceLink href="https://seed-design.io/" label="SEED Design System" description="Foundation → Component → Pattern 구조" />
                 <ReferenceLink href="https://developers-apps-in-toss.toss.im/design/components.html" label="Apps in Toss" description="모바일 공통 컴포넌트의 역할과 조합" />
+                <ReferenceLink href="https://github.com/january2w0/trading-dashboard-design" label="Trading Dashboard Design" description="계약·토큰 data·실제 specimen·전시 page 분리와 실측 중심 문서 구조" />
+                <ReferenceLink href="https://github.com/january2w0/likelion-tuk" label="Likelion TUK" description="버튼 size variant와 역할별 radius 단계 구성" />
                 <div className="flex min-h-14 items-center gap-3 border-b border-line py-3">
                   <ShieldCheck aria-hidden="true" className="size-5 shrink-0 text-primary-700" />
                   <span className="min-w-0"><strong className="block">프로젝트 레퍼런스 이미지</strong><span className="mt-0.5 block text-ink-600">짐싸·이사로·숨고·미소의 정보 밀도와 화면 구조를 참고하며 시각 복제는 하지 않습니다.</span></span>
@@ -428,6 +546,36 @@ function Subsection({ children, title }: { children: ReactNode; title: string })
     <section className="mt-10 first:mt-0">
       <h3 className="mb-4 text-lg font-extrabold">{title}</h3>
       {children}
+    </section>
+  );
+}
+
+function ComponentSpecimen({
+  children,
+  contract,
+  description,
+  title,
+}: {
+  children: ReactNode;
+  contract: string;
+  description: string;
+  title: string;
+}) {
+  return (
+    <section className="mt-10 first:mt-0">
+      <header className="grid gap-4 border-t border-line pt-5 md:grid-cols-[minmax(0,1fr)_minmax(16rem,0.8fr)]">
+        <div>
+          <h3 className="text-lg font-bold">{title}</h3>
+          <p className="mt-2 max-w-[620px] text-sm leading-5 text-ink-600">{description}</p>
+        </div>
+        <dl className="border-l-2 border-primary-100 pl-4">
+          <dt className="text-xs font-bold text-primary-700">사용 계약</dt>
+          <dd className="mt-1 text-sm leading-5 text-ink-600">{contract}</dd>
+        </dl>
+      </header>
+      <div className="mt-5 rounded-[var(--radius-card)] border border-line bg-surface p-4 md:p-6">
+        {children}
+      </div>
     </section>
   );
 }

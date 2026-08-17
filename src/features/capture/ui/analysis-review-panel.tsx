@@ -1,19 +1,37 @@
 import {
+  ArmchairIcon as Armchair,
+  BedIcon as Bed,
+  BooksIcon as Books,
+  ChairIcon as Chair,
+  CheckIcon as Check,
+  CoatHangerIcon as CoatHanger,
+  CookingPotIcon as CookingPot,
+  DeskIcon as Desk,
+  FanIcon as Fan,
   ImageIcon as Image,
+  LampIcon as Lamp,
+  OfficeChairIcon as OfficeChair,
+  OvenIcon as Oven,
+  PackageIcon as Package,
   PlusIcon as Plus,
   ArrowCounterClockwiseIcon as RotateCcw,
+  ShirtFoldedIcon as ShirtFolded,
+  TableIcon as Table,
+  TelevisionSimpleIcon as Television,
   TrashIcon as Trash2,
+  WashingMachineIcon as WashingMachine,
+  type Icon,
 } from "@phosphor-icons/react";
 import {
   WarningStatusIcon as AlertTriangle,
 } from "@/components/icons";
-import type { FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import type { AnalysisReview, RoomZone } from "@/features/capture/api/capture-api";
+import type { AnalysisReview } from "@/features/capture/api/capture-api";
 
 export interface AnalysisReviewDraftItem {
   itemKey: string;
@@ -37,77 +55,65 @@ interface AnalysisReviewPanelProps {
 export const ANALYSIS_REVIEW_FORM_ID = "analysis-review-form";
 export const MANUAL_SCOPE_FORM_ID = "manual-scope-form";
 
+type ManualCategory = "가구" | "가전" | "기타";
+const manualCategoryTone: Record<ManualCategory, string> = {
+  가구: "bg-primary-50 text-primary-700",
+  가전: "bg-success-bg text-success-ink",
+  기타: "bg-warning-bg text-warning-ink",
+};
+const manualCatalog: Array<{ category: ManualCategory; icon: Icon; label: string }> = [
+  { category: "가구", icon: Bed, label: "침대" },
+  { category: "가구", icon: Armchair, label: "소파" },
+  { category: "가구", icon: CoatHanger, label: "옷장" },
+  { category: "가구", icon: ShirtFolded, label: "서랍장" },
+  { category: "가구", icon: Books, label: "책장" },
+  { category: "가구", icon: Desk, label: "책상" },
+  { category: "가구", icon: Table, label: "테이블" },
+  { category: "가구", icon: Chair, label: "의자" },
+  { category: "가구", icon: OfficeChair, label: "사무용 의자" },
+  { category: "가구", icon: Lamp, label: "스탠드" },
+  { category: "가전", icon: Television, label: "TV" },
+  { category: "가전", icon: WashingMachine, label: "세탁기" },
+  { category: "가전", icon: Oven, label: "전자레인지" },
+  { category: "가전", icon: Fan, label: "선풍기" },
+  { category: "가전", icon: CookingPot, label: "주방 가전" },
+  { category: "기타", icon: Package, label: "이사 박스" },
+  { category: "기타", icon: CoatHanger, label: "행거" },
+  { category: "기타", icon: Books, label: "책" },
+];
+
 export function ManualScopeEditor({
   draftItems,
   onAdd,
-  onChange,
   onRemove,
   onSubmit,
-  zones,
 }: {
   draftItems: AnalysisReviewDraftItem[];
-  onAdd: () => void;
-  onChange: (itemKey: string, changes: Partial<AnalysisReviewDraftItem>) => void;
+  onAdd: (description?: string) => void;
   onRemove: (itemKey: string) => void;
   onSubmit: () => void;
-  zones: RoomZone[];
 }) {
+  const [category, setCategory] = useState<ManualCategory>("가구");
+  const selected = new Map(draftItems.map((item) => [item.description, item.itemKey]));
+  const toggle = (label: string) => {
+    const itemKey = selected.get(label);
+    if (itemKey) onRemove(itemKey);
+    else onAdd(label);
+  };
   return (
     <form id={MANUAL_SCOPE_FORM_ID} onSubmit={(event) => { event.preventDefault(); onSubmit(); }}>
-      <section className="mt-6 border-t border-line pt-5">
-        <h2 className="text-xl font-extrabold">짐 목록을 직접 작성해요</h2>
-        <p className="mt-1 text-ui-support leading-5 text-ink-600">
-          AI 분석 없이 공간과 짐 설명을 입력해 업체 검토용 초안을 만들 수 있어요.
-        </p>
-        <div className="mt-4 divide-y divide-line border-y border-line">
-          {draftItems.map((draft, index) => (
-            <article className="py-5" key={draft.itemKey}>
-              <div className="flex items-center justify-between gap-3">
-                <Badge variant="neutral">직접 입력 {index + 1}</Badge>
-                {draftItems.length > 1 ? (
-                  <button
-                    aria-label={`${index + 1}번 항목 삭제`}
-                    className="grid size-9 place-items-center rounded-full text-ink-400 hover:bg-danger-bg hover:text-danger-ink"
-                    onClick={() => onRemove(draft.itemKey)}
-                    type="button"
-                  >
-                    <Trash2 aria-hidden="true" size={17} />
-                  </button>
-                ) : null}
-              </div>
-              <label className="mt-4 block text-sm font-bold text-ink-400">
-                공간
-                <Select
-                  autoComplete="off"
-                  className="mt-1.5 h-11 px-3 text-base font-bold"
-                  name={`manual-item-${index + 1}-room`}
-                  onChange={(event) => onChange(draft.itemKey, { roomZoneId: event.target.value })}
-                  value={draft.roomZoneId}
-                >
-                  {zones.map((zone) => <option key={zone.id} value={zone.id}>{zone.name}</option>)}
-                </Select>
-              </label>
-              <label className="mt-3 block text-sm font-bold text-ink-400">
-                짐 또는 작업 설명
-                <Textarea
-                  aria-invalid={draft.description.trim().length === 0}
-                  autoComplete="off"
-                  className="mt-1.5 min-h-20 resize-none px-3 py-3 text-lg font-semibold leading-5"
-                  maxLength={2000}
-                  name={`manual-item-${index + 1}-description`}
-                  onChange={(event) => onChange(draft.itemKey, { description: event.target.value })}
-                  placeholder="예: 3인용 소파 1개"
-                  required
-                  value={draft.description}
-                />
-              </label>
-            </article>
-          ))}
-          <Button className="my-4 w-full" onClick={onAdd} size="chip" type="button" variant="secondary">
-            <Plus aria-hidden="true" size={17} />
-            항목 추가
-          </Button>
+      <section className="mt-5">
+        <div className="grid grid-cols-3 rounded-2xl bg-surface-muted p-1" role="tablist" aria-label="짐 종류">
+          {(["가구", "가전", "기타"] as ManualCategory[]).map((item) => <button aria-selected={category === item} className={`min-h-11 rounded-xl text-sm font-extrabold ${category === item ? "bg-surface text-ink-900" : "text-ink-600"}`} key={item} onClick={() => setCategory(item)} role="tab" type="button">{item}</button>)}
         </div>
+        <div className="mt-7 flex items-center justify-between"><h2 className="text-[22px] font-black">{category}</h2><span className="text-sm font-bold text-primary-700">{draftItems.length}개 선택</span></div>
+        <div className="mt-3 grid grid-cols-3 gap-x-2 gap-y-5 min-[400px]:grid-cols-4">
+          {manualCatalog.filter((item) => item.category === category).map(({ icon: CatalogIcon, label }) => {
+            const active = selected.has(label);
+            return <button aria-pressed={active} className={`relative flex min-h-[116px] min-w-0 flex-col items-center justify-center rounded-2xl px-1 text-center ${active ? "bg-primary-50 text-primary-800 ring-2 ring-primary-600" : "bg-surface text-ink-900"}`} key={label} onClick={() => toggle(label)} type="button"><span className={`grid size-14 place-items-center rounded-2xl ${manualCategoryTone[category]}`}><CatalogIcon aria-hidden="true" size={35} weight="duotone" /></span><span className="mt-2 line-clamp-2 text-[13px] font-extrabold">{label}</span>{active ? <span className="absolute right-2 top-2 grid size-6 place-items-center rounded-full bg-primary-600 text-white"><Check aria-hidden="true" size={15} weight="bold" /></span> : null}</button>;
+          })}
+        </div>
+        {draftItems.length > 0 ? <button className="mx-auto mt-8 flex min-h-11 items-center gap-2 px-4 text-sm font-bold text-ink-600" onClick={() => draftItems.forEach((item) => onRemove(item.itemKey))} type="button"><RotateCcw aria-hidden="true" size={17} />선택 초기화</button> : null}
       </section>
     </form>
   );

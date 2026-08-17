@@ -276,11 +276,32 @@ function createState(): MockState {
       evidence_media_asset_ids: ["mock-elevator-evidence"],
       reported_by_participant_id: WORKER_ID,
       reported_at: createdAt,
-      status: "open",
-      change_proposal_id: null,
+      status: "customer_review",
+      change_proposal_id: "change-proposal-elevator",
     }],
     job,
-    proposals: {},
+    proposals: {
+      "change-proposal-elevator": {
+        job: jobHeader,
+        proposal_id: "change-proposal-elevator",
+        field_issue_id: "field-issue-elevator",
+        status: "pending",
+        title: "계단 운반 · 5층",
+        reason: "엘리베이터 운행 중단 (현장 점검 중)",
+        base_scope_version_id: SCOPE_ID,
+        base_scope_version_label: "v3",
+        result_scope_version_id: null,
+        evidence_media: [{ media_asset_id: "mock-elevator-evidence", room_zone_id: ORIGIN_ZONE_ID, content_type: "image/jpeg", read_url: "/elevator-outage-evidence.png", expires_at: future() }],
+        quote: { base_amount_krw: 850_000, adjustments: [{ label: "계단 운반 · 5층", amount_krw: 50_000 }], total_amount_krw: 900_000 },
+        requested_at: createdAt,
+        clarification_note: null,
+        clarification_requested_at: null,
+        explanation: null,
+        explained_at: null,
+        decided_at: null,
+        decision_note: null,
+      },
+    },
     scope,
     scopeVersions,
     sessions,
@@ -376,7 +397,7 @@ export async function mockApiRequest<T>(path: string, init: RequestInit, accessT
     const issue = state.issues.find(({ field_issue_id }) => field_issue_id === input.field_issue_id)!;
     issue.change_proposal_id = proposalId;
     issue.status = "customer_review";
-    state.proposals[proposalId] = { job: state.scope.job, proposal_id: proposalId, field_issue_id: input.field_issue_id, status: "pending", title: input.title, reason: input.reason, base_scope_version_id: input.base_scope_version_id, base_scope_version_label: state.scope.scope.version_label, result_scope_version_id: null, evidence_media: [], quote: input.quote, requested_at: now(), clarification_note: null, clarification_requested_at: null, explanation: null, explained_at: null, decided_at: null, decision_note: null };
+    state.proposals[proposalId] = { job: state.scope.job, proposal_id: proposalId, field_issue_id: input.field_issue_id, status: "pending", title: input.title, reason: input.reason, base_scope_version_id: input.base_scope_version_id, base_scope_version_label: state.scope.scope.version_label, result_scope_version_id: null, evidence_media: issue.evidence_media_asset_ids.map((media_asset_id) => ({ media_asset_id, room_zone_id: ORIGIN_ZONE_ID, content_type: "image/jpeg", read_url: "/elevator-outage-evidence.png", expires_at: future() })), quote: input.quote, requested_at: now(), clarification_note: null, clarification_requested_at: null, explanation: null, explained_at: null, decided_at: null, decision_note: null };
     return result({ proposal_id: proposalId }) as Promise<T>;
   }
   const proposalMatch = path.match(new RegExp(`^${jobPath}/change-proposals/([^/]+)(?:/(decision|explanation))?$`));
@@ -390,6 +411,9 @@ export async function mockApiRequest<T>(path: string, init: RequestInit, accessT
       proposal.decision_note = input.note ?? null;
       proposal.decided_at = now();
       if (input.decision === "request_clarification") proposal.clarification_requested_at = now();
+      const issue = state.issues.find(({ field_issue_id }) => field_issue_id === proposal.field_issue_id);
+      if (issue) issue.status = proposal.status as FieldIssue["status"];
+      if (input.decision === "approve") state.scope.quote = proposal.quote;
     } else {
       proposal.explanation = input.explanation ?? null;
       proposal.explained_at = now();

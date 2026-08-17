@@ -28,30 +28,40 @@ typography:
     fontFamily: "'Pretendard', Inter, ui-sans-serif, system-ui, sans-serif"
     description: "본문과 UI 전체에 사용한다."
   screen-title:
-    fontSize: "28px ~ 32px"
+    fontSize: "32px"
     fontWeight: 800
-    lineHeight: "32px ~ 36px"
-  sheet-title:
+    lineHeight: "38px"
+  page-title:
+    fontSize: "28px"
+    fontWeight: 800
+    lineHeight: "36px"
+  section-title:
     fontSize: "22px"
-    fontWeight: 800
-    lineHeight: "30px"
+    fontWeight: 700
+    lineHeight: "29px"
   card-title:
     fontSize: "17px"
     fontWeight: 700
     lineHeight: "24px"
   body:
-    fontSize: "14px ~ 16px"
-    fontWeight: "500 ~ 700"
-    lineHeight: "19px ~ 22px"
-  caption:
-    fontSize: "12px ~ 13px"
-    fontWeight: "600 ~ 700"
+    fontSize: "16px"
+    fontWeight: 500
+    lineHeight: "24px"
+  supporting:
+    fontSize: "14px"
+    fontWeight: 500
+    lineHeight: "20px"
+  label:
+    fontSize: "12px"
+    fontWeight: 700
+    lineHeight: "16px"
 
 rounded:
-  control: "0.75rem"
-  button: "0.75rem"
-  card: "1rem"
-  sheet: "28px 28px 0 0"
+  small: "0.5rem"
+  control: "0.625rem"
+  card: "0.875rem"
+  feature: "1.125rem"
+  sheet: "20px 20px 0 0"
   full: "9999px"
 
 spacing:
@@ -59,7 +69,7 @@ spacing:
   screen-x: "20px ~ 24px"
   card-padding: "16px ~ 20px"
   control-gap: "8px ~ 12px"
-  section-gap: "20px ~ 28px"
+  section-gap: "24px ~ 32px"
 
 icons:
   family: "@phosphor-icons/react"
@@ -106,7 +116,7 @@ components:
 
 # SEQRET 디자인 시스템
 
-> 단일 원본: `tokens.css`(값) → `src/app/styles.css`(Tailwind 연결) → `src/components/ui`(primitive) → `src/components/workflow`(제품 패턴)
+> 단일 원본: `design-system.md`(계약) → `tokens.css`(값) → `src/app/styles.css`(Tailwind 연결) → `src/components/ui`(primitive) → `src/components/layout`·`src/components/workflow`(제품 패턴) → `/design-system`(실제 표본)
 
 ## Overview
 
@@ -126,6 +136,19 @@ SEQRET은 거래 상태를 오해 없이 전달하는 것을 시각적 장식보
 - 320–432px 집중 업무 열과 4개 하단 메뉴를 기준으로 한 역할별 흐름
 - border와 surface 차이를 중심으로 한 낮은 elevation
 - Pretendard 기반의 한국어 우선 typography
+
+## Documentation Architecture
+
+디자인 시스템은 설명 문서와 실제 구현을 분리하되 같은 변경에서 함께 검수한다.
+
+| 계층 | 단일 원본 | 책임 |
+| --- | --- | --- |
+| 계약 | `design-system.md` | 원칙, 타입 위계, 간격, 상태와 컴포넌트 사용 조건 |
+| 토큰 | `tokens.css` | 색상, 글자 크기, 4px 간격, 형태, 동작의 실제 값 |
+| 구현 | `src/components/ui` → `layout` → `workflow` | primitive에서 역할별 업무 패턴까지 조합 |
+| 표본 | `/design-system` | 토큰 실측, 실제 컴포넌트, 사용 계약, 화면 순서 검수 |
+
+전시 페이지는 `Foundations → Components → Patterns → Behavior/Quality` 순서로 구성한다. 각 컴포넌트 표본에는 이름, 목적, 사용 계약과 실제 렌더링을 함께 제공한다. 문서 전용으로 비슷한 가짜 컴포넌트를 다시 만들지 않는다.
 
 ## Colors
 
@@ -168,13 +191,15 @@ semantic color는 장식용으로 사용하지 않는다. 금액 증가와 오�
 
 ### Hierarchy
 
-| Role | Size | Weight | Use |
-| --- | --- | ---: | --- |
-| screen-title | 28~32px | 800 | 현재 과업, 최종 금액 |
-| sheet-title | 22px | 800 | bottom sheet 제목 |
-| card-title | 17px | 700 | 카드 단위 제목 |
-| body | 14~16px | 500~700 | 설명, 목록, 입력, 버튼 |
-| caption | 12~13px | 600~700 | 상태, 시간, 부가 정보 |
+| Role | Size / Line height | Weight | Tracking | Use |
+| --- | --- | ---: | --- | --- |
+| screen-title | 32 / 38px | 800 | −0.025em | 역할 홈의 현재 과업, 최종 금액 |
+| page-title | 28 / 36px | 800 | −0.025em | 상세 화면과 업무 목록 제목 |
+| section-title | 22 / 29px | 700 | −0.025em | 서로 다른 판단 단위의 제목 |
+| component-title | 17 / 24px | 700 | 0 | 카드와 목록 묶음 제목 |
+| body | 16 / 24px | 500 | 0 | 설명, 입력과 주요 목록 내용 |
+| supporting | 14 / 20px | 500 | 0 | 시간, metadata와 보조 설명 |
+| status-label | 12 / 16px | 700 | 0 | 상태, 버전과 짧은 label |
 
 ### Principles
 
@@ -191,7 +216,31 @@ semantic color는 장식용으로 사용하지 않는다. 금액 증가와 오�
 - **Screen padding**: 20~24px
 - **Card padding**: 16~20px
 - **Control gap**: 8~12px
-- **Section gap**: 20~28px
+- **Section gap**: 24~32px
+
+| 단계 | Token | Value | Use |
+| --- | --- | ---: | --- |
+| 3XS | `--space-3xs` | 4px | 아이콘 내부와 미세 정렬 |
+| 2XS | `--space-2xs` | 8px | 인접한 조작과 label 사이 |
+| XS | `--space-xs` | 12px | control 내부와 작은 묶음 |
+| SM | `--space-sm` | 16px | 기본 card padding |
+| Gutter | `--content-gutter` | 20~24px | mobile 화면 좌우 여백 |
+| MD | `--space-md` | 24px | section 내부와 작업 묶음 |
+| LG | `--space-lg` | 32px | 서로 다른 판단 단위 사이 |
+| XL | `--space-xl` | 40px | 큰 문맥 전환 |
+
+### Control and Layout Metrics
+
+| 대상 | Value | Rule |
+| --- | ---: | --- |
+| 기본 Button·Input | 44px | 일반 행동과 입력의 기본 높이이자 최소 터치 영역 |
+| Primary CTA | 52px | 화면의 단일 우선 행동 |
+| List row | 64px 이상 | 제목, 보조 정보와 상태를 포함 |
+| Card inset | 16~20px | 정보 밀도에 맞춰 두 값 중 선택 |
+| Mobile gutter | 20~24px | 320~432px viewport에 적용 |
+| Section rhythm | 24~32px | 같은 문맥은 24px, 문맥 전환은 32px |
+
+참고 저장소의 24~40px dense control은 크기 단계의 개념만 참고한다. SEQRET은 mobile touch 업무가 중심이므로 터치 영역은 44px 이상을 지키고, 일반 control 44px와 화면 CTA 52px 두 높이로 단순화한다.
 
 ### Mobile Frame
 
@@ -223,10 +272,14 @@ semantic color는 장식용으로 사용하지 않는다. 금액 증가와 오�
 
 | Token | Value | Use |
 | --- | --- | --- |
-| `--radius-input` | 12px | Button, 입력, 작은 정보 영역 |
-| `--radius-card` | 16px | 다음 작업처럼 경계가 필요한 Card |
-| `rounded-t-[28px]` | 상단 28px | Sheet |
+| `--radius-small` | 8px | 작은 상태 영역과 조밀한 내부 surface |
+| `--radius-control` | 10px | Button, 입력, 선택 control |
+| `--radius-card` | 14px | 목록과 구분해야 하는 일반 Card |
+| `--radius-feature` | 18px | Hero, 현재 작업처럼 상위 surface |
+| `--radius-sheet` | 상단 20px | Sheet |
 | `rounded-full` | 9999px | Badge, icon button, 진행 표시 |
+
+일반 card에는 shadow를 사용하지 않는다. 고정 navigation, 떠 있는 action bar와 sheet처럼 실제로 다른 층에 놓인 surface에만 raised shadow를 사용한다.
 
 ## Icons
 
@@ -328,6 +381,17 @@ Sheet는 화면을 떠나지 않고 짧게 처리할 수 있는 단일 작업에
 
 primitive의 실제 variant와 class는 `src/components/ui`, 업무 구조는 `src/components/workflow`를 단일 원본으로 사용한다.
 
+### Specimen contract
+
+`/design-system`에서 각 컴포넌트는 아래 네 항목을 같은 순서로 전시한다.
+
+1. **이름** — 구현과 같은 컴포넌트 이름을 사용한다.
+2. **목적** — 어떤 정보나 행동을 구분하는지 한 문장으로 설명한다.
+3. **사용 계약** — 사용 조건, 피해야 할 조합과 접근성 조건을 명시한다.
+4. **실제 표본** — 제품에서 import한 실제 primitive 또는 pattern을 렌더링한다.
+
+variant를 나열하는 것만으로 끝내지 않고 기본, 선택, 대기, 오류, disabled처럼 사용자가 실제로 마주치는 상태를 검수한다. 코드 전시를 위해 제품 컴포넌트를 복제하지 않는다.
+
 ### Buttons
 
 | Variant | Use |
@@ -339,7 +403,14 @@ primitive의 실제 variant와 class는 `src/components/ui`, 업무 구조는 `s
 | `destructive` | 링크 폐기, 삭제와 위험 행동 |
 | `kakao` | 역할 링크 카카오톡 공유에만 사용 |
 
-크기는 `cta` 56px, `default` 48px, `chip` 40px, `icon` 40×40px을 사용한다. 한 화면에 primary CTA를 여러 개 두지 않는다.
+| Size | Height | Use |
+| --- | ---: | --- |
+| `chip` | 44px | 필터와 짧은 inline action. 글자와 좌우 padding만 작게 한다. |
+| `default` | 44px | 입력과 나란히 쓰는 일반 행동 |
+| `cta` | 52px | 화면 또는 sheet의 단일 우선 행동 |
+| `icon` | 44×44px | 아이콘만 있는 조작. 접근 가능한 이름을 제공한다. |
+
+모바일 터치 영역은 44px보다 작게 만들지 않는다. 크기 차이는 높이만 키우지 않고 label 크기와 좌우 padding, 배치 맥락으로 구분한다. 한 화면에 primary CTA를 여러 개 두지 않는다.
 
 ### Badges
 
@@ -448,4 +519,6 @@ Badge만으로 상태를 설명하지 않는다. 가까운 제목이나 본문�
 - [Toss 앱인토스 디자인 시스템](https://developers-apps-in-toss.toss.im/design/components.html)의 목록·탭·하단 CTA 같은 공통 언어를 참고하되, 전용 자산은 복제하지 않고 제품 맥락에 맞는 구조 원칙만 적용한다.
 - [shadcn/ui](https://ui.shadcn.com/docs)는 패키지 전체를 덧붙이는 대신 기존 Base UI primitive와 CVA variant를 조합하는 코드 소유 방식으로 사용한다.
 - [Vercel Web Interface Guidelines](https://github.com/vercel-labs/web-interface-guidelines)의 URL 상태, focus-visible, semantic control, safe area, 이미지 크기, 파괴적 행동 확인 기준을 모바일 공통 규칙으로 사용한다.
+- [Trading Dashboard Design](https://github.com/january2w0/trading-dashboard-design)의 `DESIGN.md → token data → specimen component → design-system page` 분리와 spacing 실측 표본 구조를 참고한다. 글자 크기·두께·간격 전시 방식만 적용하고 dark palette, font family와 dense desktop control 크기는 가져오지 않는다.
+- [Likelion TUK](https://github.com/january2w0/likelion-tuk)의 `buttonVariants` 크기 분리와 2·4·6·10px radius 단계 개념을 참고한다. 실제 값은 모바일 최소 터치 영역과 SEQRET의 기존 surface에 맞춰 44·52px control과 8·10·14·18·20px shape 단계로 조정한다.
 - 외부 디자인 시스템의 시각적 모양이나 브랜드 자산은 복제하지 않는다. 정보 위계, 상태, 접근성, component governance 원칙만 참고한다.

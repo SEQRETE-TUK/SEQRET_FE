@@ -71,6 +71,105 @@
     "slopTest": "pass",
     "verification": "390x844 customer, provider and field-worker flows verified with no horizontal overflow; final reference/implementation comparison saved under .codex/frontend-brief-qa"
   },
+  "providerDashboardIteration": {
+    "date": "2026-08-18",
+    "source": "three user-supplied provider dashboard references",
+    "macrostructure": "desktop workbench with persistent side rail, job ledger, scope quote editor and evidence-led change proposal",
+    "changes": [
+      "Routed company managers directly to the provider web console",
+      "Kept mock-only sample jobs out of production data",
+      "Made customer-review quotes explicitly read-only",
+      "Connected shared input borders to the existing neutral token",
+      "Adjusted the field-issue workbench for 1280px laptop widths"
+    ],
+    "preEmitCritique": {
+      "philosophy": 5,
+      "hierarchy": 5,
+      "execution": 5,
+      "specificity": 5,
+      "restraint": 5,
+      "variety": 4
+    },
+    "slopTest": "pass",
+    "verification": "Role entry, job dashboard, quote view and field-issue workbench verified in the Codex in-app browser at 1280x800 and 1536x1024 with zero horizontal overflow"
+  },
+  "consumerMoveIteration": {
+    "date": "2026-08-18",
+    "source": "ten user browser comments and three supplied mobile references",
+    "macrostructure": "narrative workflow from editable move conditions through quantity review to evidence-led agreement",
+    "changes": [
+      "Removed redundant move-type and preparation-summary cards",
+      "Added full-page schedule and origin/destination condition editors",
+      "Rebuilt inventory as searchable quantity cards with direct remove controls",
+      "Kept recent field reports above a collapsible amount breakdown and confirmed scope",
+      "Replaced the prevention-card glyph with an asymmetrically cropped generated elevator-and-stairs illustration"
+    ],
+    "preEmitCritique": {
+      "philosophy": 5,
+      "hierarchy": 5,
+      "execution": 5,
+      "specificity": 5,
+      "restraint": 5,
+      "variety": 4
+    },
+    "slopTest": "pass",
+    "verification": "Home, move info, schedule and route editors, inventory controls and collapsible agreement verified in the Codex in-app browser; no horizontal overflow at 320, 375, 414 or 768px",
+    "latestRefinement": {
+      "source": "nine additional browser comments and three supplied mobile references",
+      "changes": [
+        "Replaced the prevention cards' mixed photo and line icons with one consistent colorful SVG family",
+        "Moved manual and AI inventory entry into a two-action floating bar",
+        "Removed redundant inventory and agreement guidance blocks",
+        "Added a replayable field-report detail and server-data-based agreement history"
+      ],
+      "verification": "Inventory and agreement verified at 320, 375, 414 and 768px plus 812x375 landscape; direct manual entry, field report and history interactions passed"
+    }
+  },
+  "listNavigationIteration": {
+    "date": "2026-08-18",
+    "source": "six user browser comments and customer/crew list references",
+    "macrostructure": "role entry to customer home, then list-first customer moves and field-worker jobs with detail-only subnavigation",
+    "changes": [
+      "Removed customer security-code and onboarding controls from role entry",
+      "Moved customer onboarding to the home capture card and new-move action",
+      "Added session-scoped restoration across reloads",
+      "Added real-data progress and history tabs before customer and field-worker detail screens",
+      "Reduced field-worker detail navigation to agreement, field report and completion"
+    ],
+    "preEmitCritique": {
+      "philosophy": 5,
+      "hierarchy": 5,
+      "execution": 5,
+      "specificity": 5,
+      "restraint": 5,
+      "variety": 4
+    },
+    "slopTest": "pass",
+    "verification": "Role entry, customer onboarding, customer move list, field-worker work list and three detail tabs verified in the Codex in-app browser; no horizontal overflow at 320, 375, 414, 667 landscape or 768px; no console errors"
+  },
+  "moveCaptureIteration": {
+    "date": "2026-08-18",
+    "source": "nine user browser comments and four supplied mobile references",
+    "macrostructure": "flat move ledger, evidence-first field-change review, catalog-based manual inventory and native PWA video capture",
+    "changes": [
+      "Removed redundant copy, brand chrome and detail CTA from the move ledger",
+      "Added two mock-only completed move records",
+      "Flattened agreement revision chrome and card shadows",
+      "Expanded field-report review into evidence, version delta, time and price decisions",
+      "Replaced freeform manual entry with a categorized selectable catalog",
+      "Added environment-camera capture and post-recording inventory review"
+    ],
+    "preEmitCritique": {
+      "philosophy": 5,
+      "hierarchy": 5,
+      "execution": 4,
+      "specificity": 5,
+      "restraint": 5,
+      "variety": 4
+    },
+    "slopTest": "pass",
+    "verification": "Move list, mock history, agreement, field-change detail, manual selection and video review verified in the Codex in-app browser; no horizontal overflow at 320, 390, 414 or 768px; ESLint, TypeScript and production build passed"
+  },
   "changes": [
     "Strengthened the shared app bar and bottom navigation without adding new chrome",
     "Replaced vague customer copy with current status and the exact requested confirmation",
@@ -103,8 +202,8 @@
     "build": "ESLint, TypeScript, Vite production build and git diff check passed"
   },
   "deliberateNonChanges": [
-    "No new dependency, route or speculative abstraction",
-    "No API, authentication, state model or Mock API behavior change",
+    "No new dependency or speculative abstraction",
+    "No backend endpoint or Mock API contract change",
     "No user-authored or production file deletion",
     "No decorative asset generation",
     "No copied brand asset or proprietary design-system component"
