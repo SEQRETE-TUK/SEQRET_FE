@@ -33,7 +33,8 @@ import { useState, type ReactNode } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { mockApiEnabled } from "@/api/mock-api";
-import { MovingItemIcon, movingItemAssetForName } from "@/components/moving-item-icon";
+import { movingItemAssetForName } from "@/components/moving-item-assets";
+import { MovingItemIcon } from "@/components/moving-item-icon";
 import { AgreementOverview } from "@/components/layout/agreement-overview";
 import { ActiveMoveCard, FilterChip, InventoryQuantityRow, MoveJourneyProgress } from "@/components/layout/app-primitives";
 import { ConnectedProfile } from "@/components/layout/connected-profile";
@@ -531,7 +532,7 @@ function ConsumerAgreement({ completion, connection, fallbackLocationConditions,
     onSuccess: async () => { setIssueOpen(false); await refresh(); },
   });
   if (!scope) return <div className="px-[var(--content-gutter)] py-8 text-sm text-ink-600">확인서를 불러오는 중입니다.</div>;
-  if (scope.company_participation_status === "company_not_invited") return <CompanyInvitationEmpty connection={connection} scope={scope} />;
+  if (scope.company_participation_status === "company_not_invited") return <CompanyInvitationEmpty connection={connection} />;
   if (scope.company_participation_status === "company_invited") return <CompanyInvitationPending scope={scope} />;
 
   return (
@@ -655,7 +656,7 @@ function AgreementHistorySheet({ issue, onOpenChange, open, scope }: { issue: Fi
   );
 }
 
-function CompanyInvitationEmpty({ connection, scope }: { connection: Connection; scope: ScopeReview }) {
+function CompanyInvitationEmpty({ connection }: { connection: Connection }) {
   const [displayName, setDisplayName] = useState("");
   const [issued, setIssued] = useState<InvitationIssued | null>(null);
   const [notice, setNotice] = useState("");
