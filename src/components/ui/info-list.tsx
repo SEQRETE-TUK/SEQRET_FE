@@ -46,7 +46,7 @@ function InfoList<Item>({
           {showHeader ? (
             <div className="grid gap-4 border-b border-line px-4 py-3 md:px-5" style={gridStyle}>
               {columns.map((column) => (
-                <strong className="text-xs font-bold text-ink-400" key={column.id}>{column.label}</strong>
+                <strong className="text-ui-control text-ink-400" key={column.id}>{column.label}</strong>
               ))}
             </div>
           ) : null}

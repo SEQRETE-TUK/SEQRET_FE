@@ -1,8 +1,6 @@
 import { MagnifyingGlassIcon as MagnifyingGlass } from "@phosphor-icons/react";
 import { useState } from "react";
 
-import { Input } from "@/components/ui/input";
-
 type PostcodeResult = {
   address: string;
   autoJibunAddress?: string;
@@ -66,10 +64,10 @@ export function AddressSearchInput({ id, onChange, value }: { id: string; onChan
   };
 
   return <div>
-    <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
-      <Input autoComplete="street-address" id={id} onChange={(event) => onChange(event.target.value)} placeholder="도로명 또는 지번 주소" value={value} />
-      <button className="inline-flex min-h-11 items-center justify-center gap-[var(--control-gap)] whitespace-nowrap rounded-[var(--radius-control)] border border-primary-400 bg-surface px-[var(--control-padding-x)] text-ui-control text-primary-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring" disabled={loading} onClick={search} type="button"><MagnifyingGlass aria-hidden="true" className="shrink-0" size="var(--icon-sm)" />{loading ? "불러오는 중" : "주소 검색"}</button>
-    </div>
-    {error ? <p className="mt-2 text-sm font-bold text-danger-ink" role="alert">{error} 직접 입력할 수도 있어요.</p> : null}
+    <button aria-label={value ? `주소 검색: ${value}` : "주소 검색"} className="flex min-h-12 w-full items-center justify-between gap-3 rounded-[var(--radius-control)] border border-line bg-surface px-4 text-left text-ui-control text-ink-900 focus-visible:border-primary-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring disabled:cursor-wait disabled:opacity-70" disabled={loading} id={id} onClick={search} type="button">
+      <span className={value ? "min-w-0 truncate text-ui-body" : "min-w-0 truncate text-ui-body text-ink-400"}>{loading ? "주소 불러오는 중" : value || "주소를 검색해 주세요"}</span>
+      <MagnifyingGlass aria-hidden="true" className="shrink-0 text-primary-700" size="var(--icon-sm)" />
+    </button>
+    {error ? <p className="mt-2 text-sm font-bold text-danger-ink" role="alert">{error} 다시 시도해 주세요.</p> : null}
   </div>;
 }

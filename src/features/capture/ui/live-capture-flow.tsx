@@ -82,8 +82,7 @@ function VideoCaptureStage({
   const [resultQuantities, setResultQuantities] = useState<Record<string, number>>({ boxes: 4 });
   const [resultFilter, setResultFilter] = useState<"all" | "review">("all");
   const detectedItems = [
-    { key: "bed", name: "침대 프레임", review: false },
-    { key: "mattress", name: "매트리스", review: false },
+    { key: "bed", name: "침대", review: false },
     { key: "desk", name: "책상", review: false },
     { key: "chair", name: "의자", review: false },
     { key: "fridge", name: "냉장고", review: false },

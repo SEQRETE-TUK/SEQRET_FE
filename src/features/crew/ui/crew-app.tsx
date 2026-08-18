@@ -5,11 +5,12 @@ import {
   BriefcaseIcon as BriefcaseBusiness,
   BuildingsIcon as Buildings,
   CameraIcon as Camera,
+  CaretDownIcon as CaretDown,
 
   CaretRightIcon as CaretRight,
   CheckIcon as Check,
   ChatCircleDotsIcon as ChatCircleDots,
-  DotsThreeIcon as More,
+  SquaresFourIcon as SquaresFour,
   HouseIcon as Home,
   KeyIcon as Key,
   PaperPlaneTiltIcon as PaperPlane,
@@ -28,7 +29,6 @@ import { ConnectedProfile } from "@/components/layout/connected-profile";
 import { MobileAppShell, MobileDetailHeader, MobileDetailTabs, MobilePageHeader, type MobileNavItem } from "@/components/layout/mobile-app-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useAuth, type AuthSession } from "@/features/auth/model/auth-context";
 import {
@@ -39,6 +39,7 @@ import {
   submitCompletion,
   workflowKeys,
   type Connection,
+  type FieldIssue,
   type ScopeReview,
 } from "@/features/workflow/api/workflow-api";
 import { CrewIssueReport } from "@/features/crew/ui/crew-issue-report";
@@ -49,7 +50,7 @@ type CrewWorkView = "list" | "agreement" | "report" | "completion";
 const items: MobileNavItem<CrewTab>[] = [
   { id: "home", label: "홈", icon: Home },
   { id: "work", label: "내 작업", icon: BriefcaseBusiness },
-  { id: "more", label: "더보기", icon: More },
+  { id: "more", label: "더보기", icon: SquaresFour },
 ];
 const validTabs = new Set<CrewTab>([...items.map(({ id }) => id), "notifications"]);
 const validWorkViews = new Set<CrewWorkView>(["list", "agreement", "report", "completion"]);
@@ -120,7 +121,7 @@ function CrewGuestHome({ onInvite }: { onInvite: () => void }) {
 }
 
 function CrewInviteHero({ onInvite }: { onInvite: () => void }) {
-  return <button className="ui-card ui-card-outlined ui-card-tinted press-static relative min-h-[174px] w-full overflow-hidden rounded-[var(--radius-feature)] px-5 py-4 text-left" onClick={onInvite} type="button"><span className="relative z-10 block max-w-[62%]"><strong className="block text-ui-section leading-7 font-extrabold tracking-[var(--tracking-display)]">초대 코드로<br />오늘 작업 연결하기</strong><span className="mt-1.5 block text-ui-data leading-5 text-ink-600">배정된 이사와 현장 정보를 한 번에 불러와요.</span><span className="mt-4 flex items-center gap-1 whitespace-nowrap text-ui-control text-primary-700">초대 코드 입력하기 <CaretRight aria-hidden="true" size="var(--icon-xs)" /></span></span><img alt="휴대폰으로 이삿짐을 확인하는 모습" className="absolute -right-2 bottom-0 w-[140px] max-w-none" height="213" src="/move-capture-hero.png" width="170" /></button>;
+  return <button className="mt-4 ui-card ui-card-outlined ui-card-tinted press-static relative min-h-[174px] w-full overflow-hidden rounded-[var(--radius-feature)] px-5 py-4 text-left" onClick={onInvite} type="button"><span className="relative z-10 block max-w-[62%]"><strong className="block text-ui-component font-extrabold tracking-[var(--tracking-display)]">초대 코드로<br />오늘 작업 연결하기</strong><span className="mt-1.5 block text-ui-data leading-5 text-ink-600">배정된 이사와 현장 정보를 한 번에 불러와요.</span><span className="mt-4 flex items-center gap-1 whitespace-nowrap text-ui-control text-primary-700">초대 코드 입력하기 <CaretRight aria-hidden="true" size="var(--icon-xs)" /></span></span><img alt="휴대폰으로 이삿짐을 확인하는 모습" className="absolute -right-2 bottom-0 w-[140px] max-w-none" height="213" src="/move-capture-hero.png" width="170" /></button>;
 }
 
 function CrewHomeHeader({ onBell }: { onBell: () => void }) {
@@ -156,7 +157,7 @@ function CrewInviteSheet({ connect, onOpenChange, open }: { connect: ReturnType<
       setPending(false);
     }
   };
-  return <Sheet onOpenChange={onOpenChange} open={open}><SheetContent><SheetHeader><SheetTitle>초대 코드 입력</SheetTitle><SheetDescription>업체가 전달한 초대 코드를 입력하면 배정된 이사와 연결돼요.</SheetDescription></SheetHeader><div className="px-5"><Label htmlFor="crew-invite-code">초대 코드</Label><Input className="mt-2" id="crew-invite-code" onChange={(event) => setSecret(event.target.value)} placeholder="초대 코드 붙여넣기" value={secret} />{error ? <p className="mt-3 text-sm font-bold text-danger-ink" role="alert">{error}</p> : null}</div><SheetFooter><Button className="w-full" disabled={!secret.trim() || pending} onClick={submit} size="cta"><Key aria-hidden="true" />{pending ? "연결 중" : "내 작업에 연결"}</Button></SheetFooter></SheetContent></Sheet>;
+  return <Sheet onOpenChange={onOpenChange} open={open}><SheetContent><SheetHeader><SheetTitle>초대 코드 입력</SheetTitle><SheetDescription>업체가 전달한 초대 코드를 입력하면 배정된 이사와 연결돼요.</SheetDescription></SheetHeader><div className="px-5 pb-2"><Input aria-label="초대 코드" className="mt-2" id="crew-invite-code" onChange={(event) => setSecret(event.target.value)} placeholder="초대 코드 붙여넣기" value={secret} />{error ? <p className="mt-3 text-sm font-bold text-danger-ink" role="alert">{error}</p> : null}</div><SheetFooter><Button className="w-full" disabled={!secret.trim() || pending} onClick={submit} size="cta"><Key aria-hidden="true" />{pending ? "연결 중" : "내 작업에 연결"}</Button></SheetFooter></SheetContent></Sheet>;
 }
 
 function CrewDetailHeader({ onBack, onMore, title }: { onBack: () => void; onMore: () => void; title: string }) {
@@ -175,7 +176,7 @@ function CrewWork({ brief, connection, issues, onViewChange, scope, view }: {
   return (
     <>
       <CrewDetailTabs current={view} onChange={onViewChange} />
-      {view === "agreement" ? <CrewApprovedScope onReport={() => onViewChange("report")} scope={scope} /> : null}
+      {view === "agreement" ? <CrewApprovedScope issue={issues[0]} scope={scope} /> : null}
       {view === "report" ? <CrewIssueReport brief={brief} connection={connection} issues={issues} /> : null}
       {view === "completion" ? <CrewCompletion brief={brief} connection={connection} issues={issues} /> : null}
     </>
@@ -204,15 +205,61 @@ function CrewHistoryCard({ date, destination, origin, reports }: { date: string;
   return <article className="ui-card p-5"><span className="inline-flex h-[var(--status-height)] items-center rounded-full bg-success-bg px-3 text-ui-status text-success-ink"><Check aria-hidden="true" className="mr-1" size="var(--icon-xs)" />완료</span><h2 className="mt-4 text-ui-section font-black">{origin} → {destination}</h2><p className="mt-2 text-ui-support text-ink-600">{date}</p><div className="mt-4 flex gap-4 border-t border-line pt-4 text-ui-data text-ink-600"><span>완료 체크 4/4</span><span>현장 보고 {reports}건</span></div></article>;
 }
 
-function CrewApprovedScope({ onReport, scope }: { onReport: () => void; scope: ScopeReview | undefined }) {
+function CrewApprovedScope({ issue, scope }: { issue?: FieldIssue; scope: ScopeReview | undefined }) {
   const [historyOpen, setHistoryOpen] = useState(false);
   if (!scope) return <div className="px-[var(--content-gutter)] py-8 text-sm text-ink-600">확인서를 불러오는 중입니다.</div>;
   return (
     <div className="space-y-2.5 px-[var(--content-gutter)] pb-28 pt-3">
       <AgreementOverview onOpenHistory={() => setHistoryOpen(true)} scope={scope} />
-      <Button className="w-full" onClick={onReport} size="cta"><WarningCircle aria-hidden="true" /> 현장 보고로 이동</Button>
-      <Sheet onOpenChange={setHistoryOpen} open={historyOpen}><SheetContent presentation="page" showClose={false}><MobilePageHeader onBack={() => setHistoryOpen(false)} description="현장에서 기준으로 삼는 승인본 기록이에요." title="변경 이력" /><div className="px-5 py-6"><ol className="border-l-2 border-success pl-6"><li className="pb-8"><span className="inline-flex rounded-md border border-success px-2 py-1 text-xs font-extrabold text-success">현재 유효본</span><h2 className="mt-3 text-ui-section font-black">{scope.scope.version_label} · 고객/업체 확인 완료</h2><p className="mt-2 text-sm text-ink-600">짐과 작업 조건을 함께 확인한 최신 승인본입니다.</p></li><li><h2 className="text-ui-section font-black">v2 · 업체 제안</h2><p className="mt-2 text-sm text-ink-600">현재 승인 전 초안</p></li></ol></div></SheetContent></Sheet>
+      <CrewAgreementHistorySheet issue={issue} onOpenChange={setHistoryOpen} open={historyOpen} scope={scope} />
     </div>
+  );
+}
+
+function CrewAgreementHistorySheet({ issue, onOpenChange, open, scope }: { issue?: FieldIssue; onOpenChange: (open: boolean) => void; open: boolean; scope: ScopeReview }) {
+  const [previousOpen, setPreviousOpen] = useState(false);
+  const versionMatch = /^v(\d+)$/i.exec(scope.scope.version_label);
+  const previousVersion = versionMatch && Number(versionMatch[1]) > 1 ? `v${Number(versionMatch[1]) - 1}` : "이전 기준";
+  const adjustments = scope.quote?.adjustments ?? [];
+  const reportDate = issue?.reported_at ? new Intl.DateTimeFormat("ko-KR", { year: "numeric", month: "long", day: "numeric", weekday: "short" }).format(new Date(issue.reported_at)) : null;
+  const handleOpenChange = (next: boolean) => { if (!next) setPreviousOpen(false); onOpenChange(next); };
+  const handleBack = () => { if (previousOpen) setPreviousOpen(false); else handleOpenChange(false); };
+  const money = (value: number | null | undefined) => value == null ? "금액 확인 중" : `${new Intl.NumberFormat("ko-KR").format(value)}원`;
+
+  return (
+    <Sheet onOpenChange={handleOpenChange} open={open}>
+      <SheetContent className="!transition-none" presentation="page" showClose={false}>
+        <MobilePageHeader onBack={handleBack} title={previousOpen ? `${previousVersion} 확인서` : "변경 이력"} />
+        {previousOpen ? (
+          <div className="px-5 py-6">
+            <section className="ui-card p-5">
+              <span className="inline-flex rounded-md bg-surface-muted px-2 py-1 text-xs font-extrabold text-ink-600">이전 승인본</span>
+              <h2 className="mt-3 text-ui-section font-black">{previousVersion} · 변경 전 기준</h2>
+              <dl className="mt-5 divide-y divide-line border-y border-line text-sm">
+                <div className="flex justify-between gap-4 py-3"><dt className="text-ink-600">짐 / 작업</dt><dd className="font-bold">짐 {scope.scope.item_count}개 · 작업 {scope.scope.work_count}개</dd></div>
+                <div className="flex justify-between gap-4 py-3"><dt className="text-ink-600">합의 금액</dt><dd className="font-bold tabular-nums">{money(scope.quote?.base_amount_krw)}</dd></div>
+              </dl>
+              <p className="mt-4 text-sm leading-6 text-ink-600">이 기록은 현재 변경안이 적용되기 전 승인된 작업 범위입니다.</p>
+            </section>
+          </div>
+        ) : (
+          <div className="px-5 py-6">
+            <ol className="relative ml-3 border-l-2 border-line pl-7">
+              <li className="relative pb-8">
+                <span aria-hidden="true" className="absolute top-0 -left-[37px] size-4 rounded-full border-[3px] border-success bg-surface" />
+                <div className="flex min-h-11 items-start justify-between gap-3">
+                  <span><span className="inline-flex rounded-md border border-success px-2 py-0.5 text-ui-micro !font-extrabold text-success">현재 버전</span><strong className="mt-2 block text-ui-section">{scope.scope.version_label} · 현재 확인서</strong></span>
+                  <button aria-label="이전 기록 확인" className="grid size-11 shrink-0 place-items-center rounded-full text-ink-400 hover:bg-surface-muted" onClick={() => setPreviousOpen(true)} type="button"><CaretRight aria-hidden="true" size="var(--icon-sm)" /></button>
+                </div>
+                <div className="mt-3 ui-card p-4 text-sm"><p>짐 {scope.scope.item_count}개 · 작업 {scope.scope.work_count}개</p><p className="mt-3 border-t border-line pt-3 tabular-nums">금액 <strong className="float-right text-primary-700">{money(scope.quote?.total_amount_krw)}</strong></p>{adjustments.length ? <p className="mt-3 text-ink-600">변경 사유: {adjustments.map((item) => item.label).join(" · ")}</p> : null}<div className="mt-3 flex flex-wrap gap-2"><span className="rounded-md bg-success-bg px-2 py-1 text-ui-control text-success-ink">업체 확인</span><span className={`rounded-md px-2 py-1 text-ui-control ${scope.customer_confirmed_at ? "bg-success-bg text-success-ink" : "bg-warning-bg text-warning-ink"}`}>{scope.customer_confirmed_at ? "고객 확인" : "고객 확인 대기"}</span></div></div>
+              </li>
+              {issue ? <li className="relative pb-8"><span aria-hidden="true" className="absolute top-1 -left-[37px] size-4 rounded-full border-[3px] border-primary-600 bg-surface" /><details><summary className="flex min-h-11 cursor-pointer list-none items-start justify-between gap-3"><span><strong className="block text-lg">현장 보고 · {issue.title}</strong>{reportDate ? <span className="mt-1 block text-sm text-ink-600">{reportDate}</span> : null}</span><CaretDown aria-hidden="true" className="mt-1 shrink-0 text-ink-400" size="var(--icon-sm)" /></summary><div className="mt-3 ui-card p-4 text-sm"><p className="leading-6">{issue.description}</p><p className="mt-2 text-ink-600">처리 상태 · {issue.status === "approved" ? "승인" : issue.status === "rejected" ? "거절" : issue.status === "customer_review" ? "고객 확인 대기" : "업체 처리 중"}</p></div></details></li> : null}
+              <li className="relative"><span aria-hidden="true" className="absolute top-1 -left-[37px] size-4 rounded-full border-[3px] border-line bg-surface" /><button className="flex min-h-14 w-full items-start justify-between gap-3 text-left" onClick={() => setPreviousOpen(true)} type="button"><span><strong className="block text-lg">{previousVersion} · 변경 전 기준</strong><span className="mt-1 block text-sm text-ink-600">현재 변경안의 기준 금액</span></span><CaretRight aria-hidden="true" className="mt-1 shrink-0 text-ink-400" size="var(--icon-sm)" /></button></li>
+            </ol>
+          </div>
+        )}
+      </SheetContent>
+    </Sheet>
   );
 }
 
@@ -229,7 +276,7 @@ function CrewHome({ brief, issueCount, onInvite, onWork }: {
       <h1 className="text-ui-section leading-9 font-black tracking-[var(--tracking-display)]">{workerName} 기사님,<br />오늘 작업을 준비해요</h1>
       <CrewInviteHero onInvite={onInvite} />
       <ActiveMoveCard heading="진행 중인 이사 1건" leading={<span className="grid size-12 shrink-0 place-items-center rounded-full bg-primary-50 text-primary-700"><Truck aria-hidden="true" size="var(--icon-md)" /></span>} meta={startAt ? `${dayFormatter.format(startAt)} · ${timeFormatter.format(startAt)}` : "일정 확인 중"} onOpen={onWork} route={<>{brief?.masked_origin ?? "출발지"} → {brief?.masked_destination ?? "도착지"}</>}><MoveJourneyProgress current={2} /><div className="mt-3 border-t border-line pt-3"><p className="flex min-w-0 items-baseline gap-2 whitespace-nowrap"><strong className="shrink-0 text-ui-support text-primary-700">작업범위 확인</strong><span className="ml-auto min-w-0 truncate text-right text-ui-data text-ink-600">최신 승인본과 현장 조건을 확인해요</span></p><button className="mt-2 flex min-h-10 w-full items-center justify-center rounded-xl bg-primary-600 text-ui-support font-extrabold text-white" onClick={onWork} type="button">지금 확인</button></div></ActiveMoveCard>
-      <aside className="mt-4 flex gap-3 rounded-[var(--radius-card)] border border-warning bg-warning-bg p-4 text-sm font-medium leading-6 text-warning-ink"><WarningCircle aria-hidden="true" className="mt-0.5 shrink-0" /> 현장이 승인본과 다르면 추가 금액을 요구하지 말고 먼저 보고해 주세요. {issueCount > 0 ? `현재 보고 ${issueCount}건이 처리 중이에요.` : ""}</aside>
+      <aside className="mt-4 flex items-start gap-3 rounded-[var(--radius-card)] bg-warning-bg p-3 text-sm font-medium leading-5 text-warning-ink"><WarningCircle aria-hidden="true" className="mt-0.5 shrink-0" /><p>현장이 승인본과 다르면 추가 금액을 요구하지 말고 먼저 보고해 주세요. {issueCount > 0 ? `현재 보고 ${issueCount}건이 처리 중이에요.` : ""}</p></aside>
     </div>
   );
 }
@@ -273,7 +320,7 @@ function CrewCompletion({ brief, connection, issues }: {
   };
   return <div className="space-y-4 px-[var(--content-gutter)] pb-28 pt-4">
     <div className="flex items-end justify-between"><h2 className="text-ui-section font-black">작업 완료 전 확인</h2><strong className="text-ui-section text-primary-700">{completedCount}<span className="text-ink-900"> / {items.length} 완료</span></strong></div>
-    <section className="ui-card px-4 py-1">{items.map((item) => { const selected = isCompleted(item.key, item.confirmed); return <button aria-pressed={selected} className="press-static flex min-h-14 w-full items-center gap-3 text-left" key={item.key} onClick={() => setCompletionState((current) => ({ ...current, [item.key]: !selected }))} type="button"><span className={`grid size-6 shrink-0 place-items-center rounded-full border-2 ${selected ? "border-primary-600 bg-primary-600 text-white" : "border-line text-transparent"}`}><Check aria-hidden="true" size="var(--icon-xs)" weight="bold" /></span><strong className="flex-1 text-base">{item.label}</strong></button>; })}</section>
+     <section className="ui-card px-4 py-1">{items.map((item) => { const selected = isCompleted(item.key, item.confirmed); return <button aria-pressed={selected} className="press-static flex min-h-12 w-full items-center gap-3 text-left" key={item.key} onClick={() => setCompletionState((current) => ({ ...current, [item.key]: !selected }))} type="button"><span className={`grid size-5 shrink-0 place-items-center rounded-full border-2 ${selected ? "border-primary-600 bg-primary-600 text-white" : "border-line text-transparent"}`}><Check aria-hidden="true" size="0.875rem" weight="bold" /></span><span className="flex-1 text-ui-support font-medium">{item.label}</span></button>; })}</section>
     <section className="ui-card p-4"><h2 className="text-ui-section font-black">완료 사진</h2><p className="mt-1 text-sm text-ink-600">작업 후 상태를 남겨주세요.</p><div className="mt-4 grid grid-cols-3 gap-2">{photos.map((url, index) => <img alt={`완료 사진 ${index + 1}`} className="aspect-square w-full rounded-xl object-cover" key={url} src={url} />)}{photos.length < 3 ? <label className="grid aspect-square cursor-pointer place-items-center rounded-xl border border-dashed border-primary-400 text-center text-sm font-extrabold text-primary-700"><span><Camera aria-hidden="true" className="mx-auto mb-1" size="var(--icon-md)" />사진 추가</span><input accept="image/*" capture="environment" className="sr-only" multiple onChange={addPhotos} type="file" /></label> : null}</div></section>
     <section className="ui-card p-4"><h2 className="text-lg font-black">현장 보고</h2><p className="mt-2 text-sm text-success">보고 {issues.length}건이 확인서에 반영 또는 처리 중이에요.</p>{issues.slice(0, 2).map((issue) => <p className="mt-3 flex items-center justify-between border-t border-line pt-3 text-sm" key={issue.field_issue_id}><span>{issue.title}</span><span className="text-ink-600">{issueStatusLabel(issue.status)}</span></p>)}</section> 
     {submitMutation.error ? <p className="text-sm font-bold text-danger-ink" role="alert">{apiErrorMessage(submitMutation.error)}</p> : null}

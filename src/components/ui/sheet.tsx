@@ -11,11 +11,11 @@ const Sheet = Dialog.Root;
 const SheetTrigger = Dialog.Trigger;
 const SheetClose = Dialog.Close;
 
-function SheetContent({ className, children, presentation = "sheet", showClose = true, ...props }: Dialog.Popup.Props & { presentation?: "sheet" | "page"; showClose?: boolean }) {
+function SheetContent({ className, children, nested = false, presentation = "sheet", showClose = true, ...props }: Dialog.Popup.Props & { nested?: boolean; presentation?: "sheet" | "page"; showClose?: boolean }) {
   return (
     <Dialog.Portal>
-      <Dialog.Backdrop className="demo-sheet-backdrop fixed inset-0 z-[var(--z-modal)] bg-[var(--color-overlay)]" />
-      <Dialog.Viewport className="fixed inset-0 z-[var(--z-modal)] flex items-end justify-center">
+      <Dialog.Backdrop forceRender={nested} className={cn("demo-sheet-backdrop fixed inset-0 bg-[var(--color-overlay)]", nested ? "demo-sheet-backdrop-nested z-[calc(var(--z-modal)+1)]" : "z-[var(--z-modal)]")} />
+      <Dialog.Viewport className={cn("fixed inset-0 flex items-end justify-center", nested ? "z-[calc(var(--z-modal)+1)]" : "z-[var(--z-modal)]")}>
         <Dialog.Popup
           data-presentation={presentation}
           className={cn(
@@ -55,7 +55,7 @@ function SheetDescription({ className, ...props }: Dialog.Description.Props) {
 }
 
 function SheetFooter({ className, ...props }: ComponentProps<"div">) {
-  return <div className={cn("sticky bottom-0 mt-4 border-t border-line bg-surface p-4 pb-[max(16px,env(safe-area-inset-bottom))]", className)} {...props} />;
+  return <div className={cn("sticky bottom-0 mt-0 bg-surface p-2.5 pb-[max(10px,env(safe-area-inset-bottom))]", className)} {...props} />;
 }
 
 export { Sheet, SheetClose, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger };

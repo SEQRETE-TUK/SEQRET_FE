@@ -14,7 +14,6 @@ const buttonVariants = cva(
         secondary: "border-transparent bg-primary-50 text-primary-700 hover:bg-primary-100",
         ghost: "border-transparent bg-transparent text-ink-600 hover:text-ink-900",
         destructive: "border-danger bg-surface text-danger-ink hover:bg-danger-bg",
-        kakao: "border-[var(--color-kakao)] bg-[var(--color-kakao)] text-[var(--color-kakao-ink)] hover:bg-[var(--color-kakao-hover)]",
       },
       size: {
         default: "h-[var(--control-touch)] px-[var(--control-padding-x)]",

@@ -29,8 +29,6 @@
   --text-2xl--line-height: var(--line-section);
   --text-3xl: var(--text-title-lg);
   --text-3xl--line-height: var(--line-screen);
-  --text-4xl: var(--text-display-lg);
-  --text-4xl--line-height: var(--line-screen);
   --color-primary-50: var(--primary-50);
   --color-primary-100: var(--primary-100);
   --color-primary-400: var(--primary-400);
@@ -68,7 +66,6 @@
   --text-ui-section: var(--text-xl);
   --text-ui-step-title: var(--text-step-title);
   --text-ui-title-lg: var(--text-title-lg);
-  --text-ui-display: var(--text-display-lg);
 }
 
 * {
@@ -209,8 +206,7 @@ p {
 
 /* Semantic type roles: size, rhythm and weight move together. */
 .text-ui-title-lg,
-.text-ui-step-title,
-.text-ui-display {
+.text-ui-step-title {
   font-weight: var(--display-weight);
   line-height: var(--line-screen);
   letter-spacing: var(--tracking-display);
@@ -222,10 +218,6 @@ p {
 
 .text-ui-step-title {
   font-size: var(--text-step-title);
-}
-
-.text-ui-display {
-  font-size: var(--text-display-lg);
 }
 
 .text-ui-section {
@@ -293,7 +285,7 @@ p {
 
 .text-ui-micro {
   font-size: var(--text-micro);
-  font-weight: var(--weight-strong);
+  font-weight: var(--weight-micro);
   line-height: var(--line-label);
   letter-spacing: var(--tracking-none);
 }
@@ -527,6 +519,11 @@ p {
 
 .demo-sheet-backdrop {
   transition: opacity var(--dur-short) var(--ease-out);
+}
+
+body:has(.demo-sheet-backdrop-nested[data-open]) .demo-sheet-backdrop:not(.demo-sheet-backdrop-nested) {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .demo-sheet-backdrop[data-starting-style],

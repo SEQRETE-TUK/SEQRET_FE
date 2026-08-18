@@ -129,16 +129,16 @@ function createState(): MockState {
       content_hash: "mock-scope-content-hash",
       locked_at: null,
       status: "customer_review",
-      item_count: 12,
+      item_count: 11,
       work_count: 4,
       exclusion_count: 1,
       review_required_count: 0,
       room_groups: [{
         room_zone_id: ORIGIN_ZONE_ID,
         label: "침실",
-        item_count: 6,
+        item_count: 5,
         review_required_count: 0,
-        items: ["침대 프레임", "매트리스", "책상", "의자", "서랍장", "스탠드"].map((description, index) => ({
+        items: ["침대", "책상", "의자", "서랍장", "스탠드"].map((description, index) => ({
           item_key: `bedroom-item-${index + 1}`,
           room_zone_id: ORIGIN_ZONE_ID,
           description,
@@ -344,6 +344,14 @@ export async function mockApiRequest<T>(path: string, init: RequestInit, accessT
   if (path === "/api/v1/move-jobs/onboarding" && method === "POST") {
     const input = jsonBody<CustomerOnboardingInput>(init);
     state = createState();
+    state.scope.company_participation_status = "company_not_invited";
+    state.scope.collaboration_status = "draft";
+    state.scope.proposal_id = null;
+    state.scope.quote = null;
+    state.scope.execution_plan = null;
+    state.scope.proposal_reason = null;
+    state.scope.company_confirmed_at = null;
+    state.invitations = [];
     state.job.title = input.title;
     state.job.scheduled_at = input.scheduled_at;
     state.job.locations = input.locations.map((location) => ({ id: crypto.randomUUID(), ...location, room_zones: location.room_zones.map((zone) => ({ id: crypto.randomUUID(), ...zone })) }));
@@ -366,6 +374,7 @@ export async function mockApiRequest<T>(path: string, init: RequestInit, accessT
     const secret = `seqret_mock_${input.role}_${crypto.randomUUID().replaceAll("-", "")}`;
     const invitation: Invitation = { id: crypto.randomUUID(), job_id: JOB_ID, issuer_participant_id: state.actors[accessToken].participant_id, invitee_participant_id: participantId, role: input.role, display_name: input.display_name, status: "pending", issued_at: now(), expires_at: future(), resolved_at: null };
     state.invitations.push(invitation);
+    if (input.role === "company_manager") state.scope.company_participation_status = "company_invited";
     state.actors[secret] = { ...actor(input.role, participantId, input.display_name), invitation };
     return result({ invitation, access_link: accessLink(input.role, participantId, secret) } as InvitationIssued) as Promise<T>;
   }

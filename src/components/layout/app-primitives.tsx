@@ -30,7 +30,7 @@ export function WorkContext({
   return (
     <section aria-label="현재 작업 맥락" className="mt-6 border-y border-line py-4">
       <div className="flex min-w-0 items-center justify-between gap-3">
-        <p className="min-w-0 truncate text-xs font-bold text-ink-600">{code ? `작업 ${code}` : "현재 이사"}</p>
+        <p className="min-w-0 truncate text-ui-control text-ink-600">{code ? `작업 ${code}` : "현재 이사"}</p>
         {status}
       </div>
       <strong className="mt-2 block min-w-0 break-words text-ui-component leading-6">{title}</strong>
@@ -102,14 +102,14 @@ export function ActiveMoveCard({ children, heading, leading, meta, onOpen, route
 
 export function MoveJourneyProgress({ current }: { current: number }) {
   const steps = ["촬영과 짐 검수", "작업범위와\n금액 확인", "공동확인 완료"];
-  return <ol className="mt-3 grid grid-cols-3">{steps.map((label, index) => { const step = index + 1; const done = step < current; const active = step === current; return <li className="relative text-center" key={label}>{index > 0 ? <span aria-hidden="true" className={`absolute top-3.5 right-1/2 h-0.5 w-full ${step <= current ? "bg-success" : "bg-line"}`} /> : null}<span className={`relative z-10 mx-auto grid size-7 place-items-center rounded-full border-2 text-xs font-black ${done ? "border-success bg-success text-white" : active ? "border-primary-600 bg-primary-600 text-white" : "border-line bg-surface text-ink-400"}`}>{done ? <Check aria-hidden="true" size="var(--icon-xs)" weight="bold" /> : step}</span><span className={`mt-1.5 block whitespace-pre-line text-ui-micro leading-3.5 font-bold ${active ? "text-primary-700" : done ? "text-ink-900" : "text-ink-600"}`}>{label}</span></li>; })}</ol>;
+  return <ol className="mt-3 grid grid-cols-3">{steps.map((label, index) => { const step = index + 1; const done = step < current; const active = step === current; return <li className="relative text-center" key={label}>{index > 0 ? <span aria-hidden="true" className={`absolute top-3.5 right-1/2 h-0.5 w-full ${step <= current ? "bg-success" : "bg-line"}`} /> : null}<span className={`relative z-10 mx-auto grid size-7 place-items-center rounded-full border-2 text-xs font-black ${done ? "border-success bg-success text-white" : active ? "border-primary-600 bg-primary-600 text-white" : "border-line bg-surface text-ink-400"}`}>{done ? <Check aria-hidden="true" size="var(--icon-xs)" weight="bold" /> : step}</span><span className={`mt-1.5 block whitespace-pre-line text-ui-micro leading-3.5 !font-bold ${active ? "text-primary-700" : done ? "text-ink-900" : "text-ink-600"}`}>{label}</span></li>; })}</ol>;
 }
 
 export function SectionHeader({ aside, children, className }: { aside?: ReactNode; children: ReactNode; className?: string }) {
   return (
     <div className={cn("flex min-h-8 items-end justify-between gap-3", className)}>
       <h3 className="text-ui-section leading-7 font-extrabold tracking-[var(--tracking-display)]">{children}</h3>
-      {aside ? <div className="pb-0.5 text-xs font-bold text-ink-600">{aside}</div> : null}
+      {aside ? <div className="pb-0.5 text-ui-control text-ink-600">{aside}</div> : null}
     </div>
   );
 }
@@ -174,7 +174,7 @@ export function ListRow({
 }
 
 export function InventoryQuantityRow({ icon, name, onDecrease, onIncrease, onRemove, quantity, reviewRequired = false }: { icon: ReactNode; name: string; onDecrease: () => void; onIncrease: () => void; onRemove: () => void; quantity: number; reviewRequired?: boolean }) {
-  return <article className="grid min-h-16 grid-cols-[36px_32px_minmax(0,1fr)] items-center gap-2 ui-card px-2 py-1.5 shadow-[var(--shadow-card)] min-[360px]:flex"><button aria-label={`${name} 삭제`} className="grid size-9 shrink-0 place-items-center rounded-full text-ink-400 hover:bg-surface-muted hover:text-ink-900" onClick={onRemove} type="button"><X aria-hidden="true" size="var(--icon-sm)" /></button><span className="grid size-8 shrink-0 place-items-center text-primary-700">{icon}</span><span className="min-w-0 flex-1"><span className="block text-ui-list-title">{name}</span>{reviewRequired ? <span className="mt-0.5 block text-ui-micro font-bold text-danger-ink">확인 필요</span> : null}</span><span className="col-span-2 col-start-2 grid shrink-0 grid-cols-[36px_28px_36px] justify-self-end overflow-hidden rounded-lg border border-line bg-surface-muted min-[360px]:col-auto min-[360px]:justify-self-auto"><button aria-label={`${name} 수량 줄이기`} className="grid size-9 place-items-center" onClick={onDecrease} type="button"><Minus aria-hidden="true" size="var(--icon-xs)" /></button><output aria-label={`${name} 수량`} className="grid min-h-9 place-items-center bg-surface text-sm font-bold tabular-nums">{quantity}</output><button aria-label={`${name} 수량 늘리기`} className="grid size-9 place-items-center" onClick={onIncrease} type="button"><Plus aria-hidden="true" size="var(--icon-xs)" /></button></span></article>;
+  return <article className="grid min-h-16 grid-cols-[36px_32px_minmax(0,1fr)] items-center gap-2 ui-card px-2 py-1.5 shadow-[var(--shadow-card)] min-[360px]:flex"><button aria-label={`${name} 삭제`} className="grid size-9 shrink-0 place-items-center rounded-full text-ink-400 hover:bg-surface-muted hover:text-ink-900" onClick={onRemove} type="button"><X aria-hidden="true" size="var(--icon-sm)" /></button><span className="grid size-8 shrink-0 place-items-center text-primary-700">{icon}</span><span className="min-w-0 flex-1"><span className="block text-ui-list-title">{name}</span>{reviewRequired ? <span className="mt-0.5 block text-ui-micro !font-bold text-danger-ink">확인 필요</span> : null}</span><span className="col-span-2 col-start-2 grid shrink-0 grid-cols-[36px_28px_36px] justify-self-end overflow-hidden rounded-lg border border-line bg-surface-muted min-[360px]:col-auto min-[360px]:justify-self-auto"><button aria-label={`${name} 수량 줄이기`} className="grid size-9 place-items-center" onClick={onDecrease} type="button"><Minus aria-hidden="true" size="var(--icon-xs)" /></button><output aria-label={`${name} 수량`} className="grid min-h-9 place-items-center bg-surface text-sm font-bold tabular-nums">{quantity}</output><button aria-label={`${name} 수량 늘리기`} className="grid size-9 place-items-center" onClick={onIncrease} type="button"><Plus aria-hidden="true" size="var(--icon-xs)" /></button></span></article>;
 }
 
 export function InfoCallout({ children, icon }: { children: ReactNode; icon: ReactNode }) {

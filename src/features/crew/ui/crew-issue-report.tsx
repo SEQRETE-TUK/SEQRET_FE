@@ -1,20 +1,20 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   CameraIcon as Camera,
-  CaretLeftIcon as CaretLeft,
   CaretRightIcon as CaretRight,
   CheckCircleIcon as CheckCircle,
   ClipboardTextIcon as ClipboardText,
-  LockIcon as Lock,
   WarningCircleIcon as WarningCircle,
 } from "@phosphor-icons/react";
 import { useRef, useState, type ChangeEvent } from "react";
 
 import { mockApiEnabled } from "@/api/mock-api";
 import { InfoCallout } from "@/components/layout/app-primitives";
+import { MobilePageHeader } from "@/components/layout/mobile-app-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 import {
   asSupportedContentType,
@@ -53,6 +53,7 @@ export function CrewIssueReport({ brief, connection, issues }: {
   const reference = useRef(crypto.randomUUID());
   const [checkKeys, setCheckKeys] = useState<string[]>([]);
   const [formOpen, setFormOpen] = useState(false);
+  const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null);
   const [issueType, setIssueType] = useState<FieldIssue["issue_type"]>("site_blocker");
   const [title, setTitle] = useState(mockApiEnabled ? "엘리베이터 운행 중단" : "");
   const [description, setDescription] = useState(mockApiEnabled ? "점검 중이라 5층까지 계단 운반이 필요합니다." : "");
@@ -108,16 +109,16 @@ export function CrewIssueReport({ brief, connection, issues }: {
     evidence_media_asset_ids: ["mock-evidence"],
     reported_at: "2026-08-18T09:18:00+09:00",
   }] : [];
+  const selectedIssue = sentIssues.find((issue) => issue.field_issue_id === selectedIssueId);
+  const selectedDescription = selectedIssue && "description" in selectedIssue ? selectedIssue.description : "현장 사실과 증거를 함께 제출한 보고입니다.";
 
   if (!checkedIn) {
     return <div className="px-[var(--content-gutter)] pb-28 pt-5"><section className="ui-card p-5"><p className="text-sm font-extrabold text-primary-700">현장 도착 확인</p><h2 className="mt-2 text-ui-section font-black">보고 전 체크인이 필요해요</h2><div className="mt-5 space-y-2">{brief?.check_in_items.map((item) => <label className="flex min-h-14 items-center gap-3 rounded-xl border border-line px-4" key={item.key}><input checked={item.confirmed || checkKeys.includes(item.key)} onChange={(event) => setCheckKeys((current) => event.target.checked ? [...current, item.key] : current.filter((key) => key !== item.key))} type="checkbox" /><span className="text-sm font-bold">{item.label}</span></label>)}</div><Button className="mt-5 w-full" disabled={!allChecked || checkInMutation.isPending} onClick={() => checkInMutation.mutate()} size="cta">현장 도착 체크인</Button></section>{error ? <p className="mt-3 text-sm font-bold text-danger-ink" role="alert">{apiErrorMessage(error)}</p> : null}</div>;
   }
 
   if (formOpen) {
-    return <div className="px-[var(--content-gutter)] pb-28 pt-4">
-      <button className="press-static -ml-2 flex min-h-11 items-center gap-1 px-2 text-sm font-extrabold text-primary-700" onClick={() => setFormOpen(false)} type="button"><CaretLeft aria-hidden="true" size="var(--icon-sm)" /> 현장 보고로 돌아가기</button>
-      <section className="mt-2 ui-card p-4">
-        <div className="flex items-center justify-between gap-3 rounded-xl bg-surface-muted px-4 py-3"><span className="flex items-center gap-2 font-extrabold"><Lock aria-hidden="true" /> 기준 승인본 {brief?.scope_version_label ?? "–"}</span><span className="text-sm font-bold text-primary-700">내용 보기</span></div>
+    return <Sheet onOpenChange={setFormOpen} open={formOpen}><SheetContent presentation="page" showClose={false}><MobilePageHeader onBack={() => setFormOpen(false)} title="새 현장 보고" /><SheetTitle className="sr-only">새 현장 보고</SheetTitle><SheetDescription className="sr-only">현장 사실과 증거를 업체에 보고합니다.</SheetDescription><div className="px-[var(--content-gutter)] pb-28 pt-4">
+      <section className="ui-card p-4">
         <div className="mt-5"><h2 className="text-ui-section font-black">현장 사실과 증거를 남겨주세요</h2><p className="mt-1 text-sm leading-5 text-ink-600">업체가 사실을 확인한 뒤 변경 범위와 금액을 고객에게 제안합니다.</p></div>
         <fieldset className="mt-6"><legend className="text-sm font-extrabold">어떤 문제인가요?</legend><div className="mt-2 grid grid-cols-3 overflow-hidden rounded-xl border border-line">{([
           ["out_of_scope", "범위 밖 작업"], ["site_blocker", "현장 장애"], ["damage_risk", "파손 위험"],
@@ -129,12 +130,13 @@ export function CrewIssueReport({ brief, connection, issues }: {
         <InfoCallout icon={<WarningCircle aria-hidden="true" />}>기사는 현장 사실만 보고하며 금액을 입력하지 않아요.</InfoCallout>{error ? <p className="mt-3 text-sm font-bold text-danger-ink" role="alert">{apiErrorMessage(error)}</p> : null}
         <Button className="mt-5 w-full whitespace-nowrap" disabled={!evidenceId || !title.trim() || !description.trim() || issueMutation.isPending} onClick={() => issueMutation.mutate()} size="cta"><Camera aria-hidden="true" /> {issueMutation.isPending ? "보고 중…" : "증거와 함께 업체에 보고"}</Button>
       </section>
-    </div>;
+    </div></SheetContent></Sheet>;
   }
 
   return <div className="space-y-5 px-[var(--content-gutter)] pb-28 pt-4">
     <section className="ui-card p-5 text-center"><span className="mx-auto grid size-16 place-items-center rounded-full bg-primary-50 text-primary-700"><ClipboardText aria-hidden="true" size="var(--icon-category)" weight="duotone" /></span><h2 className="mt-4 text-ui-section font-black">승인본과 다른 점이 있나요?</h2><p className="mt-2 text-sm leading-6 text-ink-600">현장 사실과 사진을 업체에 보내면 업체가 변경 범위와 금액을 제안해요.</p><Button className="mt-5 w-full" onClick={() => setFormOpen(true)} size="cta"><Camera aria-hidden="true" /> 새 현장 보고</Button></section>
-    <section><h2 className="text-ui-section font-black">내가 보낸 보고 <span className="text-primary-700">{sentIssues.length}건</span></h2><div className="mt-3 ui-card overflow-hidden">{sentIssues.map((issue) => <article className="flex min-h-[88px] items-center gap-3 border-b border-line px-4 last:border-b-0" key={issue.field_issue_id}><span className="grid size-11 shrink-0 place-items-center rounded-xl bg-warning-bg text-warning-ink"><WarningCircle aria-hidden="true" size="var(--icon-md)" /></span><span className="min-w-0 flex-1"><strong className="block truncate text-ui-support">{issue.title}</strong><span className="mt-1 block text-xs text-ink-600">증거 {issue.evidence_media_asset_ids.length}건 · {new Intl.DateTimeFormat("ko-KR", { hour: "numeric", minute: "2-digit" }).format(new Date(issue.reported_at))}</span></span><span className="shrink-0 text-xs font-extrabold text-primary-700">{issueStatusLabel(issue.status)}</span><CaretRight aria-hidden="true" className="shrink-0 text-ink-400" size="var(--icon-sm)" /></article>)}</div></section> 
+      <section><h2 className="text-ui-section font-black">내가 보낸 보고 <span className="text-primary-700">{sentIssues.length}건</span></h2><div className="mt-3 ui-card overflow-hidden">{sentIssues.map((issue) => <button aria-label={`${issue.title} 상세 보기`} className="flex min-h-20 w-full items-center gap-3 border-b border-line px-4 text-left last:border-b-0 hover:bg-surface-muted" key={issue.field_issue_id} onClick={() => setSelectedIssueId(issue.field_issue_id)} type="button">{mockApiEnabled ? <img alt={`${issue.title} 현장 증거`} className="size-11 shrink-0 rounded-xl object-cover" src="/elevator-outage-evidence.png" /> : <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-warning-bg text-warning-ink"><WarningCircle aria-hidden="true" size="var(--icon-md)" /></span>}<span className="min-w-0 flex-1"><strong className="block truncate text-ui-support">{issue.title}</strong><span className="mt-1 block text-xs text-ink-600">증거 {issue.evidence_media_asset_ids.length}건 · {new Intl.DateTimeFormat("ko-KR", { hour: "numeric", minute: "2-digit" }).format(new Date(issue.reported_at))}</span></span><span className="shrink-0 text-xs font-extrabold text-primary-700">{issueStatusLabel(issue.status)}</span><CaretRight aria-hidden="true" className="shrink-0 text-ink-400" size="var(--icon-sm)" /></button>)}</div></section>
+      {selectedIssue ? <Sheet onOpenChange={(open) => { if (!open) setSelectedIssueId(null); }} open><SheetContent className="!bg-ink-900 [&>button]:bg-ink-900/70 [&>button]:text-white [&>button]:hover:bg-ink-900/90"><img alt={`${selectedIssue.title} 현장 증거`} className="aspect-[16/10] w-full object-cover" src="/elevator-outage-evidence.png" /><div className="bg-surface px-4 pt-5"><SheetHeader className="px-0 pb-4 pr-0"><SheetTitle>{selectedIssue.title}</SheetTitle><SheetDescription>{issueStatusLabel(selectedIssue.status)} · 증거 {selectedIssue.evidence_media_asset_ids.length}건</SheetDescription></SheetHeader><p className="pb-6 text-sm leading-6 text-ink-600">{selectedDescription}</p></div></SheetContent></Sheet> : null}
     {submitted ? <p className="flex items-center gap-2 rounded-xl bg-success-bg p-4 text-sm font-extrabold text-success-ink"><CheckCircle aria-hidden="true" weight="fill" /> 업체에 현장 이슈를 전송했습니다.</p> : null}
     <InfoCallout icon={<WarningCircle aria-hidden="true" />}>기사는 현장 사실만 보고하며 금액을 입력하지 않아요.</InfoCallout>
   </div>;

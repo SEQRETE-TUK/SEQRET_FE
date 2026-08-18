@@ -52,7 +52,7 @@ export function ConnectedProfile({
       <PageIntro title={displayName} />
 
       <section aria-label="현재 접근 상태" className="ui-card ui-card-outlined ui-card-tinted mt-6 p-4">
-        <p className="text-xs font-bold text-primary-700">현재 접근</p>
+        <p className="text-ui-control text-primary-700">현재 접근</p>
         <strong className="mt-1 block text-ui-component">{roleLabel} 권한으로 연결됨</strong>
         <p className="mt-1 text-sm leading-5 text-ink-600">{accessDescription}</p>
         <div className="mt-4 flex items-center justify-between border-t border-primary-100 pt-3 text-sm">

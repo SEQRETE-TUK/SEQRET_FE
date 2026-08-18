@@ -20,7 +20,6 @@ colors:
   warning-background: "--color-warning-bg"
   destructive: "--color-danger"
   destructive-background: "--color-danger-bg"
-  kakao: "--color-kakao"
   focus-ring: "--color-focus"
 
 typography:
@@ -214,7 +213,7 @@ SEED의 `regular 400 / medium 500 / bold 700` 구조를 기준으로 한다. 다
 | component-title | 17 / 24px | 600 | 0 | 카드와 목록 묶음 제목 |
 | list-title | 16 / 22px | 500 | 0 | 목록 행의 판단 대상 |
 | body | 16 / 24px | 400 | 0 | 설명, 입력과 주요 목록 내용 |
-| control | 14 / 19px | 500 | 0 | 버튼, 탭과 짧은 조작 label |
+| control | 14 / 19px | 600 | 0 | 버튼, 탭과 짧은 조작 label |
 | supporting | 14 / 20px | 400 | 0 | 시간, metadata와 보조 설명 |
 | list-detail | 13 / 18px | 400 | 0 | 목록 행의 상태와 보조 설명 |
 | data | 13 / 18px | 500 | 0 | 버전, 금액과 조밀한 실측값 |
@@ -432,7 +431,6 @@ variant를 나열하는 것만으로 끝내지 않고 기본, 선택, 대기, �
 | `secondary` | 카드 내부의 약한 강조 행동 |
 | `ghost` | 배경과 테두리 없이 표시하는 낮은 우선순위 행동 |
 | `destructive` | 링크 폐기, 삭제와 위험 행동 |
-| `kakao` | 역할 링크 카카오톡 공유에만 사용 |
 
 | Size | Height | Use |
 | --- | ---: | --- |
@@ -470,7 +468,7 @@ Badge만으로 상태를 설명하지 않는다. 가까운 제목이나 본문�
 
 ### Tailwind aliases
 
-- `text-xs`, `text-sm`, `text-base`, `text-lg`, `text-xl`, `text-2xl`, `text-3xl`, `text-4xl`은 `tokens.css`의 canonical type scale에 매핑한다.
+- `text-xs`, `text-sm`, `text-base`, `text-lg`, `text-xl`, `text-2xl`, `text-3xl`은 `tokens.css`의 canonical type scale에 매핑한다.
 - 날짜, 금액, 상태처럼 읽어야 하는 값은 크기와 굵기를 따로 조합하지 않고 `text-ui-data`를 사용한다.
 - 본문 입력은 `text-ui-body`, 목록 제목과 설명은 각각 `text-ui-list-title`, `text-ui-list-detail`을 사용한다.
 

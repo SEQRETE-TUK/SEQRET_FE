@@ -4,21 +4,29 @@ import {
   ArrowRightIcon as ArrowRight,
   ArchiveIcon as Archive,
   BellIcon as Bell,
+  BuildingApartmentIcon,
+  BuildingOfficeIcon,
   CalendarBlankIcon as Calendar,
   CameraIcon as Camera,
   CaretDownIcon as CaretDown,
   CaretLeftIcon as CaretLeft,
   CaretRightIcon as CaretRight,
   CheckIcon as Check,
+  ClockIcon as Clock,
+  CopyIcon as Copy,
   CubeIcon as Cube,
   HouseIcon as Home,
+  HouseLineIcon,
   MagnifyingGlassIcon as MagnifyingGlass,
   NotepadIcon as Notepad,
   PackageIcon as Package,
+  ShareNetworkIcon as ShareNetwork,
+  ShieldCheckIcon as ShieldCheck,
   SquaresFourIcon as SquaresFour,
   StairsIcon as Stairs,
   TrendUpIcon as TrendUp,
   TruckIcon as Truck,
+  UserIcon as User,
   WarningCircleIcon as WarningCircle,
 } from "@phosphor-icons/react";
 import { useState, type ReactNode } from "react";
@@ -42,6 +50,7 @@ import { CustomerOnboardingSheet, moveDraftStorageKey } from "@/features/auth/ui
 import { AddressSearchInput } from "@/features/consumer/ui/address-search-input";
 import {
   apiErrorMessage,
+  createInvitation,
   decideChangeProposal,
   getCompletionSummary,
   getChangeProposal,
@@ -51,6 +60,7 @@ import {
   type CompletionSummary,
   type Connection,
   type FieldIssue,
+  type InvitationIssued,
   type ScopeLocationConditions,
   type ScopeReview,
 } from "@/features/workflow/api/workflow-api";
@@ -101,6 +111,12 @@ const ladderOptions: LadderOption[] = ["사용", "사용 안 함"];
 const elevatorOptions: ElevatorOption[] = ["있음", "없음"];
 const parkingOptions: ParkingOption[] = ["가능", "불가능"];
 const residenceOptions = ["아파트", "빌라·연립", "오피스텔", "단독주택"];
+const residenceIcons = {
+  아파트: <BuildingApartmentIcon aria-hidden="true" size="var(--icon-sm)" />,
+  "빌라·연립": <HouseLineIcon aria-hidden="true" size="var(--icon-sm)" />,
+  오피스텔: <BuildingOfficeIcon aria-hidden="true" size="var(--icon-sm)" />,
+  단독주택: <Home aria-hidden="true" size="var(--icon-sm)" />,
+};
 
 function defaultMoveStop(kind: MoveStopKind, scope: ScopeReview | undefined): MoveStopDraft {
   return {
@@ -266,11 +282,11 @@ function HomeTab({ completion, onOpenAgreement, onOpenMove, onStartMove, scope }
 }
 
 function NewMoveHero({ onStart }: { onStart: () => void }) {
-  return <button className="ui-card ui-card-outlined ui-card-tinted press-static relative min-h-[174px] w-full overflow-hidden rounded-[var(--radius-feature)] px-5 py-4 text-left" onClick={onStart} type="button"><span className="relative z-10 block max-w-[62%]"><strong className="block text-ui-section leading-7 font-extrabold tracking-[var(--tracking-display)]">60초 촬영으로<br />준비를 시작해요</strong><span className="mt-1.5 block text-ui-data leading-5 text-ink-600">짐 목록과 작업조건 초안을 만들어요</span><span className="mt-4 flex items-center gap-1 whitespace-nowrap text-ui-control text-primary-700">새 이사 시작하기 <ArrowRight aria-hidden="true" size="var(--icon-xs)" weight="bold" /></span></span><img alt="휴대폰으로 이삿짐 상자를 촬영하는 모습" className="absolute -right-2 bottom-0 w-[140px] max-w-none" height="213" src="/move-capture-hero.png" width="170" /></button>;
+  return <button className="ui-card ui-card-outlined ui-card-tinted press-static relative min-h-[174px] w-full overflow-hidden rounded-[var(--radius-feature)] px-5 py-4 text-left" onClick={onStart} type="button"><span className="relative z-10 block max-w-[62%]"><strong className="block text-ui-component font-extrabold tracking-[var(--tracking-display)]">60초 촬영으로<br />준비를 시작해요</strong><span className="mt-1.5 block text-ui-data leading-5 text-ink-600">짐 목록과 작업조건 초안을 만들어요</span><span className="mt-4 flex items-center gap-1 whitespace-nowrap text-ui-control text-primary-700">새 이사 시작하기 <ArrowRight aria-hidden="true" size="var(--icon-xs)" weight="bold" /></span></span><img alt="휴대폰으로 이삿짐 상자를 촬영하는 모습" className="absolute -right-2 bottom-0 w-[140px] max-w-none" height="213" src="/move-capture-hero.png" width="170" /></button>;
 }
 
 function PreventionSection() {
-  return <section className="mt-4 px-[var(--content-gutter)] py-5"><h2 className="text-ui-component">추가금이 생기는 순간</h2><p className="mt-1 text-sm text-ink-600">미리 확인하면 당일 변경을 줄일 수 있어요</p><div className="no-scrollbar -mx-[var(--content-gutter)] mt-4 flex snap-x scroll-px-[var(--content-gutter)] gap-3 overflow-x-auto px-[var(--content-gutter)] pb-1"><PreventionCard iconSrc="/prevention-condition.svg" label="작업조건 차이" title="엘리베이터·계단 조건이 달랐어요" /><PreventionCard iconSrc="/prevention-inventory.svg" label="짐 목록 차이" title="촬영 후 큰 짐이 추가됐어요" /><PreventionCard iconSrc="/prevention-work.svg" label="추가 작업" title="분해·설치 작업이 빠졌어요" /></div></section>;
+  return <section className="mt-4 px-[var(--content-gutter)] py-5"><h2 className="text-ui-component">추가금이 생기는 순간</h2><p className="mt-1 text-sm text-ink-600">미리 확인하면 당일 변경을 줄일 수 있어요</p><div className="no-scrollbar -mx-[var(--content-gutter)] mt-4 flex snap-x scroll-px-[var(--content-gutter)] gap-3 overflow-x-auto px-[var(--content-gutter)] pb-1"><PreventionCard iconSrc="/prevention-elevator.png" label="작업조건 차이" title="엘리베이터·계단 조건이 달랐어요" /><PreventionCard iconSrc="/prevention-package-box.png" label="짐 목록 차이" title="촬영 후 큰 짐이 추가됐어요" /><PreventionCard iconSrc="/prevention-toolbox.png" label="추가 작업" title="분해·설치 작업이 빠졌어요" /></div></section>;
 }
 
 function GuestHome({ onStart }: { onStart: () => void }) {
@@ -278,7 +294,7 @@ function GuestHome({ onStart }: { onStart: () => void }) {
 }
 
 function PreventionCard({ iconSrc, label, title }: { iconSrc: string; label: string; title: string }) {
-  return <article className="flex min-h-[176px] w-[170px] shrink-0 snap-start flex-col items-center ui-card p-4 text-center shadow-[var(--shadow-card)]"><span className="grid size-14 place-items-center rounded-2xl bg-surface-muted"><img alt="" aria-hidden="true" className="size-11 object-contain" height="44" loading="lazy" src={iconSrc} width="44" /></span><div className="mt-auto pt-4"><p className="text-xs font-extrabold text-primary-700">{label}</p><h3 className="mt-1.5 text-ui-support leading-5 font-extrabold">{title}</h3></div></article>;
+  return <article className="flex min-h-[160px] w-[156px] shrink-0 snap-start flex-col items-center ui-card p-3 text-center shadow-[var(--shadow-card)]"><span className="grid size-14 place-items-center"><img alt="" aria-hidden="true" className="size-14 object-contain" height="56" loading="lazy" src={iconSrc} width="56" /></span><div className="mt-auto pt-3"><p className="text-xs font-extrabold text-primary-700">{label}</p><h3 className="mt-1.5 text-ui-support leading-5 font-extrabold">{title}</h3></div></article>;
 }
 
 function EmptyMoveList({ onNewMove }: { onNewMove: () => void }) {
@@ -457,7 +473,7 @@ function RoutePoint({ destination = false, label, onEdit, stop }: { destination?
 
 function MoveStopSheet({ draft, kind, onDraftChange, onOpenChange, onSave }: { draft: MoveStopDraft | null; kind: MoveStopKind | null; onDraftChange: (draft: MoveStopDraft) => void; onOpenChange: (open: boolean) => void; onSave: () => void }) {
   const update = <K extends keyof MoveStopDraft>(key: K, value: MoveStopDraft[K]) => draft && onDraftChange({ ...draft, [key]: value });
-  return <Sheet onOpenChange={onOpenChange} open={Boolean(kind)}><SheetContent presentation="page" showClose={false}><MobilePageHeader onBack={() => onOpenChange(false)} title={kind === "origin" ? "출발지 정보 수정" : "도착지 정보 수정"} />{draft ? <div className="space-y-2 bg-canvas pb-6"><section className="space-y-4 bg-surface px-5 py-6"><div><Label htmlFor="move-address">주소</Label><div className="mt-2"><AddressSearchInput id="move-address" onChange={(value) => update("address", value)} value={draft.address} /></div></div><div><Label htmlFor="move-detail-address">상세 주소</Label><Input className="mt-2" id="move-detail-address" onChange={(event) => update("detailAddress", event.target.value)} placeholder="예: 301호" value={draft.detailAddress} /></div></section><section className="space-y-6 bg-surface px-5 py-6"><ChoiceGroup appearance="outlined" label="층수" onChange={(value) => update("floor", value)} options={floorOptions} scroll value={draft.floor} /><ChoiceGroup columns={2} label="사다리차 사용 여부" onChange={(value) => update("ladder", value)} options={ladderOptions} value={draft.ladder ?? "사용 안 함"} /><ChoiceGroup columns={2} label="엘리베이터 유무" onChange={(value) => update("elevator", value)} options={elevatorOptions} value={draft.elevator} /><ChoiceGroup columns={2} label="주차 가능 여부" onChange={(value) => update("parking", value)} options={parkingOptions} value={draft.parking === "가능" ? "가능" : "불가능"} /><ChoiceGroup appearance="outlined" columns={2} label="거주지 형태" onChange={(value) => update("residenceType", value)} options={residenceOptions} value={draft.residenceType ?? "아파트"} /></section><section className="bg-surface px-5 py-6"><Label htmlFor="move-stop-memo">현장 메모 <span className="font-medium text-ink-400">(선택)</span></Label><Textarea className="mt-2" id="move-stop-memo" maxLength={200} onChange={(event) => update("memo", event.target.value)} placeholder="기사에게 알려둘 내용을 적어 주세요." value={draft.memo} /></section></div> : null}<SheetFooter><Button className="w-full" disabled={!draft?.address.trim()} onClick={onSave} size="cta">변경 내용 저장</Button></SheetFooter></SheetContent></Sheet>;
+  return <Sheet onOpenChange={onOpenChange} open={Boolean(kind)}><SheetContent presentation="page" showClose={false}><MobilePageHeader onBack={() => onOpenChange(false)} title={kind === "origin" ? "출발지 정보 수정" : "도착지 정보 수정"} />{draft ? <div className="space-y-2 bg-canvas pt-0"><section className="space-y-4 bg-surface px-5 py-6"><div><Label className="text-ui-component" htmlFor="move-address">주소</Label><div className="mt-2"><AddressSearchInput id="move-address" onChange={(value) => update("address", value)} value={draft.address} /></div></div><div><Input id="move-detail-address" onChange={(event) => update("detailAddress", event.target.value)} placeholder="상세 주소 입력 (동/호수 등)" value={draft.detailAddress} /></div></section><section className="flex flex-col gap-8 bg-surface px-5 py-6"><ChoiceGroup appearance="outlined" columns={3} label="층수" onChange={(value) => update("floor", value)} options={floorOptions} scroll value={draft.floor} /><ChoiceGroup columns={2} label="사다리차 사용 여부" onChange={(value) => update("ladder", value)} options={ladderOptions} value={draft.ladder ?? "사용 안 함"} /><ChoiceGroup columns={2} label="엘리베이터 유무" onChange={(value) => update("elevator", value)} options={elevatorOptions} value={draft.elevator} /><ChoiceGroup columns={2} label="주차 가능 여부" onChange={(value) => update("parking", value)} options={parkingOptions} value={draft.parking === "가능" ? "가능" : "불가능"} /><ChoiceGroup appearance="outlined" columns={3} icons={residenceIcons} label="거주지 형태" onChange={(value) => update("residenceType", value)} options={residenceOptions} value={draft.residenceType ?? "아파트"} /></section></div> : null}<SheetFooter><Button className="w-full" disabled={!draft?.address.trim()} onClick={onSave} size="cta">변경 내용 저장</Button></SheetFooter></SheetContent></Sheet>;
 }
 
 function ConsumerInventory({ onCapture, onManualAdd, scope }: { onCapture: () => void; onManualAdd: () => void; scope: ScopeReview | undefined }) {
@@ -483,9 +499,11 @@ function ConsumerInventory({ onCapture, onManualAdd, scope }: { onCapture: () =>
       {scope && visibleItems.length === 0 ? <div className="rounded-2xl border border-line bg-surface px-4 py-8 text-center"><p className="font-extrabold">표시할 짐이 없어요</p><p className="mt-1 text-sm text-ink-600">검색어를 바꾸거나 짐을 다시 추가해 주세요.</p></div> : null}
     </div>
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[calc(var(--z-sticky)-1)] flex justify-center">
-      <div className="app-fixed-action pointer-events-auto grid w-full max-w-[var(--shell-mobile)] grid-cols-2 gap-2 bg-surface px-[var(--content-gutter)] pt-3">
-        <Button className="min-w-0 px-2 text-ui-data min-[360px]:text-sm" onClick={onManualAdd} size="cta" variant="outline"><Cube aria-hidden="true" /> 품목 직접 선택</Button>
-        <Button className="min-w-0 px-2 text-ui-data min-[360px]:text-sm" onClick={onCapture} size="cta"><Camera aria-hidden="true" weight="fill" /> AI 영상 촬영</Button>
+      <div className="app-fixed-action pointer-events-auto w-full max-w-[var(--shell-mobile)] bg-surface px-[var(--content-gutter)] pt-3">
+        {totalCount > 0 ? <Button className="w-full" size="cta">견적 링크 생성</Button> : <div className="grid grid-cols-2 gap-2">
+          <Button className="min-w-0 px-2 text-ui-data min-[360px]:text-sm" onClick={onManualAdd} size="cta" variant="outline"><Cube aria-hidden="true" /> 품목 직접 선택</Button>
+          <Button className="min-w-0 px-2 text-ui-data min-[360px]:text-sm" onClick={onCapture} size="cta"><Camera aria-hidden="true" weight="fill" /> AI 영상 촬영</Button>
+        </div>}
       </div>
     </div>
   </div>;
@@ -513,6 +531,8 @@ function ConsumerAgreement({ completion, connection, fallbackLocationConditions,
     onSuccess: async () => { setIssueOpen(false); await refresh(); },
   });
   if (!scope) return <div className="px-[var(--content-gutter)] py-8 text-sm text-ink-600">확인서를 불러오는 중입니다.</div>;
+  if (scope.company_participation_status === "company_not_invited") return <CompanyInvitationEmpty connection={connection} scope={scope} />;
+  if (scope.company_participation_status === "company_invited") return <CompanyInvitationPending scope={scope} />;
 
   return (
     <div className="space-y-2.5 px-[var(--content-gutter)] pb-28 pt-3">
@@ -555,7 +575,7 @@ function FieldChangeSheet({ error, issue, loading, onDecision, onOpenChange, ope
     {loading ? <div className="grid min-h-dvh place-items-center text-sm text-ink-600">변경안을 불러오는 중입니다.</div> : <div>
       <figure className="relative h-[320px] bg-ink-900">
         {evidenceUrl ? <img alt={`${issue.title} 현장 증거`} className="h-full w-full object-cover" height="420" src={evidenceUrl} width="480" /> : null}
-        <span className="absolute right-4 bottom-12 rounded-full bg-ink-900/70 px-2.5 py-1 text-xs font-bold text-white">1 / 1</span>
+        <span className="absolute right-4 bottom-12 rounded-full bg-ink-900/70 px-2.5 py-1 text-ui-control text-white">1 / 1</span>
       </figure>
       <div className="relative -mt-10 min-h-[calc(100dvh-300px)] rounded-t-[var(--radius-feature)] bg-surface px-5 pb-4 pt-8">
         <h3 className="whitespace-nowrap text-left text-lg leading-7 font-black tracking-[var(--tracking-display)]">엘리베이터가 멈춰 계단 운반이 필요해요</h3>
@@ -565,7 +585,7 @@ function FieldChangeSheet({ error, issue, loading, onDecision, onOpenChange, ope
       </div>
     </div>}
     {!readOnly && proposal ? <SheetFooter className="grid gap-2 border-t-0"><Button className="w-full whitespace-nowrap" disabled={pending} onClick={() => onDecision("approve")} size="cta">변경 승인하기 · {adjustment > 0 ? "+" : ""}{money(adjustment)}</Button><Button className="w-full whitespace-nowrap" disabled={pending} onClick={() => setRequestOpen(true)} variant="ghost">수정 요청</Button></SheetFooter> : null}
-    <Sheet onOpenChange={setRequestOpen} open={requestOpen}><SheetContent><SheetHeader><SheetTitle>수정 요청</SheetTitle><SheetDescription>변경이 필요한 내용을 업체에 알려주세요.</SheetDescription></SheetHeader><div className="px-4"><Label htmlFor="change-request">요청 내용</Label><Textarea className="mt-2 min-h-28" id="change-request" onChange={(event) => setRequestText(event.target.value)} placeholder="예: 추가 시간과 운반 인원을 다시 확인해 주세요." value={requestText} /></div><SheetFooter><Button className="w-full" disabled={!requestText.trim() || pending} onClick={() => { onDecision("request_clarification", requestText.trim()); setRequestOpen(false); }} size="cta">수정 요청 보내기</Button></SheetFooter></SheetContent></Sheet>
+    <Sheet onOpenChange={setRequestOpen} open={requestOpen}><SheetContent className="flex min-h-[340px] flex-col" nested><SheetHeader><SheetTitle>수정 요청</SheetTitle><SheetDescription>변경이 필요한 내용을 업체에 알려주세요.</SheetDescription></SheetHeader><div className="px-4"><Label htmlFor="change-request">요청 내용</Label><Textarea className="mt-2 min-h-28" id="change-request" onChange={(event) => setRequestText(event.target.value)} placeholder="예: 추가 시간과 운반 인원을 다시 확인해 주세요." value={requestText} /></div><SheetFooter className="mt-auto"><Button className="w-full" disabled={!requestText.trim() || pending} onClick={() => { onDecision("request_clarification", requestText.trim()); setRequestOpen(false); }} size="cta">수정 요청 보내기</Button></SheetFooter></SheetContent></Sheet>
   </SheetContent></Sheet>;
 }
 
@@ -601,7 +621,7 @@ function AgreementHistorySheet({ issue, onOpenChange, open, scope }: { issue: Fi
                 <span aria-hidden="true" className="absolute top-0 -left-[37px] size-4 rounded-full border-[3px] border-success bg-surface" />
                 <div className="flex min-h-11 items-start justify-between gap-3">
                   <span>
-                    <span className="inline-flex rounded-md border border-success px-2 py-0.5 text-ui-micro font-extrabold text-success">현재 버전</span>
+                    <span className="inline-flex rounded-md border border-success px-2 py-0.5 text-ui-micro !font-extrabold text-success">현재 버전</span>
                     <strong className="mt-2 block text-ui-section">{scope.scope.version_label} · 현재 확인서</strong>
                   </span>
                   <button aria-label="이전 기록 확인" className="grid size-11 shrink-0 place-items-center rounded-full text-ink-400 hover:bg-surface-muted" onClick={() => setPreviousOpen(true)} type="button"><CaretRight aria-hidden="true" size="var(--icon-sm)" /></button>
@@ -610,7 +630,7 @@ function AgreementHistorySheet({ issue, onOpenChange, open, scope }: { issue: Fi
                   <p>짐 {scope.scope.item_count}개 · 작업 {scope.scope.work_count}개</p>
                   <p className="mt-3 border-t border-line pt-3 tabular-nums">금액 <strong className="float-right text-primary-700">{money(scope.quote?.total_amount_krw)}</strong></p>
                   {adjustments.length ? <p className="mt-3 text-ink-600">변경 사유: {adjustments.map((item) => item.label).join(" · ")}</p> : null}
-                  <div className="mt-3 flex flex-wrap gap-2"><span className="rounded-md bg-success-bg px-2 py-1 text-xs font-bold text-success-ink">업체 확인</span><span className={`rounded-md px-2 py-1 text-xs font-bold ${scope.customer_confirmed_at ? "bg-success-bg text-success-ink" : "bg-warning-bg text-warning-ink"}`}>{scope.customer_confirmed_at ? "고객 확인" : "고객 확인 대기"}</span></div>
+                  <div className="mt-3 flex flex-wrap gap-2"><span className="rounded-md bg-success-bg px-2 py-1 text-ui-control text-success-ink">업체 확인</span><span className={`rounded-md px-2 py-1 text-ui-control ${scope.customer_confirmed_at ? "bg-success-bg text-success-ink" : "bg-warning-bg text-warning-ink"}`}>{scope.customer_confirmed_at ? "고객 확인" : "고객 확인 대기"}</span></div>
                 </div>
               </li>
               {issue ? <li className="relative pb-8">
@@ -633,4 +653,63 @@ function AgreementHistorySheet({ issue, onOpenChange, open, scope }: { issue: Fi
       </SheetContent>
     </Sheet>
   );
+}
+
+function CompanyInvitationEmpty({ connection, scope }: { connection: Connection; scope: ScopeReview }) {
+  const [displayName, setDisplayName] = useState("");
+  const [issued, setIssued] = useState<InvitationIssued | null>(null);
+  const [notice, setNotice] = useState("");
+  const inviteMutation = useMutation({
+    mutationFn: () => createInvitation(connection, "company_manager", displayName.trim()),
+    onSuccess: setIssued,
+  });
+  const inviteText = issued ? `SEQRET 이사 확인 초대 코드\n${issued.access_link.secret}` : "";
+  const copyInvite = async () => {
+    if (!issued) return;
+    await navigator.clipboard.writeText(inviteText);
+    setNotice("초대 코드를 복사했어요.");
+  };
+  const shareInvite = async () => {
+    if (!issued) return;
+    if (navigator.share) {
+      try {
+        await navigator.share({ text: inviteText, title: "SEQRET 이사 확인 초대" });
+        setNotice("초대 코드를 공유했어요.");
+        return;
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+      }
+    }
+    await copyInvite();
+  };
+  return <main className="px-[var(--content-gutter)] pb-28 pt-8">
+    <h1 className="max-w-[310px] text-[30px] leading-[1.22] font-black tracking-[var(--tracking-display)]">업체와 함께<br />확인할 차례예요</h1>
+    <p className="mt-4 max-w-[340px] text-sm leading-6 text-ink-600">이사업체를 초대해 검수 결과를 함께 확인하고 정확한 견적을 받아보세요.</p>
+
+    <section className="mt-8">
+      <h2 className="text-ui-component font-black">업체 초대</h2>
+      <div className="mt-3 rounded-[var(--radius-feature)] border border-line bg-surface px-4">
+        <label className="flex min-h-[76px] items-center gap-3 border-b border-line" htmlFor="company-invite-name"><span className="grid size-10 shrink-0 place-items-center rounded-full bg-primary-50 text-primary-700"><User aria-hidden="true" size="var(--icon-md)" weight="fill" /></span><span className="min-w-0 flex-1"><strong className="block text-sm">업체 담당자</strong><Input autoComplete="off" className="mt-1 h-auto border-0 bg-transparent p-0 text-sm shadow-none focus-visible:ring-0" disabled={Boolean(issued)} id="company-invite-name" maxLength={100} onChange={(event) => setDisplayName(event.target.value)} placeholder="담당자 또는 업체 이름 입력" value={displayName} /></span></label>
+        <div className="flex min-h-[76px] items-center gap-3 border-b border-line"><span className="grid size-10 shrink-0 place-items-center rounded-full bg-primary-50 text-primary-700"><Clock aria-hidden="true" size="var(--icon-md)" /></span><span className="min-w-0 flex-1"><strong className="block text-sm">초대 코드 유효 시간</strong><span className="mt-1 block text-sm text-ink-600">만료되면 안전하게 재발급할 수 있어요</span></span></div>
+        <div className="flex min-h-[76px] items-center gap-3"><span className="grid size-10 shrink-0 place-items-center rounded-full bg-success-bg text-success-ink"><ShieldCheck aria-hidden="true" size="var(--icon-md)" weight="fill" /></span><span className="min-w-0 flex-1"><strong className="block text-sm">열람 가능한 정보</strong><span className="mt-1 block text-sm text-ink-600">작업범위 · 촬영 근거 · 견적 작성</span></span></div>
+      </div>
+    </section>
+
+    {inviteMutation.error ? <p className="mt-3 text-sm font-bold text-danger-ink" role="alert">{apiErrorMessage(inviteMutation.error)}</p> : null}
+    {notice ? <p aria-live="polite" className="mt-3 text-sm font-bold text-success-ink">{notice}</p> : null}
+    <div className="mt-6 space-y-2.5">
+      {!issued ? <Button className="w-full" disabled={!displayName.trim() || inviteMutation.isPending} onClick={() => inviteMutation.mutate()} size="cta"><ShareNetwork aria-hidden="true" />{inviteMutation.isPending ? "초대 코드 만드는 중" : "업체 초대 코드 만들기"}</Button> : <Button className="w-full" onClick={() => void shareInvite()} size="cta"><ShareNetwork aria-hidden="true" />업체에 초대 보내기</Button>}
+      {issued ? <Button className="w-full" onClick={() => void copyInvite()} size="cta" variant="outline"><Copy aria-hidden="true" />초대 코드 복사</Button> : null}
+    </div>
+    <div className="mt-7 flex items-start gap-3 rounded-[var(--radius-control)] bg-primary-50 px-4 py-4 text-sm leading-5 text-ink-600"><ShieldCheck aria-hidden="true" className="mt-0.5 shrink-0 text-success-ink" size="var(--icon-sm)" /><p><strong className="block text-ink-900">안전하게 공유돼요</strong><span className="mt-1 block">초대 코드는 담당자만 사용할 수 있으며, 업체가 참여하기 전에는 확인서가 만들어지지 않아요.</span></p></div>
+  </main>;
+}
+
+function CompanyInvitationPending({ scope }: { scope: ScopeReview }) {
+  return <main className="grid min-h-[calc(100dvh-180px)] content-center px-[var(--content-gutter)] pb-24 text-center">
+    <span className="mx-auto grid size-16 place-items-center rounded-full bg-primary-50 text-primary-700"><Clock aria-hidden="true" size="var(--icon-category)" /></span>
+    <h1 className="mt-5 text-[26px] leading-9 font-black tracking-[var(--tracking-display)]">업체 참여를 기다리고 있어요</h1>
+    <p className="mx-auto mt-3 max-w-[320px] text-sm leading-6 text-ink-600">{scope.job.title}에 보낸 초대를 업체가 수락하면 확인서와 견적을 함께 만들 수 있어요.</p>
+    <div className="mx-auto mt-6 flex items-start gap-3 rounded-[var(--radius-control)] bg-primary-50 px-4 py-4 text-left text-sm leading-5 text-ink-600"><ShieldCheck aria-hidden="true" className="mt-0.5 shrink-0 text-success-ink" size="var(--icon-sm)" /><p><strong className="block text-ink-900">아직 확인서는 만들어지지 않았어요</strong><span className="mt-1 block">업체가 참여하고 작업범위와 금액을 제안하면 여기에서 확인할 수 있어요.</span></p></div>
+  </main>;
 }

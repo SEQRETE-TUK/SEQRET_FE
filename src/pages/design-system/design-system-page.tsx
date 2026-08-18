@@ -62,50 +62,62 @@ const systemLayers = [
 
 const colorGroups = [
   {
-    name: "브랜드와 상호작용",
+    name: "기본 표면과 콘텐츠",
     colors: [
-      { name: "Primary", token: "--color-accent", use: "주요 CTA · 선택 · 현재 단계" },
-      { name: "Primary soft", token: "--color-accent-50", use: "선택 배경 · 정보 상태" },
+      { name: "Paper", token: "--color-paper", use: "앱 전체 배경" },
+      { name: "Paper 2", token: "--color-paper-2", use: "카드 · 입력 · 시트 표면" },
+      { name: "Paper 3", token: "--color-paper-3", use: "보조 표면 · hover 배경" },
+      { name: "Stage", token: "--color-stage", use: "넓은 화면 작업 영역" },
+      { name: "Ink", token: "--color-ink", use: "제목 · 본문 핵심 정보" },
+      { name: "Ink 2", token: "--color-ink-2", use: "설명 · 보조 상태" },
+      { name: "Muted", token: "--color-muted", use: "시간 · metadata · 비활성 설명" },
+      { name: "Rule", token: "--color-rule", use: "목록 구분 · 입력 테두리" },
+      { name: "Overlay", token: "--color-overlay", use: "modal · sheet backdrop" },
     ],
   },
   {
-    name: "콘텐츠와 표면",
+    name: "브랜드와 상호작용",
     colors: [
-      { name: "Ink", token: "--color-ink", use: "제목 · 본문 핵심 정보" },
-      { name: "Muted ink", token: "--color-ink-2", use: "설명 · 보조 상태" },
-      { name: "Surface", token: "--color-paper-2", use: "앱 화면 · 시트 · 입력 표면" },
-      { name: "Rule", token: "--color-rule", use: "목록 구분 · 입력 테두리" },
+      { name: "Primary soft", token: "--color-accent-50", use: "선택 배경 · 정보 상태" },
+      { name: "Primary pale", token: "--color-accent-100", use: "선택 보조 배경" },
+      { name: "Primary focus", token: "--color-accent-400", use: "focus · 보조 강조" },
+      { name: "Primary", token: "--color-accent", use: "주요 CTA · 선택 · 현재 단계" },
+      { name: "Primary hover", token: "--color-accent-hover", use: "hover · 활성 강조" },
+      { name: "Primary strong", token: "--color-accent-strong", use: "강한 primary 텍스트" },
+      { name: "Primary ink", token: "--color-accent-ink", use: "primary 위 텍스트" },
+      { name: "Focus", token: "--color-focus", use: "keyboard focus ring" },
     ],
   },
   {
     name: "상태",
     colors: [
       { name: "Success", token: "--color-success", use: "완료 · 연결됨" },
+      { name: "Success background", token: "--color-success-bg", use: "완료 상태 배경" },
+      { name: "Success ink", token: "--color-success-ink", use: "완료 상태 텍스트" },
       { name: "Warning", token: "--color-warning", use: "대기 · 현장 주의" },
+      { name: "Warning background", token: "--color-warning-bg", use: "대기 상태 배경" },
+      { name: "Warning ink", token: "--color-warning-ink", use: "대기 상태 텍스트" },
       { name: "Danger", token: "--color-danger", use: "오류 · 종료 · 거절" },
+      { name: "Danger background", token: "--color-danger-bg", use: "오류 상태 배경" },
+      { name: "Danger ink", token: "--color-danger-ink", use: "오류 상태 텍스트" },
     ],
   },
 ] as const;
 
 const typeScale = [
-  { name: "섹션 제목", spec: "20 / 28 · 700 · 0", className: "text-ui-section", sample: "확인할 내용" },
-  { name: "컴포넌트 제목", spec: "17 / 24 · 600 · 0", className: "text-ui-component", sample: "작업 범위와 금액" },
-  { name: "목록 제목", spec: "16 / 22 · 500 · 0", className: "text-ui-list-title", sample: "범위와 견적" },
-  { name: "본문", spec: "16 / 24 · 400 · 0", className: "text-ui-body", sample: "현재 상태와 다음 작업을 설명합니다." },
-  { name: "컨트롤", spec: "14 / 19 · 500 · 0", className: "text-ui-control", sample: "변경 내용 확인" },
-  { name: "보조 정보", spec: "14 / 20 · 400 · 0", className: "text-ui-support text-ink-600", sample: "1월 15일 화요일 · 오전 10:00" },
-  { name: "목록 설명", spec: "13 / 18 · 400 · 0", className: "text-ui-list-detail text-ink-600", sample: "고객 확인 대기" },
-  { name: "데이터", spec: "13 / 18 · 500 · 0", className: "text-ui-data tabular-nums", sample: "v1.0 · 480,000원" },
-  { name: "상태·라벨", spec: "12 / 16 · 500 · 0", className: "text-ui-status text-primary-700", sample: "확인 대기" },
-];
-
-type TypeScaleItem = (typeof typeScale)[number];
-
-const typeGroups: ReadonlyArray<{ description: string; items: ReadonlyArray<TypeScaleItem>; name: string }> = [
-  { name: "제목", description: "화면 안의 문맥과 정보 덩어리를 구분합니다.", items: [typeScale[0], typeScale[1], typeScale[2]] },
-  { name: "읽기", description: "설명과 보조 정보를 편안한 밀도로 전달합니다.", items: [typeScale[3], typeScale[5], typeScale[6]] },
-  { name: "UI", description: "조작, 수치, 상태처럼 빠르게 훑는 정보에 씁니다.", items: [typeScale[4], typeScale[7], typeScale[8]] },
-];
+  { name: "페이지 제목", className: "text-ui-title-lg", sample: "SEQRET 디자인 시스템", sizeToken: "--text-title-lg", lineToken: "--line-screen", weightToken: "--display-weight", trackingToken: "--tracking-display" },
+  { name: "단계 제목", className: "text-ui-step-title", sample: "업체와 함께 확인할 차례예요", sizeToken: "--text-step-title", lineToken: "--line-screen", weightToken: "--display-weight", trackingToken: "--tracking-display" },
+  { name: "섹션 제목", className: "text-ui-section", sample: "확인할 내용", sizeToken: "--text-xl", lineToken: "--line-section", weightToken: "--weight-strong", trackingToken: "--tracking-none" },
+  { name: "컴포넌트 제목", className: "text-ui-component", sample: "작업 범위와 금액", sizeToken: "--text-component", lineToken: "--line-component", weightToken: "--weight-component", trackingToken: "--tracking-none" },
+  { name: "목록 제목", className: "text-ui-list-title", sample: "범위와 견적", sizeToken: "--text-list-title", lineToken: "--line-list-title", weightToken: "--weight-list-title", trackingToken: "--tracking-none" },
+  { name: "본문", className: "text-ui-body", sample: "현재 상태와 다음 작업을 설명합니다.", sizeToken: "--text-md", lineToken: "--line-body", weightToken: "--weight-body", trackingToken: "--tracking-none" },
+  { name: "보조 정보", className: "text-ui-support text-ink-600", sample: "1월 15일 화요일 · 오전 10:00", sizeToken: "--text-support", lineToken: "--line-support", weightToken: "--weight-support", trackingToken: "--tracking-none" },
+  { name: "컨트롤", className: "text-ui-control", sample: "변경 내용 확인", sizeToken: "--text-control", lineToken: "--line-control", weightToken: "--weight-control", trackingToken: "--tracking-none" },
+  { name: "목록 설명", className: "text-ui-list-detail text-ink-600", sample: "고객 확인 대기", sizeToken: "--text-list-detail", lineToken: "--line-list-detail", weightToken: "--weight-list-detail", trackingToken: "--tracking-none" },
+  { name: "데이터", className: "text-ui-data tabular-nums", sample: "v1.0 · 480,000원", sizeToken: "--text-data", lineToken: "--line-data", weightToken: "--weight-data", trackingToken: "--tracking-none" },
+  { name: "상태·라벨", className: "text-ui-status text-primary-700", sample: "확인 대기", sizeToken: "--text-xs", lineToken: "--line-label", weightToken: "--weight-status", trackingToken: "--tracking-none" },
+  { name: "미세 정보", className: "text-ui-micro text-ink-600", sample: "방금 전 · 작업 ID", sizeToken: "--text-micro", lineToken: "--line-label", weightToken: "--weight-micro", trackingToken: "--tracking-none" },
+] as const;
 
 const spacingScale = [
   { name: "3XS", token: "--space-3xs", use: "아이콘 내부·미세 정렬" },
@@ -188,7 +200,7 @@ export function DesignSystemPage() {
 
         <div className="min-w-0 px-5 pb-24 lg:px-0">
           <section className="border-b border-line pt-10 pb-14 md:pt-12 md:pb-16">
-            <h1 className="min-w-0 max-w-[760px] break-keep text-ui-title-lg font-extrabold tracking-[var(--tracking-brand)] [overflow-wrap:anywhere] md:text-ui-display">
+            <h1 className="min-w-0 max-w-[760px] break-keep text-ui-title-lg font-extrabold tracking-[var(--tracking-brand)] [overflow-wrap:anywhere]">
               SEQRET 디자인 시스템
             </h1>
             <p className="mt-4 max-w-[720px] text-ui-support text-ink-600">
@@ -246,9 +258,7 @@ export function DesignSystemPage() {
             </section>
 
             <Subsection id="typography-scale" title="타이포그래피">
-              <div aria-label="타이포그래피 역할" className="grid gap-4 lg:grid-cols-3">
-                {typeGroups.map((group) => <TypeGroup group={group} key={group.name} />)}
-              </div>
+              <TypeScaleList />
             </Subsection>
 
             <Subsection id="spacing-and-shape" title="간격과 형태">
@@ -280,6 +290,11 @@ export function DesignSystemPage() {
                   </li>
                 ))}
               </TokenTileList>
+
+              <Subsection id="token-inventory" title="전체 토큰">
+                <p className="mb-3 max-w-[680px] text-sm leading-6 text-ink-600">tokens.css에서 현재 계산된 모든 토큰을 표시합니다. 새 토큰이 추가돼도 이 목록에서 이름과 값을 확인할 수 있어요.</p>
+                <TokenInventory />
+              </Subsection>
             </Subsection>
           </DocSection>
 
@@ -339,7 +354,7 @@ export function DesignSystemPage() {
                   <Button size="cta">주요 CTA 44</Button>
                 </div>
               </div>
-              <p className="mt-4 max-w-[680px] text-sm leading-6 text-ink-600">기본 버튼은 44px · 14/19 · 500 · 좌우 16px · 아이콘 간격 6px입니다. 조밀 버튼은 32px · 13/18 · 좌우 14px · 간격 4px로 제한하고, 주요 CTA의 위계는 높이가 아니라 색과 너비로 구분합니다.</p>
+              <p className="mt-4 max-w-[680px] text-sm leading-6 text-ink-600">기본 버튼은 <code>--control-touch</code> · <code>--text-control</code> · <code>--control-padding-x</code> · <code>--control-gap</code>을 사용합니다. 조밀 버튼은 <code>--control-compact</code> · <code>--control-compact-padding-x</code> · <code>--control-compact-gap</code>으로 제한하고, 주요 CTA의 위계는 높이가 아니라 색과 너비로 구분합니다.</p>
             </ComponentSpecimen>
 
             <ComponentSpecimen id="filter-chip-standard" title="필터 칩">
@@ -348,7 +363,7 @@ export function DesignSystemPage() {
                 <FilterChip onClick={() => undefined}>거실 5</FilterChip>
                 <FilterChip onClick={() => undefined}>침실 3</FilterChip>
               </div>
-              <p className="mt-4 max-w-[560px] text-sm leading-6 text-ink-600">필터 칩은 높이 36px, 좌우 여백 12px, 500 두께의 글자를 사용해 목록보다 가볍게 보이도록 합니다.</p>
+              <p className="mt-4 max-w-[560px] text-sm leading-6 text-ink-600">필터 칩은 <code>--filter-padding-x</code>와 <code>--weight-control</code>을 사용해 목록보다 가볍게 보이도록 합니다.</p>
             </ComponentSpecimen>
 
             <ComponentSpecimen id="selection-standard" title="선택과 상태">
@@ -365,7 +380,7 @@ export function DesignSystemPage() {
                   </div>
                 </div>
               </div>
-              <p className="mt-4 text-sm leading-6 text-ink-600">한 질문에서 하나만 고르는 값은 탭처럼 묶인 segmented radio로 표시합니다. 화면 구역을 전환하는 Tabs나 독립적으로 켜고 끄는 Toggle에는 사용하지 않습니다.</p>
+              <p className="mt-4 text-sm leading-6 text-ink-600">한 질문에서 하나만 고르는 값은 탭처럼 묶인 segmented radio로 표시합니다. 내부 선택 버튼은 그룹 배경과 1px 여백만 두어 거의 같은 높이로 맞춥니다. 화면 구역을 전환하는 Tabs나 독립적으로 켜고 끄는 Toggle에는 사용하지 않습니다.</p>
             </ComponentSpecimen>
 
             <ComponentSpecimen
@@ -467,25 +482,22 @@ function ComponentSpecimen({
   );
 }
 
-function TypeGroup({ group }: { group: (typeof typeGroups)[number] }) {
+function TypeScaleList() {
   return (
-    <section className="overflow-hidden rounded-[var(--radius-small)] bg-surface">
-      <header className="px-4 py-4">
-        <h4 className="text-ui-component">{group.name}</h4>
-        <p className="mt-1 text-sm leading-5 text-ink-600">{group.description}</p>
-      </header>
-      <ul className="divide-y divide-line border-t border-line">
-        {group.items.map((type) => (
-          <li className="px-4 py-4" key={type.name}>
-            <p className={type.className}>{type.sample}</p>
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-ink-600">
-              <strong className="font-semibold text-ink-900">{type.name}</strong>
-              <span className="tabular-nums">{type.spec}</span>
+    <ul aria-label="타이포그래피 역할" className="divide-y divide-line overflow-hidden rounded-[var(--radius-small)] bg-surface">
+      {typeScale.map((type) => (
+        <li className="grid gap-4 px-4 py-5 md:grid-cols-[minmax(0,1fr)_minmax(22rem,0.85fr)] md:items-center md:gap-8" key={type.name}>
+          <p className={type.className}>{type.sample}</p>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs text-ink-600">
+              <strong className="text-ui-control text-ink-900">{type.name}</strong>
+              <span className="tabular-nums"><TokenValue token={type.sizeToken} /> / <TokenValue token={type.lineToken} /> · <TokenValue token={type.weightToken} /> · <TokenValue token={type.trackingToken} /></span>
             </div>
-          </li>
-        ))}
-      </ul>
-    </section>
+            <code className="mt-1 block break-all text-xs leading-4 text-ink-400">{type.sizeToken} · {type.lineToken} · {type.weightToken} · {type.trackingToken}</code>
+          </div>
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -503,6 +515,23 @@ function TokenTileList({ children, ...props }: { children: ReactNode } & Compone
 function TokenValue({ token }: { token: string }) {
   const value = window.getComputedStyle(document.documentElement).getPropertyValue(token).trim();
   return <code className="text-xs text-ink-600">{value || token}</code>;
+}
+
+function TokenInventory() {
+  const computed = window.getComputedStyle(document.documentElement);
+  const tokens = Array.from({ length: computed.length }, (_, index) => computed.item(index))
+    .filter((token) => token.startsWith("--"))
+    .sort();
+  return (
+    <TokenTileList aria-label="전체 CSS 토큰">
+      {tokens.map((token) => (
+        <li className="min-w-0 bg-surface p-3" key={token}>
+          <code className="block break-all text-xs text-ink-400">{token}</code>
+          <span className="mt-1 block break-all"><TokenValue token={token} /></span>
+        </li>
+      ))}
+    </TokenTileList>
+  );
 }
 
 function IconRule({

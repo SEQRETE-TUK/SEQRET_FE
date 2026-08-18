@@ -85,7 +85,7 @@ export function WorkflowShell({
       <div className={cn("mx-auto min-h-dvh bg-canvas", wide ? "max-w-[var(--shell-wide)]" : "mobile-frame")}>
         <header className="app-safe-header sticky top-0 z-[var(--z-sticky)] flex items-center justify-between border-b border-line bg-surface/95 px-5 pb-3 backdrop-blur">
           <div className="min-w-0">
-            <p className="truncate text-xs font-bold text-primary-700">{roleLabel[session.actor.role]} · {session.actor.display_name}</p>
+            <p className="truncate text-ui-control text-primary-700">{roleLabel[session.actor.role]} · {session.actor.display_name}</p>
             <h1 className="mt-1 truncate text-xl font-extrabold">{title}</h1>
           </div>
           <div className="flex gap-1">

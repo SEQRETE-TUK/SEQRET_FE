@@ -22,7 +22,7 @@ export function MobileHeaderButton({ ariaLabel, className, ...props }: Component
 
 export function MobilePageHeader({ className, description, left, onBack, right, title }: { className?: string; description?: ReactNode; left?: ReactNode; onBack?: () => void; right?: ReactNode; title: ReactNode }) {
   const resolvedLeft = left ?? (onBack ? <MobileHeaderButton ariaLabel="뒤로가기" onClick={onBack}><ArrowLeft aria-hidden="true" size="var(--icon-sm)" /></MobileHeaderButton> : null);
-  return <header className={cn("app-safe-header grid min-h-14 grid-cols-[48px_minmax(0,1fr)_48px] items-center border-b border-line bg-surface px-2", className)}><div className="flex min-w-0 items-center">{resolvedLeft}</div><div className="min-w-0 text-center"><h1 className="truncate text-ui-component font-extrabold leading-6 tracking-[var(--tracking-display)]">{title}</h1>{description ? <p className="mt-0.5 truncate text-xs leading-4 text-ink-600">{description}</p> : null}</div><div className="flex min-w-0 justify-end">{right}</div></header>;
+  return <header className={cn("app-safe-header sticky top-0 z-[var(--z-sticky)] grid min-h-14 grid-cols-[48px_minmax(0,1fr)_48px] items-center bg-surface px-2", className)}><div className="flex min-w-0 items-center">{resolvedLeft}</div><div className="min-w-0 text-center"><h1 className="truncate text-ui-component font-extrabold leading-6 tracking-[var(--tracking-display)]">{title}</h1>{description ? <p className="mt-0.5 truncate text-xs leading-4 text-ink-600">{description}</p> : null}</div><div className="flex min-w-0 justify-end">{right}</div></header>;
 }
 
 export function MobileDetailHeader({ backLabel, onBack, onMore, title }: { backLabel: string; onBack: () => void; onMore: () => void; title: ReactNode }) {
