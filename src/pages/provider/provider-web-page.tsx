@@ -34,6 +34,7 @@ import {
   createScopeProposal,
   getScopeReview,
   listFieldIssues,
+  scopeContentFromReview,
   workflowKeys,
   type Connection,
   type FieldIssue,
@@ -46,30 +47,14 @@ type JobMode = "detail" | "quote";
 const moneyFormatter = new Intl.NumberFormat("ko-KR");
 const money = (amount: number | null | undefined) => amount == null ? "–" : `${moneyFormatter.format(amount)}원`;
 const day = new Intl.DateTimeFormat("ko-KR", { month: "numeric", day: "numeric", weekday: "short" });
-const providerConnectionsKey = "seqret-provider-connections";
-
-function storedProviderConnections(): AuthSession[] {
-  try {
-    const stored = JSON.parse(window.sessionStorage.getItem(providerConnectionsKey) ?? "[]") as AuthSession[];
-    return stored.filter((item) => item.accessToken && item.actor?.role === "company_manager");
-  } catch {
-    return [];
-  }
-}
-
-function saveProviderConnections(connections: AuthSession[]) {
-  window.sessionStorage.setItem(providerConnectionsKey, JSON.stringify(connections));
-  return connections;
-}
-
 function upsertProviderConnection(connections: AuthSession[], next: AuthSession) {
-  return saveProviderConnections([next, ...connections.filter((item) => item.actor.job_id !== next.actor.job_id)]);
+  return [next, ...connections.filter((item) => item.actor.job_id !== next.actor.job_id)];
 }
 
 export function ProviderWebPage() {
   const { clearSession, connect, session } = useAuth();
   const activeSession = session?.actor.role === "company_manager" ? session : null;
-  const [connections, setConnections] = useState<AuthSession[]>(() => activeSession ? upsertProviderConnection(storedProviderConnections(), activeSession) : storedProviderConnections());
+  const [connections, setConnections] = useState<AuthSession[]>(() => activeSession ? [activeSession] : []);
   const addConnection = async (secret: string) => {
     const next = await connect(secret, "company_manager");
     setConnections((current) => upsertProviderConnection(current, next));
@@ -78,7 +63,7 @@ export function ProviderWebPage() {
   const selectConnection = (next: AuthSession) => connect(next.accessToken, "company_manager");
   const removeConnection = () => {
     if (!activeSession) return;
-    const remaining = saveProviderConnections(connections.filter((item) => item.actor.job_id !== activeSession.actor.job_id));
+    const remaining = connections.filter((item) => item.actor.job_id !== activeSession.actor.job_id);
     setConnections(remaining);
     if (remaining[0]) void selectConnection(remaining[0]);
     else clearSession();
@@ -197,7 +182,7 @@ function QuoteEditor({ connection, onBack, scope }: { connection: Connection; on
   const [adjustment, setAdjustment] = useState(0);
   const [reason, setReason] = useState(scope?.proposal_reason ?? "촬영 결과와 현장 조건을 반영한 견적입니다.");
   const [openRoom, setOpenRoom] = useState(scope?.scope.room_groups[0]?.room_zone_id ?? "");
-  const mutation = useMutation({ mutationFn: () => createScopeProposal(connection, { source_scope_version_id: scope!.scope.id, content: { schema_version: 1, items: scope!.scope.room_groups.flatMap((group) => group.items.map(({ item_key, room_zone_id, description }) => ({ item_key, room_zone_id, description }))) }, quote: { base_amount_krw: baseAmount, adjustments: adjustment === 0 ? [] : [{ label: "현장 조건 조정", amount_krw: adjustment }], total_amount_krw: baseAmount + adjustment }, included_works: scope!.scope.included_works, exclusions: scope!.scope.exclusions, reason }), onSuccess: async () => { await queryClient.invalidateQueries({ queryKey: workflowKeys.scope(connection.jobId) }); onBack(); } });
+  const mutation = useMutation({ mutationFn: () => createScopeProposal(connection, { source_scope_version_id: scope!.scope.id, content: scopeContentFromReview(scope!), quote: { base_amount_krw: baseAmount, adjustments: adjustment === 0 ? [] : [{ label: "현장 조건 조정", amount_krw: adjustment }], total_amount_krw: baseAmount + adjustment }, execution_plan: scope!.execution_plan ?? { vehicle_count: 1, vehicle_description: "5톤 탑차", worker_count: 2, estimated_duration_minutes: 480, notes: null }, included_works: scope!.scope.included_works, exclusions: scope!.scope.exclusions, reason }), onSuccess: async () => { await queryClient.invalidateQueries({ queryKey: workflowKeys.scope(connection.jobId) }); onBack(); } });
   if (!scope) return <p>작업을 불러오는 중입니다.</p>;
   const locked = scope.scope.status !== "company_review";
   return <div className="grid gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(380px,0.65fr)]"><section className="ui-card overflow-hidden"><div className="flex items-center gap-4 border-b border-line p-5"><button className="text-sm font-extrabold text-primary-700" onClick={onBack} type="button">← 작업 관리</button><div className="border-l border-line pl-4"><strong>{scope.job.customer_display_name}</strong><span className="ml-2 text-sm text-ink-600">{scope.job.origin_summary} → {scope.job.destination_summary}</span></div></div><div className="flex min-h-14 items-center gap-7 border-b border-line px-5 text-sm font-extrabold"><span className="border-b-2 border-primary-600 py-4 text-primary-700">짐 {scope.scope.item_count}</span><span>작업조건 {scope.scope.work_count}</span><span>근거 영상</span></div><div className="p-5"><h3 className="text-xl font-black">공간별 모든 짐</h3><div className="mt-4 space-y-3">{scope.scope.room_groups.map((group) => <div className="overflow-hidden rounded-xl border border-line" key={group.room_zone_id}><button className="flex min-h-14 w-full items-center gap-3 px-4 text-left font-extrabold" onClick={() => setOpenRoom(openRoom === group.room_zone_id ? "" : group.room_zone_id)} type="button"><Buildings aria-hidden="true" className="text-primary-700" />{group.label}<span className="rounded bg-surface-muted px-2 text-xs">{group.item_count}</span>{openRoom === group.room_zone_id ? <CaretDown className="ml-auto" /> : <CaretRight className="ml-auto" />}</button>{openRoom === group.room_zone_id ? <div className="mx-4 border-t border-line">{group.items.map((item) => <div className="grid min-h-14 grid-cols-[minmax(0,1fr)_60px_100px] items-center gap-3 border-b border-line text-sm last:border-0" key={item.item_key}><span>{item.description}</span><span>1</span><span className="font-bold text-success">높음 94%</span></div>)}</div> : null}</div>)}</div></div></section><section className="ui-card ui-card-pad self-start"><h3 className="text-xl font-black">작업 범위와 금액</h3>{locked ? <div className="mt-4 rounded-xl border border-primary-100 bg-primary-50 px-4 py-3 text-sm font-bold text-primary-800">{scope.scope.status === "customer_review" ? "고객이 이 제안을 확인하고 있습니다." : "공동 확정된 견적입니다."}</div> : null}<ScopeRows items={scope.scope.included_works} label="포함 작업" tone="success" /><ScopeRows items={scope.scope.exclusions} label="제외 작업" tone="neutral" /><div className="mt-5 border-t border-line pt-5"><h4 className="font-extrabold">견적 금액</h4><MoneyInput disabled={locked} label="기본 금액" onChange={setBaseAmount} value={baseAmount} /><MoneyInput disabled={locked} label="추가/조정 금액" onChange={setAdjustment} value={adjustment} /><div className="mt-4 flex items-end justify-between border-t border-line pt-4"><span className="font-extrabold">총 제안 금액</span><strong className="text-2xl text-primary-700">{money(baseAmount + adjustment)}</strong></div></div><label className="mt-5 block text-sm font-extrabold" htmlFor="proposal-reason">제안 사유 <span className="font-medium text-ink-400">(선택)</span></label><Textarea className="mt-2" disabled={locked} id="proposal-reason" maxLength={120} onChange={(event) => setReason(event.target.value)} value={reason} />{mutation.error ? <p className="mt-3 text-sm font-bold text-danger">{apiErrorMessage(mutation.error)}</p> : null}{locked ? null : <Button className="mt-5 w-full" disabled={mutation.isPending} onClick={() => mutation.mutate()} size="cta"><Send aria-hidden="true" /> 고객에게 제안 보내기</Button>}</section></div>;
@@ -209,7 +194,7 @@ function IssueWorkbench({ connection, issues, scope }: { connection: Connection;
   const selected = issues.find((issue) => issue.field_issue_id === selectedId) ?? issues[0];
   const [adjustment, setAdjustment] = useState(50000);
   const [reason, setReason] = useState("엘리베이터 운행 중단으로 계단 운반이 필요합니다.");
-  const mutation = useMutation({ mutationFn: () => createChangeProposal(connection, { field_issue_id: selected!.field_issue_id, base_scope_version_id: selected!.base_scope_version_id, title: "계단 운반 추가", reason, proposed_content: { schema_version: 1, items: scope!.scope.room_groups.flatMap((group) => group.items.map(({ item_key, room_zone_id, description }) => ({ item_key, room_zone_id, description }))) }, quote: { base_amount_krw: scope!.quote?.base_amount_krw ?? 0, adjustments: [{ label: "계단 운반", amount_krw: adjustment }], total_amount_krw: (scope!.quote?.total_amount_krw ?? 0) + adjustment } }), onSuccess: () => queryClient.invalidateQueries({ queryKey: workflowKeys.root(connection.jobId) }) });
+  const mutation = useMutation({ mutationFn: () => createChangeProposal(connection, { field_issue_id: selected!.field_issue_id, base_scope_version_id: selected!.base_scope_version_id, title: "계단 운반 추가", reason, proposed_content: scopeContentFromReview(scope!), quote: { base_amount_krw: scope!.quote?.base_amount_krw ?? 0, adjustments: [{ label: "계단 운반", amount_krw: adjustment }], total_amount_krw: (scope!.quote?.total_amount_krw ?? 0) + adjustment } }), onSuccess: () => queryClient.invalidateQueries({ queryKey: workflowKeys.root(connection.jobId) }) });
   return <div className="grid min-h-[760px] gap-5 xl:grid-cols-[320px_minmax(0,1fr)] 2xl:grid-cols-[380px_minmax(0,1fr)]"><section className="ui-card overflow-hidden"><div className="flex min-h-16 items-center gap-6 border-b border-line px-5 text-sm font-extrabold"><span className="border-b-2 border-primary-600 py-5">전체 {issues.length}</span><span>처리 필요 {issues.filter((issue) => issue.status === "open").length}</span></div><div className="p-4">{issues.map((issue) => <button className={`flex w-full items-start gap-3 rounded-xl border p-4 text-left ${selected?.field_issue_id === issue.field_issue_id ? "border-primary-600 bg-primary-50/60" : "border-transparent"}`} key={issue.field_issue_id} onClick={() => setSelectedId(issue.field_issue_id)} type="button"><span className="mt-2 size-2 rounded-full bg-danger" /><div className="flex-1"><p className="font-extrabold">{issue.title}</p><p className="mt-1 text-sm text-ink-600">{scope?.job.customer_display_name ?? "고객"}</p></div><StatusTag tone="warning">처리 필요</StatusTag></button>)}</div></section><section className="ui-card ui-card-pad">{selected && scope ? <><h3 className="text-xl font-black">기준 승인본 {scope.scope.version_label} <span className="mx-2 text-ink-400">→</span> <span className="text-primary-700">변경 제안</span></h3><div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]"><div><p className="text-sm font-extrabold">현장 증거</p><img alt={selected.title} className="mt-3 aspect-[16/10] w-full rounded-xl object-cover" src="/elevator-outage-evidence.png" /><p className="mt-3 text-sm font-extrabold">기사 설명</p><p className="mt-2 rounded-xl border border-line p-4 text-sm text-ink-600">{selected.description}</p><h4 className="mt-5 font-extrabold">관련 승인 범위</h4><div className="mt-2 rounded-xl border border-line p-4 text-sm"><p>포장 및 운반 <span className="float-right">포함</span></p><p className="mt-2">기본 가구 분해·조립 <span className="float-right">포함</span></p><p className="mt-2">에어컨 탈부착 <span className="float-right">제외</span></p></div></div><div><p className="flex items-center gap-2 text-sm font-extrabold text-primary-700"><Wrench aria-hidden="true" /> 변경 제안 내용</p><div className="mt-3 rounded-xl border border-line p-4"><p className="text-sm text-ink-600">추가 작업</p><p className="mt-2 font-extrabold">계단 운반 · 5층 <span className="float-right">1건</span></p></div><label className="mt-5 block text-sm font-extrabold" htmlFor="change-reason">사유</label><Textarea className="mt-2" id="change-reason" onChange={(event) => setReason(event.target.value)} value={reason} /><div className="mt-5 space-y-3 text-sm"><p className="flex justify-between"><span>기존 금액 ({scope.scope.version_label})</span><strong>{money(scope.quote?.total_amount_krw)}</strong></p><MoneyInput label="추가/조정 금액" onChange={setAdjustment} value={adjustment} /><p className="flex items-center justify-between border-t border-line pt-4"><span className="font-extrabold">변경 후 금액</span><strong className="text-2xl text-primary-700">{money((scope.quote?.total_amount_krw ?? 0) + adjustment)}</strong></p></div>{mutation.error ? <p className="mt-3 text-sm font-bold text-danger">{apiErrorMessage(mutation.error)}</p> : null}<Button className="mt-5 w-full" disabled={mutation.isPending || selected.status !== "open"} onClick={() => mutation.mutate()} size="cta"><Send aria-hidden="true" /> 고객에게 변경안 보내기</Button><Button className="mt-3 w-full" variant="outline">설명 요청</Button></div></div></> : <p className="text-sm text-ink-600">처리할 현장 이슈가 없습니다.</p>}</section></div>;
 }
 

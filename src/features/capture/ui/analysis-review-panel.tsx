@@ -37,6 +37,10 @@ export interface AnalysisReviewDraftItem {
   itemKey: string;
   roomZoneId: string;
   description: string;
+  name?: string;
+  quantity?: number | null;
+  unit?: string | null;
+  workNote?: string | null;
 }
 
 interface AnalysisReviewPanelProps {
@@ -241,7 +245,7 @@ export function AnalysisReviewPanel({
                 </label>
 
                 <label className="mt-3 block text-sm font-bold text-ink-400">
-                  짐 또는 작업 설명
+                  {review.scope_schema_version === 2 ? "짐 이름" : "짐 또는 작업 설명"}
                   <Textarea
                     aria-label={`${index + 1}번 항목 설명`}
                     aria-invalid={!completed && draft.description.trim().length === 0}
@@ -250,9 +254,9 @@ export function AnalysisReviewPanel({
                     disabled={completed}
                     maxLength={2000}
                     name={`review-item-${index + 1}-description`}
-                    onChange={(event) => onChange(draft.itemKey, { description: event.target.value })}
+                    onChange={(event) => onChange(draft.itemKey, review.scope_schema_version === 2 ? { name: event.target.value, description: event.target.value } : { description: event.target.value })}
                     required
-                    value={draft.description}
+                    value={review.scope_schema_version === 2 ? draft.name ?? "" : draft.description}
                   />
                   {!completed && (
                     <span className="mt-1 flex justify-between gap-3 text-xs font-medium">
@@ -265,6 +269,22 @@ export function AnalysisReviewPanel({
                     </span>
                   )}
                 </label>
+                {review.scope_schema_version === 2 && (
+                  <div className="mt-3 grid grid-cols-2 gap-3">
+                    <label className="text-sm font-bold text-ink-400">
+                      수량
+                      <input className="mt-1.5 h-11 w-full rounded-[var(--radius-control)] border border-line px-3 text-base text-ink-900" disabled={completed} min="1" onChange={(event) => onChange(draft.itemKey, { quantity: Number(event.target.value) })} required type="number" value={draft.quantity ?? ""} />
+                    </label>
+                    <label className="text-sm font-bold text-ink-400">
+                      단위
+                      <input className="mt-1.5 h-11 w-full rounded-[var(--radius-control)] border border-line px-3 text-base text-ink-900" disabled={completed} maxLength={20} onChange={(event) => onChange(draft.itemKey, { unit: event.target.value })} required value={draft.unit ?? ""} />
+                    </label>
+                    <label className="col-span-2 text-sm font-bold text-ink-400">
+                      작업 메모
+                      <Textarea className="mt-1.5 min-h-20" disabled={completed} maxLength={500} onChange={(event) => onChange(draft.itemKey, { workNote: event.target.value || null })} value={draft.workNote ?? ""} />
+                    </label>
+                  </div>
+                )}
               </article>
             );
           })}

@@ -9,6 +9,7 @@ import {
   createManualScope,
   createMediaUpload,
   getMoveJob,
+  getMediaConsentPolicy,
   getAnalysisReview,
   listScopeVersions,
   listCaptureSessions,
@@ -78,6 +79,11 @@ export function useCaptureWorkflow(connection: CaptureConnection) {
     refetchInterval: (query) => (needsPolling(query.state.data) ? 2_000 : false),
   });
 
+  const consentPolicyQuery = useQuery({
+    queryKey: [...rootKey, "media-consent-policy"],
+    queryFn: ({ signal }) => getMediaConsentPolicy({ ...connection, signal }),
+  });
+
   const latestAnalysisStatus = sessionsQuery.data?.[0]?.analysis?.status;
   const reviewQuery = useQuery({
     enabled: latestAnalysisStatus === "completed",
@@ -100,7 +106,14 @@ export function useCaptureWorkflow(connection: CaptureConnection) {
   };
 
   const createSessionMutation = useMutation({
-    mutationFn: () => createCaptureSession(connection),
+    mutationFn: () => {
+      if (!consentPolicyQuery.data) throw new Error("촬영 개인정보 안내를 불러오지 못했습니다.");
+      return createCaptureSession({
+        ...connection,
+        consentPolicyVersion: consentPolicyQuery.data.policy_version,
+        privacyNoticeAcknowledged: true,
+      });
+    },
     onSuccess: async () => {
       setResumableUpload(null);
       await refreshSessions();
@@ -165,7 +178,7 @@ export function useCaptureWorkflow(connection: CaptureConnection) {
 
   const reviewMutation = useMutation({
     mutationFn: (
-      command: Pick<CompleteAnalysisReviewRequest, "items" | "sourceScopeVersionId">,
+      command: Pick<CompleteAnalysisReviewRequest, "items" | "locationConditions" | "scopeSchemaVersion" | "sourceScopeVersionId">,
     ) => completeAnalysisReview({ ...connection, ...command }),
     onSuccess: (review) => {
       queryClient.setQueryData(reviewKey, review);
@@ -182,6 +195,7 @@ export function useCaptureWorkflow(connection: CaptureConnection) {
 
   return {
     createSessionMutation,
+    consentPolicyQuery,
     jobQuery,
     manualScopeMutation,
     reviewMutation,

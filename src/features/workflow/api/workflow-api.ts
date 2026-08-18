@@ -1,4 +1,5 @@
 import { ApiError, apiRequest, downloadApiFile, publicApiRequest } from "@/api/client";
+import { scopeProposalPayload } from "@/api/contract-payloads";
 
 export type ParticipantRole = "customer" | "company_manager" | "field_worker";
 
@@ -84,10 +85,39 @@ export interface QuoteSnapshot {
   total_amount_krw: number;
 }
 
-export interface ScopeItem {
+export interface ScopeItemV1 {
   item_key: string;
   room_zone_id: string;
   description: string;
+}
+
+export interface ScopeItemV2 {
+  item_key: string;
+  room_zone_id: string;
+  name: string;
+  quantity: number | null;
+  unit: string | null;
+  work_note: string | null;
+  review_status: "confirmed" | "review_required";
+  source: "ai" | "customer" | "company" | "field_change";
+}
+
+export interface ScopeLocationConditions {
+  location_id: string;
+  kind: "origin" | "destination";
+  conditions: Record<string, unknown>;
+}
+
+export type ScopeContent =
+  | { schema_version: 1; items: ScopeItemV1[] }
+  | { schema_version: 2; items: ScopeItemV2[]; location_conditions: ScopeLocationConditions[] };
+
+export interface ExecutionPlanSnapshot {
+  vehicle_count: number;
+  vehicle_description: string;
+  worker_count: number;
+  estimated_duration_minutes: number;
+  notes: string | null;
 }
 
 export interface ScopeReview {
@@ -95,6 +125,9 @@ export interface ScopeReview {
   scope: {
     id: string;
     version_label: string;
+    schema_version: 1 | 2;
+    content_hash: string;
+    locked_at: string | null;
     status: "company_review" | "customer_review" | "revision_requested" | "confirmed";
     item_count: number;
     work_count: number;
@@ -105,14 +138,30 @@ export interface ScopeReview {
       label: string;
       item_count: number;
       review_required_count: number;
-      items: Array<ScopeItem & { review_required: boolean; source_media_asset_ids: string[] }>;
+      items: Array<ScopeItemV1 & ScopeItemV2 & { review_required: boolean; source_media_asset_ids: string[] }>;
     }>;
+    location_conditions: ScopeLocationConditions[];
     included_works: string[];
     exclusions: string[];
   };
   proposal_id: string | null;
   quote: QuoteSnapshot | null;
+  execution_plan: ExecutionPlanSnapshot | null;
   proposal_reason: string | null;
+  company_participation_status: "company_not_invited" | "company_invited" | "company_joined" | "company_declined" | "company_invitation_expired" | "company_invitation_revoked";
+  collaboration_status: "draft" | "awaiting_company_proposal" | "awaiting_confirmation" | "revision_requested" | "confirmed";
+  agreement_notice: string;
+  approved_changes: Array<{
+    proposal_id: string;
+    field_issue_id: string;
+    title: string;
+    reason: string;
+    base_scope_version_id: string;
+    result_scope_version_id: string;
+    quote: QuoteSnapshot;
+    evidence_media_asset_ids: string[];
+    approved_at: string;
+  }>;
   media_previews: Array<{
     media_asset_id: string;
     room_zone_id: string;
@@ -379,26 +428,40 @@ export function getScopeReview(connection: Connection) {
   return apiRequest<ScopeReview>(`${jobPath(connection.jobId)}/scope-review`, { accessToken: connection.accessToken, method: "GET" });
 }
 
+export function scopeContentFromReview(review: ScopeReview): ScopeContent {
+  const items = review.scope.room_groups.flatMap((group) => group.items);
+  if (review.scope.schema_version === 2) {
+    return {
+      schema_version: 2,
+      items: items.map(({ item_key, name, quantity, review_status, room_zone_id, source, unit, work_note }) => ({
+        item_key,
+        name,
+        quantity,
+        review_status,
+        room_zone_id,
+        source,
+        unit,
+        work_note,
+      })),
+      location_conditions: review.scope.location_conditions,
+    };
+  }
+  return {
+    schema_version: 1,
+    items: items.map(({ description, item_key, room_zone_id }) => ({ description, item_key, room_zone_id })),
+  };
+}
+
 export function createScopeProposal(connection: Connection, input: {
   source_scope_version_id: string;
-  content: { schema_version: 1; items: ScopeItem[] };
+  content: ScopeContent;
   quote: QuoteSnapshot;
+  execution_plan: ExecutionPlanSnapshot;
   included_works: string[];
   exclusions: string[];
   reason: string;
 }) {
-  return command(connection, `${jobPath(connection.jobId)}/scope-proposals`, "POST", input);
-}
-
-export function requestScopeRevision(connection: Connection, scopeVersionId: string, reason: string) {
-  return command(connection, `${jobPath(connection.jobId)}/scope-review/revision-request`, "POST", {
-    scope_version_id: scopeVersionId,
-    reason,
-  });
-}
-
-export function confirmScope(connection: Connection, scopeVersionId: string) {
-  return command(connection, `${jobPath(connection.jobId)}/scope-review/confirm`, "POST", { scope_version_id: scopeVersionId });
+  return command(connection, `${jobPath(connection.jobId)}/scope-proposals`, "POST", scopeProposalPayload(input));
 }
 
 export function listFieldIssues(connection: Connection) {
@@ -428,7 +491,7 @@ export function createChangeProposal(connection: Connection, input: {
   base_scope_version_id: string;
   title: string;
   reason: string;
-  proposed_content: { schema_version: 1; items: ScopeItem[] };
+  proposed_content: ScopeContent;
   quote: QuoteSnapshot;
 }) {
   return command(connection, `${jobPath(connection.jobId)}/change-proposals`, "POST", input) as Promise<{ proposal_id: string }>;
@@ -489,15 +552,6 @@ export function createCompletionRequest(connection: Connection, completionSubmis
   }) as Promise<CompletionRequest>;
 }
 
-export function decideCompletion(connection: Connection, requestId: string, input: {
-  decision: "confirm" | "report_issue";
-  problem_type?: "missing_work" | "damage" | "amount" | "other";
-  problem_description?: string;
-  unrecorded_extra_charge?: boolean | null;
-}) {
-  return command(connection, `${jobPath(connection.jobId)}/completion-requests/${segment(requestId)}/decision`, "POST", input);
-}
-
 export function downloadCompletionArchive(connection: Connection) {
   return downloadApiFile(`${jobPath(connection.jobId)}/documents/archive`, connection.accessToken);
 }
@@ -524,10 +578,6 @@ export function apiErrorMessage(error: unknown): string {
     default:
       return "요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요.";
   }
-}
-
-export function isConflict(error: unknown): error is ApiError {
-  return error instanceof ApiError && error.status === 409;
 }
 
 export function shouldRecoverState(error: unknown): boolean {

@@ -2,7 +2,6 @@ import {
   CheckCircleIcon,
   InfoIcon,
   ShieldCheckIcon,
-  ShieldWarningIcon,
   WarningIcon,
   type Icon,
   type IconProps,
@@ -19,7 +18,6 @@ function withDefaultWeight(Component: Icon, defaultWeight: IconWeight) {
 }
 
 export const WarningStatusIcon = withDefaultWeight(WarningIcon, "bold");
-export const SecurityWarningIcon = withDefaultWeight(ShieldWarningIcon, "bold");
 export const SecurityStatusIcon = withDefaultWeight(ShieldCheckIcon, "bold");
 export const SuccessStatusIcon = withDefaultWeight(CheckCircleIcon, "bold");
 export const InfoStatusIcon = withDefaultWeight(InfoIcon, "bold");

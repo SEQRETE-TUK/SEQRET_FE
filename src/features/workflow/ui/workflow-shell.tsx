@@ -10,7 +10,7 @@ import {
 } from "@phosphor-icons/react";
 import { InfoStatusIcon as Info } from "@/components/icons";
 import { useState, type ReactNode } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -223,8 +223,4 @@ export function InvitationPanel() {
       </div>
     </WorkflowTask></fieldset>
   );
-}
-
-export function BackToConnection() {
-  return <Link className="inline-flex min-h-11 items-center font-bold text-primary-700" to="/">다른 초대 코드로 연결</Link>;
 }

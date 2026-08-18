@@ -368,6 +368,10 @@ p {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+.app-fixed-action {
+  padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
+}
+
 .workflow-task-list > * + * {
   border-top: 1px solid var(--color-rule);
 }

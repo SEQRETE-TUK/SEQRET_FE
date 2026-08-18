@@ -1,4 +1,5 @@
 import { apiRequest, uploadToSignedUrl } from "@/api/client";
+import { analysisReviewCompletePayload, captureSessionCreatePayload } from "@/api/contract-payloads";
 
 export type MediaAssetStatus =
   | "pending_upload"
@@ -66,6 +67,7 @@ export interface CaptureSession {
   job_id: string;
   created_by_participant_id: string;
   created_at: string;
+  media_processing_consent: MediaProcessingConsentSnapshot;
   media_assets: MediaAsset[];
   analysis: CaptureAnalysis | null;
 }
@@ -75,6 +77,22 @@ export interface CaptureSessionCreated {
   job_id: string;
   created_by_participant_id: string;
   created_at: string;
+  media_processing_consent: MediaProcessingConsentSnapshot;
+}
+
+export interface MediaProcessingConsentSnapshot {
+  policy_version: string | null;
+  processing_purposes: MediaConsentPolicy["processing_purposes"];
+  privacy_notice_acknowledged: boolean;
+  retention_days_after_job_completion: number | null;
+  consented_at: string | null;
+}
+
+export interface MediaConsentPolicy {
+  policy_version: string;
+  processing_purposes: Array<"inventory_analysis" | "condition_record" | "field_change_evidence" | "completion_record">;
+  retention_days_after_job_completion: number;
+  notice: string;
 }
 
 export interface AnalysisReviewZone {
@@ -90,6 +108,12 @@ export interface AnalysisReviewItem {
   item_key: string;
   room_zone_id: string;
   description: string;
+  name: string;
+  quantity: number | null;
+  unit: string | null;
+  work_note: string | null;
+  review_status: "confirmed" | "review_required";
+  scope_source: "ai" | "customer" | "company" | "field_change";
   source: "ai" | "customer";
   confidence: number | null;
   review_required: boolean;
@@ -104,24 +128,43 @@ export interface AnalysisReview {
   review_scope_version_id: string | null;
   analysis_completed_at: string;
   review_completed_at: string | null;
+  scope_schema_version: 1 | 2;
   zones: AnalysisReviewZone[];
   items: AnalysisReviewItem[];
+  location_conditions: ScopeLocationConditions[];
+  location_condition_suggestions: Array<Record<string, unknown>>;
 }
 
-export interface AnalysisReviewItemInput {
+export interface AnalysisReviewItemInputV1 {
   item_key: string;
   room_zone_id: string;
   description: string;
+}
+
+export interface AnalysisReviewItemInputV2 {
+  item_key: string;
+  room_zone_id: string;
+  name: string;
+  quantity: number;
+  unit: string;
+  work_note?: string | null;
+}
+
+export type AnalysisReviewItemInput = AnalysisReviewItemInputV1 | AnalysisReviewItemInputV2;
+
+export interface ScopeLocationConditions {
+  location_id: string;
+  kind: "origin" | "destination";
+  conditions: Record<string, unknown>;
 }
 
 export interface ScopeVersionSummary {
   id: string;
   parent_version_id: string | null;
   sequence_number: number;
-  content: {
-    schema_version: 1;
-    items: AnalysisReviewItemInput[];
-  };
+  content:
+    | { schema_version: 1; items: AnalysisReviewItemInputV1[] }
+    | { schema_version: 2; items: AnalysisReviewItemInputV2[]; location_conditions: ScopeLocationConditions[] };
   created_at: string;
   locked_at: string | null;
 }
@@ -139,6 +182,11 @@ interface AuthorizedRequest {
   accessToken: string;
   jobId: string;
   signal?: AbortSignal;
+}
+
+export interface CreateCaptureSessionRequest extends AuthorizedRequest {
+  consentPolicyVersion: string;
+  privacyNoticeAcknowledged: true;
 }
 
 export interface CreateMediaUploadRequest extends AuthorizedRequest {
@@ -161,6 +209,8 @@ export interface SubmitCaptureRequest extends AuthorizedRequest {
 export interface CompleteAnalysisReviewRequest extends AuthorizedRequest {
   sourceScopeVersionId: string;
   items: AnalysisReviewItemInput[];
+  scopeSchemaVersion: 1 | 2;
+  locationConditions: ScopeLocationConditions[];
 }
 
 export interface CreateManualScopeRequest extends AuthorizedRequest {
@@ -246,13 +296,29 @@ export async function listCaptureSessions({
   });
 }
 
-export async function createCaptureSession({
+export async function getMediaConsentPolicy({
   accessToken,
   jobId,
   signal,
-}: AuthorizedRequest): Promise<CaptureSessionCreated> {
+}: AuthorizedRequest): Promise<MediaConsentPolicy> {
+  return apiRequest<MediaConsentPolicy>(`${jobPath(jobId)}/media-consent-policy`, {
+    accessToken,
+    method: "GET",
+    signal,
+  });
+}
+
+export async function createCaptureSession({
+  accessToken,
+  consentPolicyVersion,
+  jobId,
+  privacyNoticeAcknowledged,
+  signal,
+}: CreateCaptureSessionRequest): Promise<CaptureSessionCreated> {
   return apiRequest<CaptureSessionCreated>(`${jobPath(jobId)}/capture-sessions`, {
     accessToken,
+    body: JSON.stringify(captureSessionCreatePayload(consentPolicyVersion, privacyNoticeAcknowledged)),
+    headers: jsonHeaders(),
     method: "POST",
     signal,
   });
@@ -347,15 +413,14 @@ export async function completeAnalysisReview({
   accessToken,
   items,
   jobId,
+  locationConditions,
+  scopeSchemaVersion,
   signal,
   sourceScopeVersionId,
 }: CompleteAnalysisReviewRequest): Promise<AnalysisReview> {
   return apiRequest<AnalysisReview>(`${jobPath(jobId)}/analysis-review/complete`, {
     accessToken,
-    body: JSON.stringify({
-      source_scope_version_id: sourceScopeVersionId,
-      items,
-    }),
+    body: JSON.stringify(analysisReviewCompletePayload({ sourceScopeVersionId, scopeSchemaVersion, items, locationConditions })),
     headers: jsonHeaders(),
     method: "POST",
     signal,

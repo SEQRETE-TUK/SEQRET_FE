@@ -17,24 +17,21 @@ import {
   HouseIcon as Home,
   LampIcon as Lamp,
   MagnifyingGlassIcon as MagnifyingGlass,
-  MinusIcon as Minus,
   NotepadIcon as Notepad,
   PackageIcon as Package,
-  PlusIcon as Plus,
   SquaresFourIcon as SquaresFour,
   StairsIcon as Stairs,
   TelevisionSimpleIcon as Television,
   TrendUpIcon as TrendUp,
   TruckIcon as Truck,
   WarningCircleIcon as WarningCircle,
-  XIcon as X,
 } from "@phosphor-icons/react";
 import { useState, type ReactNode } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { mockApiEnabled } from "@/api/mock-api";
 import { AgreementOverview } from "@/components/layout/agreement-overview";
-import { ActiveMoveCard, FilterChip, MoveJourneyProgress } from "@/components/layout/app-primitives";
+import { ActiveMoveCard, FilterChip, InventoryQuantityRow, MoveJourneyProgress } from "@/components/layout/app-primitives";
 import { ConnectedProfile } from "@/components/layout/connected-profile";
 import { MobileAppShell, MobileDetailHeader, MobileDetailTabs, type MobileNavItem } from "@/components/layout/mobile-app-shell";
 import { Button } from "@/components/ui/button";
@@ -178,9 +175,9 @@ export function ConsumerApp() {
 
 function HomeHeader({ customerName, onBell }: { customerName: string; onBell: () => void }) {
   return (
-    <header className="app-safe-header flex items-start justify-between bg-surface px-[var(--content-gutter)] pb-3 pt-4">
+    <header className="flex items-center justify-between bg-surface px-[var(--content-gutter)] pb-4 pt-[max(16px,env(safe-area-inset-top))]">
       <h1 className="text-ui-section leading-8 font-extrabold tracking-[var(--tracking-display)]">{customerName}님,<br />어떤 이사를 준비할까요?</h1>
-      <button aria-label="알림 확인" className="mt-1 grid size-9 place-items-center rounded-full text-ink-900 hover:bg-surface-muted" onClick={onBell} type="button"><Bell aria-hidden="true" size="var(--icon-sm)" /></button>
+      <button aria-label="알림 확인" className="grid size-9 place-items-center rounded-full text-ink-900 hover:bg-surface-muted" onClick={onBell} type="button"><Bell aria-hidden="true" size="var(--icon-sm)" /></button>
     </header>
   );
 }
@@ -433,17 +430,12 @@ function ConsumerInventory({ onCapture, onManualAdd, scope }: { onCapture: () =>
       {groups.map((group) => <FilterChip active={openRoom === group.room_zone_id} key={group.room_zone_id} onClick={() => setOpenRoom(group.room_zone_id)}>{group.label}</FilterChip>)}
     </div>
     <div className="mt-4 space-y-2">
-      {visibleItems.map((item) => { const quantity = quantityFor(item.item_key); return <article className="grid min-h-16 grid-cols-[36px_32px_minmax(0,1fr)] items-center gap-2 rounded-xl border border-line bg-surface px-2 py-1.5 shadow-[var(--shadow-card)] min-[360px]:flex" key={item.item_key}>
-        <button aria-label={`${item.description} 삭제`} className="grid size-9 shrink-0 place-items-center rounded-full text-ink-400 hover:bg-surface-muted hover:text-ink-900" onClick={() => updateQuantity(item.item_key, 0)} type="button"><X aria-hidden="true" size="var(--icon-sm)" /></button>
-        <span className="grid size-8 shrink-0 place-items-center text-primary-700"><InventoryItemIcon name={item.description} /></span>
-        <span className="min-w-0 flex-1"><strong className="block text-sm leading-5">{item.description}</strong>{item.review_required ? <span className="mt-0.5 block text-ui-micro font-bold text-danger-ink">확인 필요</span> : null}</span>
-        <span className="col-span-2 col-start-2 grid shrink-0 grid-cols-[36px_28px_36px] justify-self-end overflow-hidden rounded-lg border border-line bg-surface-muted min-[360px]:col-auto min-[360px]:justify-self-auto"><button aria-label={`${item.description} 수량 줄이기`} className="grid size-9 place-items-center" onClick={() => updateQuantity(item.item_key, quantity - 1)} type="button"><Minus aria-hidden="true" size="var(--icon-xs)" /></button><output aria-label={`${item.description} 수량`} className="grid min-h-9 place-items-center bg-surface text-sm font-bold tabular-nums">{quantity}</output><button aria-label={`${item.description} 수량 늘리기`} className="grid size-9 place-items-center" onClick={() => updateQuantity(item.item_key, quantity + 1)} type="button"><Plus aria-hidden="true" size="var(--icon-xs)" /></button></span>
-      </article>; })}
+      {visibleItems.map((item) => { const quantity = quantityFor(item.item_key); return <InventoryQuantityRow icon={<InventoryItemIcon name={item.description} />} key={item.item_key} name={item.description} onDecrease={() => updateQuantity(item.item_key, quantity - 1)} onIncrease={() => updateQuantity(item.item_key, quantity + 1)} onRemove={() => updateQuantity(item.item_key, 0)} quantity={quantity} reviewRequired={item.review_required} />; })}
       {!scope ? <p className="py-5 text-sm text-ink-600">최신 짐 목록을 불러오는 중입니다.</p> : null}
       {scope && visibleItems.length === 0 ? <div className="rounded-2xl border border-line bg-surface px-4 py-8 text-center"><p className="font-extrabold">표시할 짐이 없어요</p><p className="mt-1 text-sm text-ink-600">검색어를 바꾸거나 짐을 다시 추가해 주세요.</p></div> : null}
     </div>
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[calc(var(--z-sticky)-1)] flex justify-center">
-      <div className="pointer-events-auto grid w-full max-w-[var(--shell-mobile)] grid-cols-2 gap-2 bg-canvas px-[var(--content-gutter)] pt-3 pb-[max(12px,env(safe-area-inset-bottom))]">
+      <div className="app-fixed-action pointer-events-auto grid w-full max-w-[var(--shell-mobile)] grid-cols-2 gap-2 bg-canvas px-[var(--content-gutter)] pt-3">
         <Button className="min-w-0 px-2 text-ui-data min-[360px]:text-sm" onClick={onManualAdd} size="cta" variant="outline"><Cube aria-hidden="true" /> 품목 직접 선택</Button>
         <Button className="min-w-0 px-2 text-ui-data min-[360px]:text-sm" onClick={onCapture} size="cta"><Camera aria-hidden="true" weight="fill" /> AI 영상 촬영</Button>
       </div>
@@ -485,7 +477,7 @@ function ConsumerAgreement({ completion, connection, issues, scope }: { completi
       <AgreementOverview hasIssue={Boolean(issue)} onOpenHistory={() => setHistoryOpen(true)} scope={scope}>{displayIssue ? <FieldReportCard companyName={scope.job.company_display_name} issue={displayIssue} onOpen={() => setIssueOpen(true)} /> : null}</AgreementOverview>
       {completion?.final_amount_krw ? <p className="sr-only">완료 기준 최종 금액 {money(completion.final_amount_krw)}</p> : null}
       {displayIssue ? <FieldChangeSheet error={decisionMutation.error} issue={displayIssue} loading={proposalQuery.isLoading} onDecision={(decision, note) => decisionMutation.mutate({ decision, note })} onOpenChange={setIssueOpen} open={issueOpen} pending={decisionMutation.isPending} proposal={proposalQuery.data} readOnly={!issue} /> : null}
-      <AgreementHistorySheet issue={displayIssue} onOpenChange={setHistoryOpen} open={historyOpen} scope={scope} />
+      <AgreementHistorySheet issue={displayIssue?.status === "approved" ? displayIssue : undefined} onOpenChange={setHistoryOpen} open={historyOpen} scope={scope} />
     </div>
   );
 }

@@ -21,6 +21,7 @@ import {
   completeMediaUpload,
   createCaptureSession,
   createMediaUpload,
+  getMediaConsentPolicy,
   uploadCaptureFile,
 } from "@/features/capture/api/capture-api";
 import {
@@ -68,7 +69,8 @@ export function CrewIssueReport({ brief, connection, issues }: {
     mutationFn: async (file: File) => {
       const roomZoneId = jobQuery.data?.locations.flatMap((location) => location.room_zones)[0]?.id;
       if (!roomZoneId) throw new Error("증거를 연결할 공간이 없습니다.");
-      const capture = await createCaptureSession(connection);
+      const policy = await getMediaConsentPolicy(connection);
+      const capture = await createCaptureSession({ ...connection, consentPolicyVersion: policy.policy_version, privacyNoticeAcknowledged: true });
       const target = await createMediaUpload({ ...connection, captureSessionId: capture.id, contentLength: file.size, contentType: asSupportedContentType(file), mediaPurpose: "change_evidence", roomZoneId });
       await uploadCaptureFile(target, file);
       return completeMediaUpload({ ...connection, captureSessionId: capture.id, mediaAssetId: target.asset.id });

@@ -9,26 +9,12 @@ import {
 } from "@/features/workflow/api/workflow-api";
 import { AuthContext, type AuthSession } from "@/features/auth/model/auth-context";
 
-const sessionStorageKey = "seqret-auth-session";
-
-function storedSession(): AuthSession | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const value = window.sessionStorage.getItem(sessionStorageKey);
-    return value ? JSON.parse(value) as AuthSession : null;
-  } catch {
-    return null;
-  }
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
-  const [session, setSession] = useState<AuthSession | null>(storedSession);
+  const [session, setSession] = useState<AuthSession | null>(null);
 
   const replaceSession = useCallback((next: AuthSession | null) => {
     queryClient.clear();
-    if (next) window.sessionStorage.setItem(sessionStorageKey, JSON.stringify(next));
-    else window.sessionStorage.removeItem(sessionStorageKey);
     setSession(next);
   }, [queryClient]);
 

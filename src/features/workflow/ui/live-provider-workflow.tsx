@@ -28,12 +28,12 @@ import {
   getScopeReview,
   listFieldIssues,
   listInvitations,
+  scopeContentFromReview,
   shouldRecoverState,
   setupDispatch,
   confirmDispatch,
   workflowKeys,
   type Connection,
-  type ScopeReview,
 } from "@/features/workflow/api/workflow-api";
 import { useAuthFailure } from "@/features/workflow/model/use-auth-failure";
 import { useRetryAfter } from "@/features/workflow/model/use-retry-after";
@@ -43,8 +43,6 @@ const moneyFormatter = new Intl.NumberFormat("ko-KR");
 const money = (value: number | null | undefined) => value == null ? "금액 미정" : `${moneyFormatter.format(value)}원`;
 const eventTimeFormatter = new Intl.DateTimeFormat("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
 const issueStatusLabel = (status: string) => ({ reported: "업체 확인 전", quoted: "변경안 전달", clarification_requested: "설명 요청", explained: "설명 제출", approved: "고객 승인", rejected: "고객 거절" })[status] ?? "상태 확인 중";
-const scopeItems = (scope: ScopeReview) => scope.scope.room_groups.flatMap((group) => group.items.map(({ item_key, room_zone_id, description }) => ({ item_key, room_zone_id, description })));
-
 export function LiveProviderWorkflow({ embedded = false, wide = false }: { embedded?: boolean; wide?: boolean }) {
   const { session } = useAuth();
   const queryClient = useQueryClient();
@@ -86,8 +84,15 @@ export function LiveProviderWorkflow({ embedded = false, wide = false }: { embed
   const scopeMutation = useMutation({
     mutationFn: () => createScopeProposal(connection!, {
       source_scope_version_id: scopeQuery.data!.scope.id,
-      content: { schema_version: 1, items: scopeItems(scopeQuery.data!) },
+      content: scopeContentFromReview(scopeQuery.data!),
       quote: { base_amount_krw: Number(quoteAmount), adjustments: [], total_amount_krw: Number(quoteAmount) },
+      execution_plan: {
+        vehicle_count: 1,
+        vehicle_description: vehicleName.trim(),
+        worker_count: Math.max(1, invitationQuery.data?.invitations.filter((invitation) => invitation.role === "field_worker" && invitation.status === "accepted").length ?? 0),
+        estimated_duration_minutes: Number(duration),
+        notes: workerNote.trim() || null,
+      },
       included_works: scopeQuery.data!.scope.included_works,
       exclusions: scopeQuery.data!.scope.exclusions,
       reason: quoteReason.trim(),
@@ -104,7 +109,7 @@ export function LiveProviderWorkflow({ embedded = false, wide = false }: { embed
         base_scope_version_id: selectedIssue!.base_scope_version_id,
         title: selectedIssue!.title,
         reason: changeReason.trim(),
-        proposed_content: { schema_version: 1, items: scopeItems(scopeQuery.data!) },
+        proposed_content: scopeContentFromReview(scopeQuery.data!),
         quote: { base_amount_krw: base, adjustments: [{ label: selectedIssue!.title, amount_krw: delta }], total_amount_krw: base + delta },
       });
     },

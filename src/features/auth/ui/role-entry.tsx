@@ -50,8 +50,7 @@ export function RoleEntry() {
         </header>
         <main className="flex-1 px-5 pb-32 pt-8" id="main-content">
           <h1 className="max-w-[19rem] text-ui-section leading-9 font-extrabold tracking-[var(--tracking-display)] min-[380px]:text-ui-section">어떤 역할로 시작할까요?</h1>
-          <p className="mt-3 max-w-[21rem] text-base leading-6 text-ink-600">역할에 따라 확인할 정보와 처리할 작업이 달라집니다.</p>
-          <fieldset className="mt-8 border-y border-line bg-surface">
+          <fieldset className="mt-6 border-y border-line bg-surface">
             <legend className="sr-only">연결 역할</legend>
             {roles.map((item) => {
               const active = item.id === selected;
@@ -66,7 +65,7 @@ export function RoleEntry() {
           </fieldset>
           <div className="mt-6 flex items-start gap-3 border-l-2 border-primary-600 bg-surface-muted px-4 py-3"><ShieldCheck aria-hidden="true" className="mt-0.5 shrink-0 text-primary-700" size="var(--icon-sm)" weight="bold" /><p className="text-sm leading-5 text-ink-600">업체와 현장기사는 각 화면에서 초대 코드를 입력해 이사 건을 연결합니다.</p></div>
         </main>
-        <div className="app-safe-bottom fixed inset-x-0 bottom-0 z-[var(--z-sticky)] mx-auto w-full max-w-[var(--shell-mobile)] border-t border-line bg-surface/95 px-5 pt-4 backdrop-blur"><Button className="w-full" onClick={start} size="cta">{selectedRole.startLabel} <ArrowRight aria-hidden="true" /></Button></div>
+        <div className="app-fixed-action fixed inset-x-0 bottom-0 z-[var(--z-sticky)] mx-auto w-full max-w-[var(--shell-mobile)] border-t border-line bg-surface/95 px-5 pt-4 backdrop-blur"><Button className="w-full" onClick={start} size="cta">{selectedRole.startLabel} <ArrowRight aria-hidden="true" /></Button></div>
       </MobileFrame>
     </div>
   );

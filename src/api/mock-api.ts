@@ -125,6 +125,9 @@ function createState(): MockState {
     scope: {
       id: SCOPE_ID,
       version_label: "v3",
+      schema_version: 1,
+      content_hash: "mock-scope-content-hash",
+      locked_at: null,
       status: "customer_review",
       item_count: 12,
       work_count: 4,
@@ -139,6 +142,12 @@ function createState(): MockState {
           item_key: `bedroom-item-${index + 1}`,
           room_zone_id: ORIGIN_ZONE_ID,
           description,
+          name: description,
+          quantity: null,
+          unit: null,
+          work_note: null,
+          review_status: "confirmed" as const,
+          source: "ai" as const,
           review_required: false,
           source_media_asset_ids: [],
         })),
@@ -147,20 +156,26 @@ function createState(): MockState {
         label: "주방",
         item_count: 4,
         review_required_count: 0,
-        items: ["냉장고", "전자레인지", "식탁", "주방 의자"].map((description, index) => ({ item_key: `kitchen-item-${index + 1}`, room_zone_id: KITCHEN_ZONE_ID, description, review_required: false, source_media_asset_ids: [] })),
+        items: ["냉장고", "전자레인지", "식탁", "주방 의자"].map((description, index) => ({ item_key: `kitchen-item-${index + 1}`, room_zone_id: KITCHEN_ZONE_ID, description, name: description, quantity: null, unit: null, work_note: null, review_status: "confirmed" as const, source: "ai" as const, review_required: false, source_media_asset_ids: [] })),
       }, {
         room_zone_id: ENTRANCE_ZONE_ID,
         label: "현관",
         item_count: 2,
         review_required_count: 0,
-        items: ["신발장", "우산꽂이"].map((description, index) => ({ item_key: `entrance-item-${index + 1}`, room_zone_id: ENTRANCE_ZONE_ID, description, review_required: false, source_media_asset_ids: [] })),
+        items: ["신발장", "우산꽂이"].map((description, index) => ({ item_key: `entrance-item-${index + 1}`, room_zone_id: ENTRANCE_ZONE_ID, description, name: description, quantity: null, unit: null, work_note: null, review_status: "confirmed" as const, source: "ai" as const, review_required: false, source_media_asset_ids: [] })),
       }],
+      location_conditions: [],
       included_works: ["포장 및 운반", "기본 가구 분해·조립", "가구 배치", "보호 포장"],
       exclusions: ["에어컨 탈부착"],
     },
     proposal_id: "scope-proposal-1",
     quote,
+    execution_plan: { vehicle_count: 1, vehicle_description: "5톤 탑차", worker_count: 2, estimated_duration_minutes: 480, notes: null },
     proposal_reason: "촬영 결과와 현장 조건을 반영한 Mock 견적입니다.",
+    company_participation_status: "company_joined",
+    collaboration_status: "awaiting_confirmation",
+    agreement_notice: "승인된 범위를 기준으로 작업합니다.",
+    approved_changes: [],
     media_previews: [],
     company_confirmed_at: createdAt,
     customer_confirmed_at: null,
@@ -226,7 +241,8 @@ function createState(): MockState {
   const sessionId = crypto.randomUUID();
   const analysisRunId = crypto.randomUUID();
   const media: MediaAsset = { id: crypto.randomUUID(), capture_session_id: sessionId, room_zone_id: ORIGIN_ZONE_ID, media_purpose: "inventory", status: "ready", content_type: "image/jpeg", expected_size_bytes: 1024, actual_size_bytes: 1024, sha256_hex: null, created_at: createdAt, uploaded_at: createdAt };
-  const sessions: CaptureSession[] = [{ id: sessionId, job_id: JOB_ID, created_by_participant_id: CUSTOMER_ID, created_at: createdAt, media_assets: [media], analysis: { analysis_run_id: analysisRunId, capture_session_id: sessionId, status: "completed", scope_version_id: SCOPE_ID, failure_code: null, retryable: null, submitted_at: createdAt, completed_at: createdAt } }];
+  const consent: CaptureSession["media_processing_consent"] = { policy_version: "2026-08-17.v1", processing_purposes: ["inventory_analysis", "condition_record", "field_change_evidence", "completion_record"], privacy_notice_acknowledged: true, retention_days_after_job_completion: 30, consented_at: createdAt };
+  const sessions: CaptureSession[] = [{ id: sessionId, job_id: JOB_ID, created_by_participant_id: CUSTOMER_ID, created_at: createdAt, media_processing_consent: consent, media_assets: [media], analysis: { analysis_run_id: analysisRunId, capture_session_id: sessionId, status: "completed", scope_version_id: SCOPE_ID, failure_code: null, retryable: null, submitted_at: createdAt, completed_at: createdAt } }];
   const analysisReview: AnalysisReview = {
     job_id: JOB_ID,
     analysis_run_id: analysisRunId,
@@ -235,8 +251,11 @@ function createState(): MockState {
     review_scope_version_id: null,
     analysis_completed_at: createdAt,
     review_completed_at: null,
+    scope_schema_version: 1,
     zones: scope.scope.room_groups.map((group, index) => ({ room_zone_id: group.room_zone_id, name: group.label, sort_order: index, total_media_count: index === 0 ? 1 : 0, ready_media_count: index === 0 ? 1 : 0, failed_media_count: 0 })),
-    items: scope.scope.room_groups.flatMap((group) => group.items).map((item) => ({ ...item, source: "ai" as const, confidence: 0.94 })),
+    items: scope.scope.room_groups.flatMap((group) => group.items).map((item) => ({ ...item, scope_source: item.source, source: "ai" as const, confidence: 0.94 })),
+    location_conditions: [],
+    location_condition_suggestions: [],
   };
   const scopeVersions: ScopeVersionSummary[] = [{
     id: SCOPE_ID,
@@ -319,7 +338,7 @@ function accessLink(role: ParticipantRole, participantId: string, secret: string
 }
 
 export async function mockApiRequest<T>(path: string, init: RequestInit, accessToken?: string): Promise<T> {
-  await new Promise((resolve) => window.setTimeout(resolve, 120));
+  await new Promise((resolve) => globalThis.setTimeout(resolve, 120));
   const method = init.method ?? "GET";
 
   if (path === "/api/v1/move-jobs/onboarding" && method === "POST") {
@@ -367,7 +386,8 @@ export async function mockApiRequest<T>(path: string, init: RequestInit, accessT
     return result({ ...state.scope, job: { ...state.scope.job, viewer_role: currentActor.role, viewer_display_name: currentActor.display_name } }) as Promise<T>;
   }
   if (path === `${jobPath}/scope-proposals` && method === "POST") {
-    const input = jsonBody<{ quote: ScopeReview["quote"]; reason: string }>(init);
+    const input = jsonBody<{ quote: ScopeReview["quote"]; reason: string; execution_plan?: ScopeReview["execution_plan"] }>(init);
+    if (!input.execution_plan) throw new Error("Mock contract: execution_plan is required");
     state.scope.quote = input.quote;
     state.scope.proposal_reason = input.reason;
     state.scope.scope.status = "customer_review";
@@ -461,8 +481,13 @@ export async function mockApiRequest<T>(path: string, init: RequestInit, accessT
     return result(request) as Promise<T>;
   }
   if (path === `${jobPath}/capture-sessions` && method === "GET") return result(state.sessions) as Promise<T>;
+  if (path === `${jobPath}/media-consent-policy` && method === "GET") return result({ policy_version: "2026-08-17.v1", processing_purposes: ["inventory_analysis", "condition_record", "field_change_evidence", "completion_record"], retention_days_after_job_completion: 30, notice: "촬영 자료의 분석·증거·완료 기록 처리와 보관에 동의합니다." }) as Promise<T>;
   if (path === `${jobPath}/capture-sessions` && method === "POST") {
-    const session: CaptureSession = { id: crypto.randomUUID(), job_id: JOB_ID, created_by_participant_id: state.actors[accessToken].participant_id, created_at: now(), media_assets: [], analysis: null };
+    const input = jsonBody<{ consent_policy_version?: string; privacy_notice_acknowledged?: boolean }>(init);
+    if (input.consent_policy_version !== "2026-08-17.v1" || input.privacy_notice_acknowledged !== true) {
+      throw new Error("Mock contract: explicit current media consent is required");
+    }
+    const session: CaptureSession = { id: crypto.randomUUID(), job_id: JOB_ID, created_by_participant_id: state.actors[accessToken].participant_id, created_at: now(), media_processing_consent: { policy_version: input.consent_policy_version, processing_purposes: ["inventory_analysis", "condition_record", "field_change_evidence", "completion_record"], privacy_notice_acknowledged: true, retention_days_after_job_completion: 30, consented_at: now() }, media_assets: [], analysis: null };
     state.sessions.unshift(session);
     return result(session) as Promise<T>;
   }
@@ -490,7 +515,8 @@ export async function mockApiRequest<T>(path: string, init: RequestInit, accessT
   }
   if (path === `${jobPath}/analysis-review` && method === "GET") return result(state.analysisReview) as Promise<T>;
   if (path === `${jobPath}/analysis-review/complete` && method === "POST") {
-    const input = jsonBody<{ items: AnalysisReview["items"] }>(init);
+    const input = jsonBody<{ items: AnalysisReview["items"]; scope_schema_version?: 1 | 2; location_conditions?: unknown[] }>(init);
+    if (!input.scope_schema_version || !input.location_conditions) throw new Error("Mock contract: analysis review schema and location conditions are required");
     state.analysisReview.items = input.items.map((item) => ({ ...item, source: "customer", confidence: null, review_required: false, source_media_asset_ids: [] }));
     state.analysisReview.review_completed_at = now();
     state.analysisReview.review_scope_version_id = SCOPE_ID;

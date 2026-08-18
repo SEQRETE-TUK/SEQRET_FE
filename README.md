@@ -59,7 +59,7 @@ VITE_API_BASE_URL=http://localhost:8000
 | 경로 | 화면 |
 |---|---|
 | `/` | 소비자 모바일 플로우 |
-| `/provider` | 이사업체 모바일 플로우 |
+| `/provider` | 이사업체 데스크톱 화면으로 이동 |
 | `/provider/web` | 이사업체 데스크톱 플로우 |
 | `/crew` | 현장 작업자 모바일 플로우 |
 
@@ -77,8 +77,7 @@ src/
 │  ├─ provider/
 │  ├─ crew/
 │  └─ not-found/
-├─ features/
-│  └─ scope/ui/                    # 역할별 작업범위 플로우
+├─ features/                       # 역할별 업무 규칙과 화면
 ├─ api/
 │  └─ client.ts                    # FastAPI 공통 요청 클라이언트
 ├─ components/

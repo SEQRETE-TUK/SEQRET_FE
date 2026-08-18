@@ -22,6 +22,7 @@ import {
 import { useEffect, useState, type FormEvent } from "react";
 
 import { MobileFrame } from "@/components/layout/mobile-frame";
+import { FilterChip, InventoryQuantityRow } from "@/components/layout/app-primitives";
 import { ProgressSteps } from "@/components/workflow/workflow-task";
 import {
   ANALYSIS_REVIEW_FORM_ID,
@@ -76,8 +77,21 @@ function VideoCaptureStage({
   onSubmit: () => void;
   pending: boolean;
 }) {
-  const [boxCount, setBoxCount] = useState(4);
-  const [needsDisassembly, setNeedsDisassembly] = useState(true);
+  const [resultQuantities, setResultQuantities] = useState<Record<string, number>>({ boxes: 4 });
+  const [resultFilter, setResultFilter] = useState<"all" | "review">("all");
+  const detectedItems = [
+    { key: "bed", name: "침대 프레임", review: false },
+    { key: "mattress", name: "매트리스", review: false },
+    { key: "desk", name: "책상", review: false },
+    { key: "chair", name: "의자", review: false },
+    { key: "fridge", name: "냉장고", review: false },
+    { key: "microwave", name: "전자레인지", review: false },
+    { key: "bookcase", name: "책장", review: true },
+    { key: "boxes", name: "이사 박스", review: true },
+  ] as const;
+  const quantityFor = (key: string) => resultQuantities[key] ?? 1;
+  const updateResultQuantity = (key: string, quantity: number) => setResultQuantities((current) => ({ ...current, [key]: Math.max(0, quantity) }));
+  const visibleItems = detectedItems.filter((item) => quantityFor(item.key) > 0 && (resultFilter === "all" || item.review));
 
   if (fileUrl !== null)
     return (
@@ -103,138 +117,19 @@ function VideoCaptureStage({
                 src={fileUrl}
               />
             )}
-            <figcaption className="absolute inset-x-4 bottom-8 flex items-center justify-between text-sm">
+            <figcaption className="absolute inset-x-4 bottom-8 flex items-center text-sm">
               <span className="rounded-lg bg-ink-900/75 px-3 py-2 font-bold">촬영 영상 01:02</span>
-              <button
-                className="inline-flex min-h-11 items-center gap-1 rounded-lg bg-ink-900/75 px-3 font-extrabold text-white"
-                onClick={onBack}
-                type="button"
-              >
-                <RotateCcw aria-hidden="true" size="var(--icon-sm)" />
-                다시 촬영
-              </button>
             </figcaption>
           </figure>
           <div className="relative -mt-6 rounded-t-[var(--radius-feature)] bg-canvas px-5 pt-6">
           <div aria-hidden="true" className="mx-auto mb-5 h-1 w-12 rounded-full bg-ink-300" />
-          <h1 className="text-center text-ui-section font-black">AI 짐 목록 검수</h1>
-          <section className="mt-5 rounded-[var(--radius-card)] border border-line bg-surface p-5">
-            <div className="grid grid-cols-2 divide-x divide-line text-center">
-              <p>
-                <strong className="text-ui-section text-success">8개</strong>
-                <span className="ml-1 text-sm">발견</span>
-              </p>
-              <p>
-                <strong className="text-ui-section text-warning-ink">2개</strong>
-                <span className="ml-1 text-sm">확인 필요</span>
-              </p>
-            </div>
-            <p className="mt-3 text-center text-sm text-ink-600">
-              AI가 찾은 결과를 확인하면 짐 목록에 반영돼요.
-            </p>
-          </section>
-          <h2 className="mt-7 text-ui-section font-black">
-            확인 필요한 짐 2개
-          </h2>
-          <section className="mt-3 space-y-3">
-            <article className="rounded-[var(--radius-card)] border border-line bg-surface p-4">
-              <div className="flex items-center gap-3">
-                <span className="grid size-12 place-items-center rounded-xl bg-primary-50 text-primary-700">
-                  <Package aria-hidden="true" size="var(--icon-category)" />
-                </span>
-                <div>
-                  <h3 className="font-black">책장</h3>
-                  <p className="mt-1 text-sm text-ink-600">
-                    분해가 필요한가요?
-                  </p>
-                </div>
-              </div>
-              <div className="mt-4 grid grid-cols-2 gap-2">
-                <button
-                  aria-pressed={needsDisassembly}
-                  className={
-                    needsDisassembly
-                      ? "min-h-11 rounded-[var(--radius-control)] border-2 border-primary-600 font-extrabold text-primary-700"
-                      : "min-h-11 rounded-[var(--radius-control)] border border-line font-bold"
-                  }
-                  onClick={() => setNeedsDisassembly(true)}
-                  type="button"
-                >
-                  필요해요
-                </button>
-                <button
-                  aria-pressed={!needsDisassembly}
-                  className={
-                    !needsDisassembly
-                      ? "min-h-11 rounded-[var(--radius-control)] border-2 border-primary-600 font-extrabold text-primary-700"
-                      : "min-h-11 rounded-[var(--radius-control)] border border-line font-bold"
-                  }
-                  onClick={() => setNeedsDisassembly(false)}
-                  type="button"
-                >
-                  필요 없어요
-                </button>
-              </div>
-            </article>
-            <article className="rounded-[var(--radius-card)] border border-line bg-surface p-4">
-              <div className="flex items-center gap-3">
-                <span className="grid size-12 place-items-center rounded-xl bg-primary-50 text-primary-700">
-                  <Package aria-hidden="true" size="var(--icon-category)" />
-                </span>
-                <div>
-                  <h3 className="font-black">이사 박스</h3>
-                  <p className="mt-1 text-sm text-ink-600">
-                    수량을 확인해 주세요.
-                  </p>
-                </div>
-              </div>
-              <div className="mt-4 grid grid-cols-[44px_1fr_44px] overflow-hidden rounded-[var(--radius-control)] border border-line text-center">
-                <button
-                  aria-label="박스 수량 줄이기"
-                  className="min-h-11 bg-surface-muted text-xl"
-                  onClick={() => setBoxCount((count) => Math.max(1, count - 1))}
-                  type="button"
-                >
-                  −
-                </button>
-                <strong className="grid place-items-center">{boxCount}</strong>
-                <button
-                  aria-label="박스 수량 늘리기"
-                  className="min-h-11 bg-surface-muted text-xl"
-                  onClick={() => setBoxCount((count) => count + 1)}
-                  type="button"
-                >
-                  +
-                </button>
-              </div>
-            </article>
-          </section>
-          <h2 className="mt-7 text-ui-section font-black">확인된 짐 6개</h2>
-          <ul className="mt-3 divide-y divide-line border-y border-line">
-            {[
-              "침대 프레임",
-              "매트리스",
-              "책상",
-              "의자",
-              "냉장고",
-              "전자레인지",
-            ].map((item) => (
-              <li className="flex min-h-13 items-center gap-3" key={item}>
-                <span className="grid size-7 place-items-center rounded-full bg-success text-white">
-                  <Check
-                    aria-hidden="true"
-                    size="var(--icon-xs)"
-                    weight="bold"
-                  />
-                </span>
-                <span className="font-bold">{item}</span>
-                <span className="ml-auto text-sm">1개</span>
-              </li>
-            ))}
-          </ul>
+          <h1 className="text-center text-ui-section font-black">AI가 짐 8개를 발견했어요</h1>
+          <p className="mt-2 text-center text-sm text-ink-600">AI가 확실한 것만 골랐어요.</p>
+          <div className="mt-6 flex gap-2" role="tablist" aria-label="AI 인식 결과 필터"><FilterChip active={resultFilter === "all"} onClick={() => setResultFilter("all")}>전체 8</FilterChip><FilterChip active={resultFilter === "review"} onClick={() => setResultFilter("review")}>확인 필요 2</FilterChip></div>
+          <section className="mt-3 space-y-2">{visibleItems.map((item) => { const quantity = quantityFor(item.key); return <InventoryQuantityRow icon={<Package aria-hidden="true" size="var(--icon-md)" weight="duotone" />} key={item.key} name={item.name} onDecrease={() => updateResultQuantity(item.key, quantity - 1)} onIncrease={() => updateResultQuantity(item.key, quantity + 1)} onRemove={() => updateResultQuantity(item.key, 0)} quantity={quantity} reviewRequired={item.review} />; })}</section>
           </div>
         </main>
-        <div className="app-safe-bottom fixed inset-x-0 bottom-0 z-[var(--z-sticky)] mx-auto max-w-[var(--shell-mobile)] border-t border-line bg-surface/95 px-5 pt-3 backdrop-blur">
+        <div className="app-fixed-action fixed inset-x-0 bottom-0 z-[var(--z-sticky)] mx-auto max-w-[var(--shell-mobile)] bg-surface px-5 pt-3">
           <Button
             className="w-full"
             disabled={pending}
@@ -248,6 +143,7 @@ function VideoCaptureStage({
             )}
             확인한 짐 8개 반영
           </Button>
+          <Button className="mt-2 w-full" onClick={onBack} size="cta" variant="outline"><RotateCcw aria-hidden="true" />다시 촬영</Button>
         </div>
       </div>
     );
@@ -704,6 +600,7 @@ function ConnectedCapture({
   const workflow = useCaptureWorkflow(connection);
   const [localError, setLocalError] = useState<string | null>(null);
   const [localNotice, setLocalNotice] = useState<string | null>(null);
+  const [consentAcknowledged, setConsentAcknowledged] = useState(false);
   const [manualMode, setManualMode] = useState(initialManual);
   const [manualDraftItems, setManualDraftItems] = useState<
     AnalysisReviewDraftItem[]
@@ -762,6 +659,10 @@ function ConnectedCapture({
           itemKey: item.item_key,
           roomZoneId: item.room_zone_id,
           description: item.description,
+          name: item.name,
+          quantity: item.quantity,
+          unit: item.unit,
+          workNote: item.work_note,
         })) ?? []);
   const reviewCompleted =
     review?.review_scope_version_id !== null && review !== undefined;
@@ -780,6 +681,10 @@ function ConnectedCapture({
           original === undefined ||
           original.room_zone_id !== draft.roomZoneId ||
           original.description !== draft.description
+          || original.name !== draft.name
+          || original.quantity !== draft.quantity
+          || original.unit !== draft.unit
+          || original.work_note !== draft.workNote
         );
       }));
   const activeRemovedReviewItem =
@@ -788,7 +693,9 @@ function ConnectedCapture({
     reviewDraftItems.length > 0 &&
     reviewDraftItems.every(
       (item) =>
-        item.description.trim().length > 0 &&
+        (review?.scope_schema_version === 2
+          ? Boolean(item.name?.trim() && item.quantity && item.quantity > 0 && item.unit?.trim())
+          : item.description.trim().length > 0) &&
         review?.zones.some((zone) => zone.room_zone_id === item.roomZoneId),
     );
   const manualValid =
@@ -932,6 +839,7 @@ function ConnectedCapture({
   };
 
   const startSession = () => {
+    if (!consentAcknowledged || !workflow.consentPolicyQuery.data) return;
     setLocalError(null);
     workflow.createSessionMutation.reset();
     workflow.uploadMutation.reset();
@@ -976,6 +884,10 @@ function ConnectedCapture({
         itemKey: `customer-${crypto.randomUUID()}`,
         roomZoneId: firstZone.room_zone_id,
         description: "",
+        name: review.scope_schema_version === 2 ? "" : undefined,
+        quantity: review.scope_schema_version === 2 ? 1 : undefined,
+        unit: review.scope_schema_version === 2 ? "개" : undefined,
+        workNote: null,
       },
     ]);
   };
@@ -1026,7 +938,16 @@ function ConnectedCapture({
     workflow.reviewMutation.mutate(
       {
         sourceScopeVersionId: review.source_scope_version_id,
-        items: reviewDraftItems.map((item) => ({
+        scopeSchemaVersion: review.scope_schema_version,
+        locationConditions: review.location_conditions,
+        items: reviewDraftItems.map((item) => review.scope_schema_version === 2 ? ({
+          item_key: item.itemKey,
+          room_zone_id: item.roomZoneId,
+          name: item.name!.trim(),
+          quantity: item.quantity!,
+          unit: item.unit!.trim(),
+          work_note: item.workNote?.trim() || null,
+        }) : ({
           item_key: item.itemKey,
           room_zone_id: item.roomZoneId,
           description: item.description.trim(),
@@ -1420,7 +1341,7 @@ function ConnectedCapture({
       </main>
 
       {manualMode && !manualValid ? null : (
-        <div className="app-safe-bottom sticky bottom-0 bg-surface/95 px-6 pt-4 backdrop-blur">
+        <div className="app-fixed-action sticky bottom-0 bg-surface/95 px-6 pt-4 backdrop-blur">
           {manualMode ? (
             workflow.manualScopeMutation.isSuccess ? null : (
               <div><Button className="w-full" disabled={!manualValid || workflow.manualScopeMutation.isPending} form={MANUAL_SCOPE_FORM_ID} size="cta" type="submit">
@@ -1439,23 +1360,35 @@ function ConnectedCapture({
               </Button><button className="mx-auto flex min-h-11 items-center gap-2 px-4 text-sm font-semibold text-ink-600" onClick={() => setManualDraftItems([])} type="button"><RotateCcw aria-hidden="true" size="var(--icon-xs)" />선택 초기화</button></div>
             )
           ) : !session || unrecoverable ? (
-            <Button
-              className="w-full"
-              disabled={busy || terminalJob}
-              onClick={startSession}
-              size="cta"
-            >
-              {workflow.createSessionMutation.isPending ? (
-                <LoaderCircle
-                  aria-hidden="true"
-                  className="demo-spin"
-                  size="var(--icon-sm)"
+            <div>
+              <label className="mb-3 flex items-start gap-3 text-sm text-ink-600">
+                <input
+                  checked={consentAcknowledged}
+                  className="mt-0.5 size-5"
+                  disabled={!workflow.consentPolicyQuery.data}
+                  onChange={(event) => setConsentAcknowledged(event.target.checked)}
+                  type="checkbox"
                 />
-              ) : (
-                <Video aria-hidden="true" size="var(--icon-sm)" />
-              )}
-              {unrecoverable ? "새 촬영 세션 시작" : "촬영 시작"}
-            </Button>
+                <span>{workflow.consentPolicyQuery.data?.notice ?? "촬영 개인정보 안내를 불러오는 중입니다."}</span>
+              </label>
+              <Button
+                className="w-full"
+                disabled={busy || terminalJob || !consentAcknowledged || !workflow.consentPolicyQuery.data}
+                onClick={startSession}
+                size="cta"
+              >
+                {workflow.createSessionMutation.isPending ? (
+                  <LoaderCircle
+                    aria-hidden="true"
+                    className="demo-spin"
+                    size="var(--icon-sm)"
+                  />
+                ) : (
+                  <Video aria-hidden="true" size="var(--icon-sm)" />
+                )}
+                {unrecoverable ? "새 촬영 세션 시작" : "촬영 시작"}
+              </Button>
+            </div>
           ) : analysis?.status === "completed" ? (
             workflow.reviewQuery.isPending || recoveringReview ? (
               <Button className="w-full" disabled size="cta">
