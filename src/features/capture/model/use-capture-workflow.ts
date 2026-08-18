@@ -100,7 +100,8 @@ export function useCaptureWorkflow(connection: CaptureConnection) {
   };
 
   const createSessionMutation = useMutation({
-    mutationFn: () => createCaptureSession(connection),
+    mutationFn: (privacyNoticeAcknowledged: boolean) =>
+      createCaptureSession({ ...connection, privacyNoticeAcknowledged }),
     onSuccess: async () => {
       setResumableUpload(null);
       await refreshSessions();

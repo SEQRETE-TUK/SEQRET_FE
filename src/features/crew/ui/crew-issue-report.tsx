@@ -57,6 +57,8 @@ export function CrewIssueReport({ brief, connection, issues }: {
   const [description, setDescription] = useState(mockApiEnabled ? "점검 중이라 5층까지 계단 운반이 필요합니다." : "");
   const [evidenceId, setEvidenceId] = useState<string | null>(mockApiEnabled ? "mock-elevator-evidence" : null);
   const [submitted, setSubmitted] = useState(false);
+  // 촬영 session 생성 시 backend로 보내는 개인정보 고지 확인 값.
+  const [privacyAcknowledged, setPrivacyAcknowledged] = useState(mockApiEnabled);
   const jobQuery = useQuery({ queryKey: [...workflowKeys.root(connection.jobId), "job"], queryFn: () => getMoveJob(connection) });
   const refreshBrief = () => queryClient.invalidateQueries({ queryKey: workflowKeys.brief(connection.jobId) });
   const checkInMutation = useMutation({
@@ -68,7 +70,7 @@ export function CrewIssueReport({ brief, connection, issues }: {
     mutationFn: async (file: File) => {
       const roomZoneId = jobQuery.data?.locations.flatMap((location) => location.room_zones)[0]?.id;
       if (!roomZoneId) throw new Error("증거를 연결할 공간이 없습니다.");
-      const capture = await createCaptureSession(connection);
+      const capture = await createCaptureSession({ ...connection, privacyNoticeAcknowledged: privacyAcknowledged });
       const target = await createMediaUpload({ ...connection, captureSessionId: capture.id, contentLength: file.size, contentType: asSupportedContentType(file), mediaPurpose: "change_evidence", roomZoneId });
       await uploadCaptureFile(target, file);
       return completeMediaUpload({ ...connection, captureSessionId: capture.id, mediaAssetId: target.asset.id });
@@ -123,7 +125,8 @@ export function CrewIssueReport({ brief, connection, issues }: {
         <Label className="mt-5 block text-sm font-extrabold" htmlFor="issue-title">제목</Label><Input className="mt-2" id="issue-title" maxLength={100} onChange={(event) => setTitle(event.target.value)} placeholder="예: 엘리베이터 운행 중단" value={title} />
         <Label className="mt-5 block text-sm font-extrabold" htmlFor="issue-description">현장 설명</Label><Textarea className="mt-2 min-h-28" id="issue-description" maxLength={200} onChange={(event) => setDescription(event.target.value)} placeholder="무엇이 달라졌고 작업에 어떤 영향이 있는지 적어주세요." value={description} /><p className="mt-1 text-right text-xs text-ink-400">{description.length}/200</p>
         <h3 className="mt-5 text-sm font-extrabold">현장 증거</h3>{mockApiEnabled || evidenceId ? <img alt="엘리베이터 운행 중단 현장 증거" className="mt-2 aspect-[16/10] w-full rounded-[var(--radius-card)] object-cover" src="/elevator-outage-evidence.png" /> : <div className="mt-2 grid aspect-[16/10] place-items-center rounded-[var(--radius-card)] bg-surface-muted text-sm text-ink-600">현장 사진을 촬영해 주세요.</div>}
-        <Label className="mt-3 flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-xl border border-primary-400 text-sm font-extrabold text-primary-700"><Camera aria-hidden="true" /> {uploadMutation.isPending ? "업로드 중…" : evidenceId ? "증거 다시 촬영" : "사진·영상 촬영"}<input accept="image/jpeg,image/png,video/mp4" capture="environment" className="sr-only" disabled={uploadMutation.isPending} onChange={pickEvidence} type="file" /></Label>
+        <label className="mt-3 flex items-start gap-3 rounded-xl border border-line p-3 text-sm text-ink-600"><input checked={privacyAcknowledged} name="privacyNoticeAcknowledged" onChange={(event) => setPrivacyAcknowledged(event.target.checked)} type="checkbox" /><span>현장 촬영본은 변경 근거 확인에만 사용되고 보존 기간 후 삭제돼요. 개인정보 수집·이용 고지를 확인했어요.</span></label>
+        <Label className="mt-3 flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-xl border border-primary-400 text-sm font-extrabold text-primary-700"><Camera aria-hidden="true" /> {uploadMutation.isPending ? "업로드 중…" : privacyAcknowledged ? evidenceId ? "증거 다시 촬영" : "사진·영상 촬영" : "고지 확인 후 촬영할 수 있어요"}<input accept="image/jpeg,image/png,video/mp4" capture="environment" className="sr-only" disabled={uploadMutation.isPending || !privacyAcknowledged} onChange={pickEvidence} type="file" /></Label>
         <InfoCallout icon={<WarningCircle aria-hidden="true" />}>기사는 현장 사실만 보고하며 금액을 입력하지 않아요.</InfoCallout>{error ? <p className="mt-3 text-sm font-bold text-danger-ink" role="alert">{apiErrorMessage(error)}</p> : null}
         <Button className="mt-5 w-full whitespace-nowrap" disabled={!evidenceId || !title.trim() || !description.trim() || issueMutation.isPending} onClick={() => issueMutation.mutate()} size="cta"><Camera aria-hidden="true" /> {issueMutation.isPending ? "보고 중…" : "증거와 함께 업체에 보고"}</Button>
       </section>

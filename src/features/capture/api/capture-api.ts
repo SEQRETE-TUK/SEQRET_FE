@@ -1,5 +1,8 @@
 import { apiRequest, uploadToSignedUrl } from "@/api/client";
 
+// backend 동의 정책 version. 배포 환경별로 env로 주입하고, 미설정 시 v1을 사용한다.
+export const CONSENT_POLICY_VERSION = import.meta.env.VITE_CONSENT_POLICY_VERSION ?? "v1";
+
 export type MediaAssetStatus =
   | "pending_upload"
   | "uploaded"
@@ -158,6 +161,12 @@ export interface SubmitCaptureRequest extends AuthorizedRequest {
   captureSessionId: string;
 }
 
+// 촬영 session 생성 body. backend가 두 field를 필수로 받으므로 누락 시 422가 난다.
+export interface CreateCaptureSessionRequest extends AuthorizedRequest {
+  privacyNoticeAcknowledged: boolean;
+  consentPolicyVersion?: string;
+}
+
 export interface CompleteAnalysisReviewRequest extends AuthorizedRequest {
   sourceScopeVersionId: string;
   items: AnalysisReviewItemInput[];
@@ -248,11 +257,20 @@ export async function listCaptureSessions({
 
 export async function createCaptureSession({
   accessToken,
+  consentPolicyVersion = CONSENT_POLICY_VERSION,
   jobId,
+  privacyNoticeAcknowledged,
   signal,
-}: AuthorizedRequest): Promise<CaptureSessionCreated> {
+}: CreateCaptureSessionRequest): Promise<CaptureSessionCreated> {
+  if (!privacyNoticeAcknowledged) {
+    throw new Error("개인정보 수집·이용 고지를 확인해야 촬영을 시작할 수 있어요.");
+  }
   return apiRequest<CaptureSessionCreated>(`${jobPath(jobId)}/capture-sessions`, {
     accessToken,
+    body: JSON.stringify({
+      consent_policy_version: consentPolicyVersion,
+      privacy_notice_acknowledged: privacyNoticeAcknowledged,
+    }),
     method: "POST",
     signal,
   });

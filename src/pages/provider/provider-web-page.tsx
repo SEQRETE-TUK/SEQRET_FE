@@ -46,30 +46,16 @@ type JobMode = "detail" | "quote";
 const moneyFormatter = new Intl.NumberFormat("ko-KR");
 const money = (amount: number | null | undefined) => amount == null ? "–" : `${moneyFormatter.format(amount)}원`;
 const day = new Intl.DateTimeFormat("ko-KR", { month: "numeric", day: "numeric", weekday: "short" });
-const providerConnectionsKey = "seqret-provider-connections";
-
-function storedProviderConnections(): AuthSession[] {
-  try {
-    const stored = JSON.parse(window.sessionStorage.getItem(providerConnectionsKey) ?? "[]") as AuthSession[];
-    return stored.filter((item) => item.accessToken && item.actor?.role === "company_manager");
-  } catch {
-    return [];
-  }
-}
-
-function saveProviderConnections(connections: AuthSession[]) {
-  window.sessionStorage.setItem(providerConnectionsKey, JSON.stringify(connections));
-  return connections;
-}
-
+// 업체 다중 연결 목록은 accessToken을 포함하므로 메모리에만 보관한다.
+// docs/api-spec.md: 민감 응답을 PWA cache, localStorage, sessionStorage, IndexedDB, log와 analytics에 남기지 않는다.
 function upsertProviderConnection(connections: AuthSession[], next: AuthSession) {
-  return saveProviderConnections([next, ...connections.filter((item) => item.actor.job_id !== next.actor.job_id)]);
+  return [next, ...connections.filter((item) => item.actor.job_id !== next.actor.job_id)];
 }
 
 export function ProviderWebPage() {
   const { clearSession, connect, session } = useAuth();
   const activeSession = session?.actor.role === "company_manager" ? session : null;
-  const [connections, setConnections] = useState<AuthSession[]>(() => activeSession ? upsertProviderConnection(storedProviderConnections(), activeSession) : storedProviderConnections());
+  const [connections, setConnections] = useState<AuthSession[]>(() => activeSession ? [activeSession] : []);
   const addConnection = async (secret: string) => {
     const next = await connect(secret, "company_manager");
     setConnections((current) => upsertProviderConnection(current, next));
@@ -78,7 +64,7 @@ export function ProviderWebPage() {
   const selectConnection = (next: AuthSession) => connect(next.accessToken, "company_manager");
   const removeConnection = () => {
     if (!activeSession) return;
-    const remaining = saveProviderConnections(connections.filter((item) => item.actor.job_id !== activeSession.actor.job_id));
+    const remaining = connections.filter((item) => item.actor.job_id !== activeSession.actor.job_id);
     setConnections(remaining);
     if (remaining[0]) void selectConnection(remaining[0]);
     else clearSession();
@@ -131,8 +117,8 @@ function ProviderWebConsole({ connections, onConnect, onDisconnect, onSelect, se
           </div>
         </header>
 
-        <main className="min-w-0 p-5 xl:p-8">
-          {view === "jobs" && jobMode === "detail" ? <JobDashboard issues={issues} jobs={linkedJobs} onConnect={() => setConnectionOpen(true)} onQuote={() => setJobMode("quote")} onSelect={(next) => { void onSelect(next); setJobMode("detail"); }} onShowOperations={() => setShowOperations((value) => !value)} scope={scope} search={search} selectedJobId={session?.actor.job_id ?? null} showOperations={showOperations} /> : null}
+        <main className="min-w-0 bg-surface-muted p-5 xl:p-8">
+          {view === "jobs" && jobMode === "detail" ? <JobDashboard jobs={linkedJobs} onConnect={() => setConnectionOpen(true)} onQuote={() => setJobMode("quote")} onSelect={(next) => { void onSelect(next); setJobMode("detail"); }} onShowOperations={() => setShowOperations((value) => !value)} scope={scope} search={search} selectedJobId={session?.actor.job_id ?? null} showOperations={showOperations} /> : null}
           {view === "jobs" && jobMode === "quote" && connection ? <QuoteEditor connection={connection} onBack={() => setJobMode("detail")} scope={scope} /> : null}
           {view === "issues" ? connection ? <IssueWorkbench connection={connection} issues={issues} scope={scope} /> : <ProviderConnectionEmpty onConnect={() => setConnectionOpen(true)} /> : null}
           {view === "invite" ? session ? <OperationsPanel /> : <ProviderConnectionEmpty onConnect={() => setConnectionOpen(true)} /> : null}
@@ -144,7 +130,23 @@ function ProviderWebConsole({ connections, onConnect, onDisconnect, onSelect, se
   );
 }
 
-function JobDashboard({ issues, jobs: linkedJobs, onConnect, onQuote, onSelect, onShowOperations, scope, search, selectedJobId, showOperations }: { issues: FieldIssue[]; jobs: Array<{ session: AuthSession; scope: ScopeReview | undefined }>; onConnect: () => void; onQuote: () => void; onSelect: (session: AuthSession) => void; onShowOperations: () => void; scope: ScopeReview | undefined; search: string; selectedJobId: string | null; showOperations: boolean }) {
+// 상단 4칸 카드가 곧 필터 탭이다. 뎁스가 얕은 화면이라 상태를 색으로 구분한다.
+type JobFilter = "all" | "review" | "customer" | "confirmed";
+
+function jobStatusKey(status: string): Exclude<JobFilter, "all"> {
+  if (status === "customer_review") return "customer";
+  if (status === "confirmed") return "confirmed";
+  return "review";
+}
+
+const statusMeta = {
+  review: { label: "검토 필요", tag: "primary", rail: "bg-primary-600", chip: "bg-primary-50 text-primary-700", card: "border-primary-600 bg-primary-50" },
+  customer: { label: "고객 확인 중", tag: "warning", rail: "bg-warning-ink", chip: "bg-warning-bg text-warning-ink", card: "border-warning-ink bg-warning-bg" },
+  confirmed: { label: "공동 확정", tag: "success", rail: "bg-success", chip: "bg-success-bg text-success-ink", card: "border-success bg-success-bg" },
+} as const;
+
+function JobDashboard({ jobs: linkedJobs, onConnect, onQuote, onSelect, onShowOperations, scope, search, selectedJobId, showOperations }: { jobs: Array<{ session: AuthSession; scope: ScopeReview | undefined }>; onConnect: () => void; onQuote: () => void; onSelect: (session: AuthSession) => void; onShowOperations: () => void; scope: ScopeReview | undefined; search: string; selectedJobId: string | null; showOperations: boolean }) {
+  const [filter, setFilter] = useState<JobFilter>("all");
   const jobs = useMemo(() => {
     const rows = linkedJobs.map((item) => ({ date: item.scope?.job.scheduled_at ?? null, customer: item.scope?.job.customer_display_name ?? "고객", route: `${item.scope?.job.origin_summary ?? "출발지"} → ${item.scope?.job.destination_summary ?? "도착지"}`, status: item.scope?.scope.status ?? "company_review", current: item.session.actor.job_id === selectedJobId, session: item.session, jobCode: item.scope?.job.job_code ?? "–" }));
     const query = search.trim();
@@ -152,15 +154,32 @@ function JobDashboard({ issues, jobs: linkedJobs, onConnect, onQuote, onSelect, 
   }, [linkedJobs, search, selectedJobId]);
   const loadedScopes = linkedJobs.flatMap((item) => item.scope ? [item.scope] : []);
   const stats = [
-    ["검토 필요", loadedScopes.filter((item) => item.scope.status === "company_review" || item.scope.status === "revision_requested").length, "primary"],
-    ["고객 확인 중", loadedScopes.filter((item) => item.scope.status === "customer_review").length, "warning"],
-    ["공동 확정", loadedScopes.filter((item) => item.scope.status === "confirmed").length, "success"],
-    ["현장 이슈", issues.filter((issue) => issue.status === "open").length, "danger"],
+    ["review", "검토 필요", loadedScopes.filter((item) => item.scope.status === "company_review" || item.scope.status === "revision_requested").length, "primary"],
+    ["customer", "고객 확인 중", loadedScopes.filter((item) => item.scope.status === "customer_review").length, "warning"],
+    ["confirmed", "공동 확정", loadedScopes.filter((item) => item.scope.status === "confirmed").length, "success"],
   ] as const;
+  const visibleJobs = filter === "all" ? jobs : jobs.filter((job) => jobStatusKey(job.status) === filter);
   return <>
-    <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{stats.map(([label, value, tone]) => <div className="ui-card flex min-h-24 items-center gap-4 p-5" key={label}><span className={`grid size-11 place-items-center rounded-xl ${tone === "success" ? "bg-success-bg text-success" : tone === "warning" ? "bg-warning-bg text-warning-ink" : tone === "danger" ? "bg-danger-bg text-danger" : "bg-primary-50 text-primary-700"}`}>{tone === "success" ? <CheckCircle aria-hidden="true" /> : tone === "danger" ? <WarningCircle aria-hidden="true" /> : <Clipboard aria-hidden="true" />}</span><div><p className="text-sm text-ink-600">{label}</p><p className="mt-1 text-2xl font-black">{value}</p></div></div>)}</section>
+    <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{stats.map(([key, label, value, tone]) => {
+      const active = filter === key;
+      const meta = statusMeta[key];
+      return <button
+        aria-pressed={active}
+        className={`ui-card flex min-h-24 items-center gap-4 border-2 p-5 text-left transition ${active ? meta.card : "border-transparent hover:border-line"}`}
+        key={key}
+        onClick={() => setFilter(active ? "all" : key)}
+        type="button"
+      >
+        <span className={`grid size-11 place-items-center rounded-xl ${meta.chip}`}>{tone === "success" ? <CheckCircle aria-hidden="true" /> : <Clipboard aria-hidden="true" />}</span>
+        <div><p className="text-sm text-ink-600">{label}</p><p className="mt-1 text-2xl font-black">{value}</p></div>
+        <span className={`ml-auto h-10 w-1.5 rounded-full ${meta.rail}`} />
+      </button>;
+    })}</section>
     <section className="mt-5 grid min-h-[690px] gap-5 xl:grid-cols-[minmax(360px,0.9fr)_minmax(440px,1.1fr)]">
-      <div className="ui-card overflow-hidden"><div className="flex min-h-16 items-center gap-5 border-b border-line px-5 text-sm font-extrabold"><span className="border-b-2 border-primary-600 py-5">전체 {jobs.length}</span><span className="text-ink-600">검토 필요</span><span className="text-ink-600">공동 확정</span></div><div className="p-4"><p className="mb-3 text-xs font-bold text-ink-600">최신순 <CaretDown aria-hidden="true" className="inline" /></p>{jobs.length ? jobs.map((job) => <button className={`flex w-full items-center gap-4 border-b border-line px-3 py-4 text-left last:border-b-0 ${job.current ? "rounded-xl border border-primary-600 bg-primary-50/50" : "hover:bg-surface-muted"}`} key={job.session.actor.job_id} onClick={() => onSelect(job.session)} type="button"><time className="w-12 text-center text-sm font-extrabold">{job.date ? day.format(new Date(job.date)) : "–"}</time><div className="min-w-0 flex-1"><p className="font-extrabold">{job.customer} <StatusTag tone={job.status === "confirmed" ? "success" : "warning"}>{job.status === "confirmed" ? "공동 확정" : job.status === "customer_review" ? "고객 확인 중" : "검토 필요"}</StatusTag></p><p className="mt-1 truncate text-sm text-ink-600">{job.route}</p><p className="mt-1 text-xs text-ink-400">작업 ID {job.jobCode}</p></div><CaretRight aria-hidden="true" /></button>) : <ProviderConnectionEmpty onConnect={onConnect} />}</div></div>
+      <div className="ui-card overflow-hidden"><div className="flex min-h-14 items-center justify-between gap-3 border-b border-line px-5 text-sm font-extrabold"><span>{filter === "all" ? "전체" : statusMeta[filter].label}</span><span className="text-xs font-bold text-ink-600">{visibleJobs.length}건</span></div><div className="p-4"><p className="mb-3 text-xs font-bold text-ink-600">최신순 <CaretDown aria-hidden="true" className="inline" /></p>{visibleJobs.length ? visibleJobs.map((job) => {
+        const meta = statusMeta[jobStatusKey(job.status)];
+        return <button className={`flex w-full items-stretch gap-3 rounded-xl border px-3 py-4 text-left ${job.current ? "border-primary-600 bg-primary-50/50" : "border-transparent hover:bg-surface-muted"}`} key={job.session.actor.job_id} onClick={() => onSelect(job.session)} type="button"><span className={`w-1.5 shrink-0 rounded-full ${meta.rail}`} /><time className="w-12 shrink-0 self-center text-center text-sm font-extrabold">{job.date ? day.format(new Date(job.date)) : "–"}</time><div className="min-w-0 flex-1"><p className="font-extrabold">{job.customer} <StatusTag tone={meta.tag}>{meta.label}</StatusTag></p><p className="mt-1 truncate text-sm text-ink-600">{job.route}</p><p className="mt-1 text-xs text-ink-400">작업 ID {job.jobCode}</p></div><CaretRight aria-hidden="true" className="self-center" /></button>;
+      }) : jobs.length ? <p className="px-3 py-10 text-center text-sm text-ink-600">{statusMeta[filter === "all" ? "review" : filter].label} 상태인 작업이 없어요.</p> : <ProviderConnectionEmpty onConnect={onConnect} />}</div></div>
       <div className="ui-card ui-card-pad">{scope ? <><div className="flex items-start justify-between gap-4"><div><StatusTag tone={scope.scope.status === "confirmed" ? "success" : "primary"}>{scope.scope.status === "company_review" ? "검토 필요" : scope.scope.status === "customer_review" ? "고객 확인 중" : "공동 확정"}</StatusTag><h3 className="mt-3 text-ui-section font-black">{scope.job.customer_display_name ?? "고객"}</h3><p className="mt-2 text-sm text-ink-600">{scope.job.origin_summary ?? "출발지"} → {scope.job.destination_summary ?? "도착지"}</p></div><button aria-label="작업 ID 복사" className="text-ink-600" type="button"><Copy aria-hidden="true" /></button></div><div className="my-5 border-t border-line" /><div className="flex items-center justify-between"><h4 className="text-lg font-extrabold">고객이 등록한 내용</h4><span className="text-sm font-bold text-primary-700">상세 보기</span></div><div className="mt-3 grid grid-cols-2 gap-3"><FactCard icon={<Briefcase aria-hidden="true" />} label="짐" value={`${scope.scope.item_count}개`} /><FactCard icon={<Wrench aria-hidden="true" />} label="작업조건" value={`${scope.scope.work_count}개`} /></div><h4 className="mt-6 text-sm font-extrabold">현재 제안</h4><div className="mt-2 rounded-xl border border-line bg-surface-muted p-4">{scope.proposal_id ? <><p className="font-extrabold">{scope.scope.version_label} · {money(scope.quote?.total_amount_krw)}</p><p className="mt-1 text-sm text-ink-600">{scope.proposal_reason}</p></> : <><p className="font-extrabold">현재 제안이 없습니다.</p><p className="mt-1 text-sm text-ink-600">견적을 작성해 고객에게 제안해 주세요.</p></>}</div>{scope.scope.status === "company_review" ? <Button className="mt-4 w-full" onClick={onQuote}>견적 작성하기</Button> : <div className="mt-4 rounded-xl border border-primary-100 bg-primary-50 px-4 py-3 text-sm font-bold text-primary-800">{scope.scope.status === "customer_review" ? "고객 확인을 기다리고 있습니다." : "고객과 업체가 같은 범위로 확정했습니다."}</div>}<div className="mt-6 border-t border-line pt-5"><h4 className="font-extrabold">진행 단계</h4><ol className="mt-4 space-y-3 text-sm"><li className="flex items-center gap-2 text-success"><CheckCircle aria-hidden="true" weight="fill" /> 고객 촬영 완료</li><li className="flex items-center gap-2 text-success"><CheckCircle aria-hidden="true" weight="fill" /> AI 검수 완료</li><li className="flex items-center gap-2 text-primary-700"><span className="size-3 rounded-full border-2 border-primary-600" /> {scope.scope.status === "company_review" ? "업체 제안 필요" : "업체 제안 완료"}</li></ol></div><Button className="mt-5 w-full" onClick={onShowOperations} variant="outline">{showOperations ? "전체 운영 절차 닫기" : "배차·완료 운영 절차"}</Button></> : <ProviderConnectionEmpty onConnect={onConnect} />}</div>
     </section>
     {showOperations ? <section className="ui-card mt-5 p-5"><LiveProviderWorkflow embedded wide /></section> : null}

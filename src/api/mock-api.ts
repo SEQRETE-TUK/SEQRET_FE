@@ -1,3 +1,4 @@
+import { ApiError } from "@/api/client";
 import type {
   AnalysisReview,
   CaptureSession,
@@ -462,6 +463,11 @@ export async function mockApiRequest<T>(path: string, init: RequestInit, accessT
   }
   if (path === `${jobPath}/capture-sessions` && method === "GET") return result(state.sessions) as Promise<T>;
   if (path === `${jobPath}/capture-sessions` && method === "POST") {
+    // 실제 backend와 동일하게 동의 field가 없으면 422로 거절한다.
+    const consent = jsonBody<{ consent_policy_version?: string; privacy_notice_acknowledged?: boolean }>(init);
+    if (!consent.consent_policy_version || consent.privacy_notice_acknowledged !== true) {
+      throw new ApiError(422, "consent_policy_version과 privacy_notice_acknowledged가 필요합니다.", null, null);
+    }
     const session: CaptureSession = { id: crypto.randomUUID(), job_id: JOB_ID, created_by_participant_id: state.actors[accessToken].participant_id, created_at: now(), media_assets: [], analysis: null };
     state.sessions.unshift(session);
     return result(session) as Promise<T>;

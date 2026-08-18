@@ -38,6 +38,7 @@ import {
   captureFileError,
   isValidAccessSecret,
   isValidJobId,
+  CONSENT_POLICY_VERSION,
   type CaptureAnalysis,
   type MediaAsset,
   type RoomZone,
@@ -703,6 +704,8 @@ function ConnectedCapture({
 }: ConnectedCaptureProps) {
   const workflow = useCaptureWorkflow(connection);
   const [localError, setLocalError] = useState<string | null>(null);
+  // 촬영 session 생성 시 backend로 보내는 개인정보 고지 확인 값. 사용자가 실제로 확인해야 true가 된다.
+  const [privacyAcknowledged, setPrivacyAcknowledged] = useState(false);
   const [localNotice, setLocalNotice] = useState<string | null>(null);
   const [manualMode, setManualMode] = useState(initialManual);
   const [manualDraftItems, setManualDraftItems] = useState<
@@ -932,10 +935,14 @@ function ConnectedCapture({
   };
 
   const startSession = () => {
+    if (!privacyAcknowledged) {
+      setLocalError("개인정보 수집·이용 고지를 확인해 주세요.");
+      return;
+    }
     setLocalError(null);
     workflow.createSessionMutation.reset();
     workflow.uploadMutation.reset();
-    workflow.createSessionMutation.mutate();
+    workflow.createSessionMutation.mutate(privacyAcknowledged);
   };
 
   const selectFile = (file: File, roomZoneId: string) => {
@@ -1119,11 +1126,15 @@ function ConnectedCapture({
             }),
         },
       );
-    if (!session || analysis)
-      workflow.createSessionMutation.mutate(undefined, {
+    if (!session || analysis) {
+      if (!privacyAcknowledged) {
+        setLocalError("개인정보 수집·이용 고지를 확인해 주세요.");
+        return;
+      }
+      workflow.createSessionMutation.mutate(privacyAcknowledged, {
         onSuccess: (created) => uploadAndAnalyze(created.id),
       });
-    else uploadAndAnalyze(session.id);
+    } else uploadAndAnalyze(session.id);
   };
 
   if (videoMode)
@@ -1439,23 +1450,47 @@ function ConnectedCapture({
               </Button><button className="mx-auto flex min-h-11 items-center gap-2 px-4 text-sm font-semibold text-ink-600" onClick={() => setManualDraftItems([])} type="button"><RotateCcw aria-hidden="true" size="var(--icon-xs)" />선택 초기화</button></div>
             )
           ) : !session || unrecoverable ? (
-            <Button
-              className="w-full"
-              disabled={busy || terminalJob}
-              onClick={startSession}
-              size="cta"
-            >
-              {workflow.createSessionMutation.isPending ? (
-                <LoaderCircle
-                  aria-hidden="true"
-                  className="demo-spin"
-                  size="var(--icon-sm)"
+            <div className="flex flex-col gap-3">
+              <label
+                className="flex items-start gap-3 rounded-lg bg-ink-50 p-3 text-left text-sm text-ink-600"
+                htmlFor="privacy-notice-acknowledged"
+              >
+                <input
+                  checked={privacyAcknowledged}
+                  className="mt-0.5 size-4 shrink-0 accent-brand-600"
+                  id="privacy-notice-acknowledged"
+                  onChange={(event) => {
+                    setPrivacyAcknowledged(event.target.checked);
+                    if (event.target.checked) setLocalError(null);
+                  }}
+                  type="checkbox"
                 />
-              ) : (
-                <Video aria-hidden="true" size="var(--icon-sm)" />
-              )}
-              {unrecoverable ? "새 촬영 세션 시작" : "촬영 시작"}
-            </Button>
+                <span>
+                  촬영 영상과 사진은 짐 목록 산출에만 사용되고 보존 기간이 지나면 삭제돼요.
+                  개인정보 수집·이용 고지를 확인했어요.
+                  <span className="mt-1 block text-xs text-ink-400">
+                    동의 정책 {CONSENT_POLICY_VERSION}
+                  </span>
+                </span>
+              </label>
+              <Button
+                className="w-full"
+                disabled={busy || terminalJob || !privacyAcknowledged}
+                onClick={startSession}
+                size="cta"
+              >
+                {workflow.createSessionMutation.isPending ? (
+                  <LoaderCircle
+                    aria-hidden="true"
+                    className="demo-spin"
+                    size="var(--icon-sm)"
+                  />
+                ) : (
+                  <Video aria-hidden="true" size="var(--icon-sm)" />
+                )}
+                {unrecoverable ? "새 촬영 세션 시작" : "촬영 시작"}
+              </Button>
+            </div>
           ) : analysis?.status === "completed" ? (
             workflow.reviewQuery.isPending || recoveringReview ? (
               <Button className="w-full" disabled size="cta">
