@@ -209,6 +209,7 @@ export function ConsumerApp() {
     queryFn: () => getScopeReview(connection),
     refetchInterval: (query) => query.state.data ? (query.state.data.quote ? false : 2_000) : false,
   });
+  const activeCustomerName = scopeQuery.data?.job.customer_display_name ?? session!.actor.display_name;
   const completionQuery = useQuery({ queryKey: workflowKeys.completion(selectedJobId), queryFn: () => getCompletionSummary(connection) });
   const issuesQuery = useQuery({ queryKey: workflowKeys.fieldIssues(selectedJobId), queryFn: () => listFieldIssues(connection), refetchInterval: mockApiEnabled ? 2_000 : false });
   const deleteMutation = useMutation({
@@ -236,7 +237,7 @@ export function ConsumerApp() {
   const disconnect = () => { clearSession(); navigate("/"); };
 
   const header = tab === "home"
-    ? <HomeHeader customerName={session!.actor.display_name} onBell={() => setTab("notifications")} />
+    ? <HomeHeader customerName={activeCustomerName} onBell={() => setTab("notifications")} />
     : tab === "move"
       ? moveInfoEditor
         ? <MobilePageHeader onBack={() => setMoveInfoEditor(null)} title={moveInfoEditor === "schedule" ? "서비스 예정 일시" : moveInfoEditor === "origin" ? "출발지 정보 수정" : "도착지 정보 수정"} />
@@ -249,11 +250,11 @@ export function ConsumerApp() {
 
   return (
     <>
-    <MobileAppShell current={tab} eyebrow={`고객 · ${session!.actor.display_name}`} header={header} items={tabs} onChange={setTab} onProfile={() => setTab("more")} showNav={tab !== "move" || moveView === "list"} title={tab === "home" ? "홈" : tab === "move" ? "내 이사" : "더보기"}>
+    <MobileAppShell current={tab} eyebrow={`고객 · ${activeCustomerName}`} header={header} items={tabs} onChange={setTab} onProfile={() => setTab("more")} showNav={tab !== "move" || moveView === "list"} title={tab === "home" ? "홈" : tab === "move" ? "내 이사" : "더보기"}>
       {tab === "home" ? <HomeTab completion={completionQuery.data} onOpenAgreement={openAgreement} onOpenMove={() => openMove()} onStartMove={() => setOnboardingOpen(true)} scope={scopeQuery.data} /> : null}
       {tab === "move" ? <ConsumerMoveTab completion={completionQuery.data} connection={connection} editor={moveInfoEditor} issues={issuesQuery.data} moveJobs={moveListQuery.data?.moves} onCapture={() => navigate("/consumer/capture?mode=video")} onEditorChange={setMoveInfoEditor} onManualAdd={() => navigate("/consumer/capture?mode=manual")} onNewMove={() => setOnboardingOpen(true)} onOpen={(jobId) => openMove(jobId)} onViewChange={setMoveView} scope={scopeQuery.data} view={moveView} /> : null}
       {tab === "notifications" ? <CustomerNotifications issues={issuesQuery.data} scope={scopeQuery.data} /> : null}
-      {tab === "more" ? <ConnectedProfile displayName={session!.actor.display_name} expiresAt={session!.actor.expires_at} onDisconnect={disconnect} permissions={session!.actor.permissions} roleLabel="고객" /> : null}
+      {tab === "more" ? <ConnectedProfile displayName={activeCustomerName} expiresAt={session!.actor.expires_at} onDisconnect={disconnect} permissions={session!.actor.permissions} roleLabel="고객" /> : null}
     </MobileAppShell>
     <CustomerOnboardingSheet onOpenChange={setOnboardingOpen} open={onboardingOpen} />
     <MoveActionsSheet canDelete={Boolean(scopeQuery.data && !scopeQuery.data.quote)} error={deleteMutation.error} onDelete={() => deleteMutation.mutate(selectedJobId)} onOpenChange={setMoveActionsOpen} open={moveActionsOpen} pending={deleteMutation.isPending} />
@@ -373,9 +374,11 @@ function ConsumerMoveList({ completion, moveJobs, onNewMove, onOpen, scope }: { 
 function MockMoveCard({ move, onOpen }: { move: MockMoveSummary; onOpen: () => void }) {
   const scheduledAt = move.job.scheduled_at ? new Date(move.job.scheduled_at) : null;
   const hasQuote = Boolean(move.quote);
-  const statusLabel = hasQuote ? "견적서 도착" : move.company_participation_status === "company_not_invited" ? "링크 보내기 전" : "업체 초대 대기";
+  const customerName = move.job.participants.find((participant) => participant.role === "customer")?.display_name ?? "고객";
+  const statusLabel = hasQuote ? "견적서 도착" : move.company_participation_status === "company_not_invited" ? "링크 보내기 전" : "업체 연결됨 · 견적 대기";
+  const exampleLabel = hasQuote ? "견적 작성 후 예시" : "견적 작성 전 예시";
   const currentStep = move.scope_status === "confirmed" ? 4 : move.scope_status === "customer_review" || move.scope_status === "revision_requested" ? 3 : move.quote ? 2 : 1;
-  return <button className="press-static w-full ui-card p-5 text-left shadow-[var(--shadow-card)]" onClick={onOpen} type="button"><span className={`inline-flex h-[var(--status-height)] items-center rounded-full px-3 text-ui-status ${hasQuote ? "bg-primary-50 text-primary-700" : "bg-surface-muted text-ink-600"}`}>{statusLabel}</span><strong className="mt-4 flex items-center justify-between gap-3 text-ui-section"><span className="min-w-0 truncate">{move.job.locations[0]?.label ?? "출발지"} → {move.job.locations[1]?.label ?? "도착지"}</span><CaretRight aria-hidden="true" className="shrink-0 text-ink-400" size="var(--icon-sm)" /></strong><span className="mt-2 block text-ui-support text-ink-600">{scheduledAt ? fullDateFormatter.format(scheduledAt) : "일정 확인 중"}</span><span className="mt-5 block border-t border-line pt-4 text-sm">{hasQuote ? <>현재 확인서 <b>{move.version_label}</b><span className="mx-2 text-line">|</span><b className="text-primary-700">{money(move.quote?.total_amount_krw)}</b></> : <span className="text-ink-600">아직 견적서를 받지 않았어요</span>}</span>{hasQuote ? <MoveJourneyProgress current={currentStep} /> : null}<span className="mt-4 grid grid-cols-3 divide-x divide-line text-center text-xs text-ink-600"><span><Package aria-hidden="true" className="mx-auto mb-1" size="var(--icon-sm)" />짐 {move.item_count}개</span><span><Notepad aria-hidden="true" className="mx-auto mb-1" size="var(--icon-sm)" />{hasQuote ? `확인서 ${move.version_label}` : "초안"}</span><span><TrendUp aria-hidden="true" className="mx-auto mb-1" size="var(--icon-sm)" />변경 {move.adjustment_count}건</span></span></button>;
+  return <button className="press-static w-full ui-card p-5 text-left shadow-[var(--shadow-card)]" onClick={onOpen} type="button"><span className={`inline-flex h-[var(--status-height)] items-center rounded-full px-3 text-ui-status ${hasQuote ? "bg-primary-50 text-primary-700" : "bg-surface-muted text-ink-600"}`}>{statusLabel}</span><span className="mt-3 block text-ui-data font-extrabold text-primary-700">{customerName} 고객 · {exampleLabel}</span><strong className="mt-1 flex items-center justify-between gap-3 text-ui-section"><span className="min-w-0 truncate">{move.job.locations[0]?.label ?? "출발지"} → {move.job.locations[1]?.label ?? "도착지"}</span><CaretRight aria-hidden="true" className="shrink-0 text-ink-400" size="var(--icon-sm)" /></strong><span className="mt-2 block text-ui-support text-ink-600">{scheduledAt ? fullDateFormatter.format(scheduledAt) : "일정 확인 중"}</span><span className="mt-5 block border-t border-line pt-4 text-sm">{hasQuote ? <>현재 확인서 <b>{move.version_label}</b><span className="mx-2 text-line">|</span><b className="text-primary-700">{money(move.quote?.total_amount_krw)}</b></> : <span className="text-ink-600">아직 견적서를 받지 않았어요</span>}</span>{hasQuote ? <MoveJourneyProgress current={currentStep} /> : null}<span className="mt-4 grid grid-cols-3 divide-x divide-line text-center text-xs text-ink-600"><span><Package aria-hidden="true" className="mx-auto mb-1" size="var(--icon-sm)" />짐 {move.item_count}개</span><span><Notepad aria-hidden="true" className="mx-auto mb-1" size="var(--icon-sm)" />{hasQuote ? `확인서 ${move.version_label}` : "초안"}</span><span><TrendUp aria-hidden="true" className="mx-auto mb-1" size="var(--icon-sm)" />변경 {move.adjustment_count}건</span></span></button>;
 }
 
 function MoveHistoryCard({ onOpen, record }: { onOpen: () => void; record: MoveHistoryRecord }) {

@@ -165,8 +165,8 @@ export function LiveProviderWorkflow({ embedded = false, wide = false }: { embed
       embedded={embedded}
       wide={wide}
     >
-      <InvitationPanel />
-      <div className={wide ? "workflow-task-grid workflow-task-list mt-3 overflow-hidden rounded-[var(--radius-input)] border border-line bg-surface lg:grid lg:grid-cols-2" : "workflow-task-list mt-3 overflow-hidden rounded-[var(--radius-input)] border border-line bg-surface"}>
+      <div className="workflow-task-list overflow-hidden rounded-[var(--radius-input)] border border-line bg-surface">
+        <InvitationPanel />
         <WorkflowTask
           description={`수락 기사 ${acceptedWorkerCount}명 · 차량과 작업시간을 배정해요`}
           index={1}

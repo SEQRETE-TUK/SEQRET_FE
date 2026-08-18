@@ -68,20 +68,22 @@ export function WorkflowShell({
   const content = (
     <>
       {retryAfter > 0 ? <p aria-live="polite" className="rounded-xl bg-warning-bg p-3 text-sm font-bold text-warning-ink">요청 제한으로 {retryAfter}초 동안 다시 제출할 수 없습니다.</p> : null}
-      <section className={cn(embedded ? "pb-6" : "ui-card p-5 shadow-[var(--shadow-card)]")}> 
-        <p className="text-sm font-bold text-primary-700">공동 거래 기록</p>
-        <h2 className="mt-2 text-ui-section leading-8 font-extrabold tracking-[var(--tracking-display)]">{embedded ? title : "처리할 작업"}</h2>
-        <p className="mt-2 text-sm leading-5 text-ink-600">{summary ?? "각 단계의 최신 상태를 확인하고 필요한 작업만 열어 처리할 수 있습니다."}</p>
-        <div className="mt-5 flex min-h-12 items-center justify-between border-y border-line py-3 text-sm">
+      <section className={cn(embedded ? "ui-card ui-card-outlined overflow-hidden" : "ui-card p-5 shadow-[var(--shadow-card)]")}>
+        <div className={cn(embedded && "px-5 py-4 sm:px-6")}>
+          <h2 className={cn("text-ui-section leading-8 font-extrabold tracking-[var(--tracking-display)]", !embedded && "mt-2")}>{embedded ? title : "처리할 작업"}</h2>
+          <p className="mt-2 text-sm leading-5 text-ink-600">{summary ?? "각 단계의 최신 상태를 확인하고 필요한 작업만 열어 처리할 수 있습니다."}</p>
+        </div>
+        {embedded && context ? <div className="[&>section]:m-0 [&>section]:border-b-0 [&>section]:px-5 sm:[&>section]:px-6">{context}</div> : null}
+        <div className={cn("flex min-h-12 items-center justify-between border-line py-3 text-sm", embedded ? "border-t px-5 sm:px-6" : "mt-5 border-y")}>
           <span className="font-bold">현재 처리 단계</span>
           <span className="font-extrabold text-primary-700">{stepLabels[Math.min(currentStep, stepLabels.length - 1)]}</span>
         </div>
       </section>
-      {context}
+      {embedded ? null : context}
       <fieldset className="min-w-0" disabled={retryAfter > 0}>{children}</fieldset>
     </>
   );
-  if (embedded) return <section aria-label={title} className="min-w-0">{content}</section>;
+  if (embedded) return <section aria-label={title} className="min-w-0 space-y-5">{content}</section>;
   return (
     <div className={cn("min-h-dvh bg-canvas", wide ? "px-0" : "mobile-stage")}>
       <div className={cn("mx-auto min-h-dvh bg-canvas", wide ? "max-w-[var(--shell-wide)]" : "mobile-frame")}>

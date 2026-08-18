@@ -31,6 +31,7 @@ export const mockAccessSecrets: Record<ParticipantRole, string> = {
   company_manager: "seqret_mock_provider_0000000000000000000000000000",
   field_worker: "seqret_mock_worker_000000000000000000000000000000",
 };
+export const mockProviderDraftAccessSecret = "seqret_mock_provider_draft_000000000000000000000000000";
 
 export const mockJobId = "11111111-1111-4111-8111-111111111111";
 const JOB_ID = mockJobId;
@@ -121,8 +122,8 @@ function createState(jobId = JOB_ID, customerAccessToken = mockAccessSecrets.cus
     company_display_name: "안심이사",
     viewer_display_name: "Mock 사용자",
     viewer_role: "customer" as ParticipantRole,
-    origin_summary: "성수동 1가",
-    destination_summary: "자양동 오피스텔",
+    origin_summary: "서울 성동구 성수동 1가",
+    destination_summary: "서울 광진구 자양동 오피스텔",
   };
   const quote = {
     base_amount_krw: 820_000,
@@ -171,9 +172,17 @@ function createState(jobId = JOB_ID, customerAccessToken = mockAccessSecrets.cus
         label: "현관",
         item_count: 2,
         review_required_count: 0,
-        items: ["신발장"].map((description, index) => ({ item_key: `entrance-item-${index + 1}`, room_zone_id: ENTRANCE_ZONE_ID, description, name: description, quantity: null, unit: null, work_note: null, review_status: "confirmed" as const, source: "ai" as const, review_required: false, source_media_asset_ids: [] })),
+        items: ["신발장", "이삿짐 박스"].map((description, index) => ({ item_key: `entrance-item-${index + 1}`, room_zone_id: ENTRANCE_ZONE_ID, description, name: description, quantity: null, unit: null, work_note: null, review_status: "confirmed" as const, source: "ai" as const, review_required: false, source_media_asset_ids: [] })),
       }],
-      location_conditions: [],
+      location_conditions: [{
+        location_id: job.locations[0].id,
+        kind: "origin",
+        conditions: { detail_address: "301호", residence_type: "아파트", floor: "3층", elevator: "없음", ladder: "사용 안 함", parking_access: "가능" },
+      }, {
+        location_id: job.locations[1].id,
+        kind: "destination",
+        conditions: { detail_address: "502호", residence_type: "오피스텔", floor: "5층 이상", elevator: "있음", ladder: "사용 안 함", parking_access: "불가능" },
+      }],
       included_works: ["포장 및 운반", "기본 가구 분해·조립", "가구 배치", "보호 포장"],
       exclusions: ["에어컨 탈부착"],
     },
@@ -344,8 +353,9 @@ function createState(jobId = JOB_ID, customerAccessToken = mockAccessSecrets.cus
 
 function createDraftState(jobId: string, customerAccessToken: string) {
   const draft = createState(jobId, customerAccessToken);
+  const draftCustomerName = "이하늘";
   const emptyGroups = draft.scope.scope.room_groups.map((group) => ({ ...group, item_count: 0, review_required_count: 0, items: [] }));
-  const draftJob = { ...draft.scope.job, company_display_name: null, origin_summary: "서울 마포구", destination_summary: "서울 송파구", title: "새 이사 준비" };
+  const draftJob = { ...draft.scope.job, company_display_name: null, customer_display_name: draftCustomerName, destination_summary: "서울 송파구", job_code: "MOCK-2026-002", origin_summary: "서울 마포구", title: "새 이사 준비" };
   draft.scope = {
     ...draft.scope,
     job: draftJob,
@@ -368,7 +378,8 @@ function createDraftState(jobId: string, customerAccessToken: string) {
   draft.sessions = [];
   draft.analysisReview = { ...draft.analysisReview, items: [], review_scope_version_id: null, review_completed_at: null };
   draft.scopeVersions = draft.scopeVersions.map((version) => ({ ...version, content: { schema_version: 1, items: [] } }));
-  draft.job = { ...draft.job, title: "새 이사 준비", locations: draft.job.locations.map((location, index) => ({ ...location, label: index === 0 ? "서울 마포구" : "서울 송파구" })) };
+  draft.job = { ...draft.job, title: "새 이사 준비", participants: draft.job.participants.map((participant) => participant.role === "customer" ? { ...participant, display_name: draftCustomerName } : participant), locations: draft.job.locations.map((location, index) => ({ ...location, label: index === 0 ? "서울 마포구" : "서울 송파구" })) };
+  Object.values(draft.actors).filter((actor) => actor.role === "customer").forEach((actor) => { actor.display_name = draftCustomerName; });
   return draft;
 }
 
@@ -465,6 +476,17 @@ export async function mockApiRequest<T>(path: string, init: RequestInit, accessT
   }
   if (path === "/api/v1/me" && method === "GET") {
     const found = accessToken ? [...mockStates.values()].map((state) => state.actors[accessToken]).find(Boolean) : undefined;
+    if (!found && accessToken === mockProviderDraftAccessSecret) {
+      const draftState = mockStates.get(MOCK_DRAFT_JOB_ID);
+      if (draftState) {
+        const invitation: Invitation = { id: "invite-provider-draft", job_id: draftState.job.id, issuer_participant_id: CUSTOMER_ID, invitee_participant_id: PROVIDER_ID, role: "company_manager", display_name: "안심이사 매니저", status: "accepted", issued_at: now(), expires_at: future(), resolved_at: now() };
+        draftState.invitations = [invitation];
+        draftState.scope.company_participation_status = "company_joined";
+        const draftActor = { ...actor("company_manager", PROVIDER_ID, "안심이사 매니저", draftState.job.id), invitation };
+        draftState.actors[accessToken] = draftActor;
+        return result(draftActor) as Promise<T>;
+      }
+    }
     if (!found) throw new Error("Mock 초대 코드를 확인해 주세요.");
     return result(found) as Promise<T>;
   }

@@ -1,7 +1,7 @@
-import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueries, useQuery } from "@tanstack/react-query";
 import {
-  ArrowClockwiseIcon as Refresh,
   CaretRightIcon as CaretRight,
+  CheckCircleIcon as CheckCircle,
   ClipboardTextIcon as Clipboard,
   ClockCounterClockwiseIcon as History,
   KeyIcon as Key,
@@ -11,9 +11,10 @@ import {
   WarningCircleIcon as WarningCircle,
 } from "@phosphor-icons/react";
 import { useMemo, useState, type ReactNode } from "react";
+import { useSearchParams } from "react-router-dom";
 
-import { mockAccessSecrets, mockApiEnabled } from "@/api/mock-api";
-import { FilterChip, ListGroup, ListRow, MoveJourneyProgress, StatusTag } from "@/components/layout/app-primitives";
+import { mockAccessSecrets, mockApiEnabled, mockProviderDraftAccessSecret } from "@/api/mock-api";
+import { FilterChip, MoveJourneyProgress, StatusTag } from "@/components/layout/app-primitives";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -37,10 +38,11 @@ import { InvitationPanel } from "@/features/workflow/ui/workflow-shell";
 
 type ProviderView = "jobs" | "issues" | "invite";
 type JobMode = "detail" | "quote";
-type JobFilter = "all" | "action" | "confirmed";
+type JobFilter = "all" | "action" | "customer" | "confirmed";
 const moneyFormatter = new Intl.NumberFormat("ko-KR");
 const money = (amount: number | null | undefined) => amount == null ? "–" : `${moneyFormatter.format(amount)}원`;
 const day = new Intl.DateTimeFormat("ko-KR", { month: "numeric", day: "numeric", weekday: "short" });
+const schedule = new Intl.DateTimeFormat("ko-KR", { month: "long", day: "numeric", weekday: "short", hour: "2-digit", minute: "2-digit" });
 function upsertProviderConnection(connections: AuthSession[], next: AuthSession) {
   return [next, ...connections.filter((item) => item.actor.job_id !== next.actor.job_id)];
 }
@@ -66,11 +68,12 @@ export function ProviderWebPage() {
 }
 
 function ProviderWebConsole({ connections, onConnect, onDisconnect, onSelect, session }: { connections: AuthSession[]; onConnect: (secret: string) => Promise<AuthSession>; onDisconnect: () => void; onSelect: (session: AuthSession) => void; session: AuthSession | null }) {
-  const queryClient = useQueryClient();
-  const [view, setView] = useState<ProviderView>("jobs");
-  const [jobMode, setJobMode] = useState<JobMode>("detail");
+  const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState("");
   const [connectionOpen, setConnectionOpen] = useState(false);
+  const viewParam = searchParams.get("view");
+  const view: ProviderView = viewParam === "issues" || viewParam === "invite" ? viewParam : "jobs";
+  const jobMode: JobMode = searchParams.get("mode") === "quote" ? "quote" : "detail";
   const invitationPending = session?.actor.invitation?.status === "pending";
   const connection: Connection | null = session ? { accessToken: session.accessToken, jobId: session.actor.job_id } : null;
   const canReadJob = Boolean(connection && !invitationPending);
@@ -82,46 +85,64 @@ function ProviderWebConsole({ connections, onConnect, onDisconnect, onSelect, se
   const scope = scopeQuery.data;
   const issues = issueQuery.data ?? [];
   const openIssues = issues.filter((issue) => issue.status === "open" || issue.status === "clarification_requested");
-  const refresh = () => connection ? queryClient.invalidateQueries({ queryKey: workflowKeys.root(connection.jobId) }) : undefined;
-  const changeView = (next: ProviderView) => { setView(next); if (next !== "jobs") setJobMode("detail"); };
+  const changeView = (nextView: ProviderView) => setSearchParams((current) => {
+    const next = new URLSearchParams(current);
+    if (nextView === "jobs") next.delete("view");
+    else next.set("view", nextView);
+    next.delete("mode");
+    return next;
+  });
+  const changeJobMode = (nextMode: JobMode) => setSearchParams((current) => {
+    const next = new URLSearchParams(current);
+    if (nextMode === "detail") next.delete("mode");
+    else next.set("mode", nextMode);
+    next.delete("view");
+    return next;
+  });
+  const viewTitle = jobMode === "quote" ? "범위·견적" : view === "jobs" ? "작업" : view === "issues" ? "현장 이슈" : "기사·배차";
+  const viewContext = view === "jobs" && jobMode === "detail"
+    ? `연결 ${connections.length}건`
+    : scope ? scope.job.customer_display_name ?? "고객" : "선택 작업 없음";
 
   if (session && invitationPending) {
-    return <div className="min-h-dvh bg-canvas px-[var(--content-gutter)] py-[var(--space-lg)] text-ink-900"><main className="mx-auto max-w-xl" id="main-content"><p className="text-ui-control text-primary-700">짐확정 · 업체용</p><h1 className="mt-2 text-ui-step-title">먼저 작업 초대를 확인해 주세요</h1><p className="mt-2 text-ui-support text-ink-600">수락 전에는 고객의 이사 정보나 견적을 불러오지 않습니다.</p><div className="mt-6"><InvitationPanel /></div></main></div>;
+    return <div className="min-h-dvh bg-canvas px-[var(--content-gutter)] py-[var(--space-lg)] text-ink-900"><main className="mx-auto max-w-xl" id="main-content"><p className="text-ui-control text-primary-700">SEQRET · 업체용</p><h1 className="mt-2 text-ui-step-title">먼저 작업 초대를 확인해 주세요</h1><p className="mt-2 text-ui-support text-ink-600">수락 전에는 고객의 이사 정보나 견적을 불러오지 않습니다.</p><div className="mt-6"><InvitationPanel /></div></main></div>;
   }
 
   return (
-    <div className="min-h-dvh bg-canvas pb-20 text-ink-900 lg:grid lg:grid-cols-[264px_minmax(0,1fr)] lg:pb-0">
-      <aside className="hidden min-h-dvh border-r border-line bg-surface px-5 py-8 lg:flex lg:flex-col">
-        <div className="px-3"><strong className="text-ui-section tracking-[var(--tracking-brand)] text-primary-800">짐확정</strong></div>
-        <nav aria-label="업체 메뉴" className="mt-9 space-y-2">
+    <div className="provider-console min-h-dvh bg-canvas pb-20 text-ink-900 md:grid md:grid-cols-[15rem_minmax(0,1fr)] md:pb-0">
+      <aside className="sticky top-0 hidden h-dvh min-h-0 flex-col border-r border-line bg-surface px-4 py-5 md:flex">
+        <div className="px-3"><strong className="tracking-[var(--tracking-brand)] text-primary-800">SEQRET</strong></div>
+        <nav aria-label="업체 메뉴" className="mt-7">
           <ProviderNav active={view === "jobs"} icon={<Clipboard aria-hidden="true" />} label="작업" onClick={() => changeView("jobs")} />
-          <ProviderNav active={view === "issues"} badge={openIssues.length || undefined} icon={<WarningCircle aria-hidden="true" />} label="현장 이슈" onClick={() => changeView("issues")} />
-          <ProviderNav active={view === "invite"} icon={<UserPlus aria-hidden="true" />} label="기사·배차" onClick={() => changeView("invite")} />
+          {scope ? <div className="mt-5 border-t border-line pt-3">
+            <div className="space-y-1">
+              <ProviderNav active={view === "issues"} badge={openIssues.length || undefined} icon={<WarningCircle aria-hidden="true" />} label="현장 이슈" onClick={() => changeView("issues")} />
+              <ProviderNav active={view === "invite"} icon={<UserPlus aria-hidden="true" />} label="기사·배차" onClick={() => changeView("invite")} />
+            </div>
+          </div> : null}
         </nav>
-        <div className="mt-auto px-3">
-          {session ? <Button className="w-full justify-start" onClick={onDisconnect} size="chip" variant="ghost"><SignOut aria-hidden="true" /> 이사 연결 해제</Button> : <Button className="w-full justify-start" onClick={() => setConnectionOpen(true)} size="chip" variant="ghost"><Key aria-hidden="true" /> 초대 코드 입력</Button>}
+        <div className="mt-auto border-t border-line px-2 pt-4">
+          {session ? <Button className="w-full justify-start" onClick={onDisconnect} size="chip" variant="ghost"><SignOut aria-hidden="true" /> 연결 해제</Button> : <Button className="w-full justify-start" onClick={() => setConnectionOpen(true)} size="chip" variant="ghost"><Key aria-hidden="true" /> 초대 코드 입력</Button>}
         </div>
       </aside>
 
       <div className="min-w-0">
-        <header className="sticky top-0 z-[var(--z-sticky)] flex min-h-[var(--header-height)] items-center justify-between gap-2 border-b border-line bg-surface/96 px-4 backdrop-blur sm:px-6 xl:px-10">
-          <div className="min-w-0"><h1 className="truncate text-ui-section">{view === "jobs" ? "작업 관리" : view === "issues" ? "현장 이슈" : "기사·배차"}</h1></div>
+        <header className="sticky top-0 z-[var(--z-sticky)] flex min-h-[4.5rem] items-center justify-between gap-4 border-b border-line bg-surface/96 px-4 backdrop-blur sm:px-6 md:min-h-20 xl:px-8">
+          <div className="min-w-0"><p className="truncate text-ui-micro text-ink-500">{viewContext}</p><h1 className="mt-0.5 truncate text-ui-section">{viewTitle}</h1></div>
           <div className="flex items-center gap-2">
-            <label className="hidden h-[var(--control-touch)] min-w-[280px] items-center gap-2 rounded-[var(--radius-control)] border border-input bg-surface px-4 focus-within:border-primary-400 focus-within:ring-3 focus-within:ring-primary-100 md:flex"><Search aria-hidden="true" className="text-ink-600" /><input aria-label="고객명, 주소, 작업 ID 검색" autoComplete="off" className="min-w-0 flex-1 bg-transparent text-ui-control outline-none placeholder:text-ink-400" data-slot="input-proxy" name="providerSearch" onChange={(event) => setSearch(event.target.value)} placeholder="고객명, 주소, 작업 ID 검색…" type="search" value={search} /></label>
-            <Button aria-label="이사 연결" onClick={() => setConnectionOpen(true)} size="icon" variant="outline"><Key aria-hidden="true" /></Button>
-            {view === "jobs" && scope ? <Button className="px-2.5 sm:px-4" onClick={() => setJobMode(jobMode === "quote" ? "detail" : "quote")} variant="outline">{jobMode === "quote" ? "작업 목록" : "범위·견적"}</Button> : null}
-            <Button aria-label="새로고침" onClick={refresh} size="icon" variant="outline"><Refresh aria-hidden="true" /></Button>
+            {view === "jobs" && jobMode === "detail" ? <label className="hidden h-[var(--control-touch)] min-w-[17rem] items-center gap-2 rounded-[var(--radius-control)] border border-input bg-surface px-4 focus-within:border-primary-400 focus-within:ring-3 focus-within:ring-primary-100 lg:flex"><Search aria-hidden="true" className="text-ink-600" /><input aria-label="고객명, 주소 검색" autoComplete="off" className="min-w-0 flex-1 bg-transparent text-ui-control outline-none placeholder:text-ink-400" data-slot="input-proxy" name="providerSearch" onChange={(event) => setSearch(event.target.value)} placeholder="고객명, 주소 검색…" type="search" value={search} /></label> : null}
+            <Button aria-label="이사 연결" className="px-3 xl:px-4" onClick={() => setConnectionOpen(true)} variant="outline"><Key aria-hidden="true" /><span className="hidden xl:inline">이사 연결</span></Button>
           </div>
         </header>
 
-        <main className="min-w-0 p-4 sm:p-5 xl:p-8" id="main-content"><div className="mx-auto max-w-[var(--shell-wide)]">
-          {view === "jobs" && jobMode === "detail" ? <JobDashboard history={historyQuery.data ?? []} issues={issues} jobs={linkedJobs} onConnect={() => setConnectionOpen(true)} onIssue={() => changeView("issues")} onQuote={() => setJobMode("quote")} onSelect={(next) => { onSelect(next); setJobMode("detail"); }} scope={scope} search={search} selectedJobId={session?.actor.job_id ?? null} /> : null}
-          {view === "jobs" && jobMode === "quote" && connection ? <ProviderQuoteEditor key={connection.jobId} connection={connection} onBack={() => setJobMode("detail")} scope={scope} /> : null}
+        <main className="min-w-0 p-4 sm:p-5 xl:p-7" id="main-content"><div className="mx-auto max-w-[var(--shell-wide)]">
+          {view === "jobs" && jobMode === "detail" ? <JobDashboard history={historyQuery.data ?? []} issues={issues} jobs={linkedJobs} onConnect={() => setConnectionOpen(true)} onIssue={() => changeView("issues")} onQuote={() => changeJobMode("quote")} onSearchChange={setSearch} onSelect={(next) => { onSelect(next); changeJobMode("detail"); }} scope={scope} search={search} selectedJobId={session?.actor.job_id ?? null} /> : null}
+          {view === "jobs" && jobMode === "quote" && connection ? <ProviderQuoteEditor key={connection.jobId} connection={connection} onBack={() => changeJobMode("detail")} scope={scope} /> : null}
           {view === "issues" ? connection ? <ProviderIssueWorkbench connection={connection} issues={issues} scope={scope} /> : <ProviderConnectionEmpty onConnect={() => setConnectionOpen(true)} /> : null}
           {view === "invite" ? session ? <OperationsPanel /> : <ProviderConnectionEmpty onConnect={() => setConnectionOpen(true)} /> : null}
         </div></main>
       </div>
-      <nav aria-label="업체 모바일 메뉴" className="fixed inset-x-0 bottom-0 z-[var(--z-sticky)] grid grid-cols-3 border-t border-line bg-surface px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 lg:hidden">
+      <nav aria-label="업체 모바일 메뉴" className="fixed inset-x-0 bottom-0 z-[var(--z-sticky)] grid grid-cols-3 border-t border-line bg-surface px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 md:hidden">
         <ProviderMobileNav active={view === "jobs"} icon={<Clipboard aria-hidden="true" />} label="작업" onClick={() => changeView("jobs")} />
         <ProviderMobileNav active={view === "issues"} badge={openIssues.length || undefined} icon={<WarningCircle aria-hidden="true" />} label="현장 이슈" onClick={() => changeView("issues")} />
         <ProviderMobileNav active={view === "invite"} icon={<UserPlus aria-hidden="true" />} label="기사·배차" onClick={() => changeView("invite")} />
@@ -131,7 +152,7 @@ function ProviderWebConsole({ connections, onConnect, onDisconnect, onSelect, se
   );
 }
 
-function JobDashboard({ history, issues, jobs: linkedJobs, onConnect, onIssue, onQuote, onSelect, scope, search, selectedJobId }: { history: ScopeVersionSummary[]; issues: FieldIssue[]; jobs: Array<{ session: AuthSession; scope: ScopeReview | undefined }>; onConnect: () => void; onIssue: () => void; onQuote: () => void; onSelect: (session: AuthSession) => void; scope: ScopeReview | undefined; search: string; selectedJobId: string | null }) {
+function JobDashboard({ history, issues, jobs: linkedJobs, onConnect, onIssue, onQuote, onSearchChange, onSelect, scope, search, selectedJobId }: { history: ScopeVersionSummary[]; issues: FieldIssue[]; jobs: Array<{ session: AuthSession; scope: ScopeReview | undefined }>; onConnect: () => void; onIssue: () => void; onQuote: () => void; onSearchChange: (value: string) => void; onSelect: (session: AuthSession) => void; scope: ScopeReview | undefined; search: string; selectedJobId: string | null }) {
   const [filter, setFilter] = useState<JobFilter>("all");
   const [historyOpen, setHistoryOpen] = useState(false);
   const allJobs = useMemo(() => {
@@ -142,20 +163,25 @@ function JobDashboard({ history, issues, jobs: linkedJobs, onConnect, onIssue, o
       status: item.scope?.scope.status ?? "company_review",
       current: item.session.actor.job_id === selectedJobId,
       session: item.session,
-      jobCode: item.scope?.job.job_code ?? "–",
     }));
     const query = search.trim();
-    return query ? rows.filter((job) => (job.customer + " " + job.route + " " + job.jobCode).includes(query)) : rows;
+    return query ? rows.filter((job) => (job.customer + " " + job.route).includes(query)) : rows;
   }, [linkedJobs, search, selectedJobId]);
-  const jobs = allJobs.filter((job) => filter === "all" || (filter === "confirmed" ? job.status === "confirmed" : job.status === "company_review" || job.status === "revision_requested"));
-  const loadedScopes = linkedJobs.flatMap((item) => item.scope ? [item.scope] : []);
   const actionableIssues = issues.filter((issue) => issue.status === "open" || issue.status === "clarification_requested");
-  const stats = [
-    ["검토 필요", loadedScopes.filter((item) => item.scope.status === "company_review" || item.scope.status === "revision_requested").length],
-    ["고객 확인 중", loadedScopes.filter((item) => item.scope.status === "customer_review").length],
-    ["공동확정", loadedScopes.filter((item) => item.scope.status === "confirmed").length],
-    ["현장 이슈", actionableIssues.length],
-  ] as const;
+  const statusCounts = {
+    action: allJobs.filter((job) => job.status === "company_review" || job.status === "revision_requested").length,
+    customer: allJobs.filter((job) => job.status === "customer_review").length,
+    confirmed: allJobs.filter((job) => job.status === "confirmed").length,
+  };
+  const jobs = allJobs.filter((job) => filter === "all"
+    || (filter === "action" && (job.status === "company_review" || job.status === "revision_requested"))
+    || (filter === "customer" && job.status === "customer_review")
+    || (filter === "confirmed" && job.status === "confirmed"));
+  const queueGroups = [
+    { key: "action", label: "검토 필요", jobs: jobs.filter((job) => job.status === "company_review" || job.status === "revision_requested") },
+    { key: "customer", label: "고객 확인 중", jobs: jobs.filter((job) => job.status === "customer_review") },
+    { key: "confirmed", label: "공동확정", jobs: jobs.filter((job) => job.status === "confirmed") },
+  ].filter((group) => group.jobs.length > 0 && (filter === "all" || filter === group.key));
   const priority = scope?.scope.status === "revision_requested"
     ? { title: "고객 수정 요청이 도착했어요", description: scope.revision_request?.reason ?? "요청 내용을 반영해 새 버전으로 다시 제안해 주세요.", action: "수정해서 다시 제안", onClick: onQuote }
     : scope?.scope.status === "company_review"
@@ -166,77 +192,56 @@ function JobDashboard({ history, issues, jobs: linkedJobs, onConnect, onIssue, o
   const statusLabel = (status: string) => status === "confirmed" ? "공동확정" : status === "customer_review" ? "고객 확인 중" : status === "revision_requested" ? "수정 요청" : "검토 필요";
   const statusTone = (status: string): "primary" | "success" | "warning" => status === "confirmed" ? "success" : status === "company_review" ? "primary" : "warning";
   const progress = scope?.scope.status === "confirmed" ? 4 : scope?.scope.status === "customer_review" ? 3 : scope?.scope.status === "revision_requested" ? 2 : 1;
+  const needsQuoteAction = scope?.scope.status === "company_review" || scope?.scope.status === "revision_requested";
 
   return (
-    <div className="space-y-5">
-      {priority ? <section className="ui-card ui-card-outlined ui-card-tinted flex flex-col gap-4 p-5 sm:flex-row sm:items-center">
-        <div className="min-w-0 flex-1">
-          <p className="text-ui-control text-primary-700">지금 할 일</p>
-          <h3 className="mt-1 text-ui-component">{priority.title}</h3>
-          <p className="mt-1 max-w-3xl text-ui-support text-ink-600">{priority.description}</p>
-        </div>
-        <Button className="w-full sm:w-auto" onClick={priority.onClick}>{priority.action}<CaretRight aria-hidden="true" /></Button>
-      </section> : null}
+    <div>
+      <label className="flex h-[var(--control-touch)] items-center gap-2 rounded-[var(--radius-control)] border border-input bg-surface px-4 focus-within:border-primary-400 focus-within:ring-3 focus-within:ring-primary-100 lg:hidden"><Search aria-hidden="true" className="text-ink-600" /><input aria-label="고객명, 주소 검색" autoComplete="off" className="min-w-0 flex-1 bg-transparent text-ui-control outline-none placeholder:text-ink-400" name="providerSearchMobile" onChange={(event) => onSearchChange(event.target.value)} placeholder="고객명, 주소 검색…" type="search" value={search} /></label>
 
-      <dl aria-label="작업 상태 요약" className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        {stats.map(([label, value]) => <div className="ui-card ui-card-outlined px-4 py-3" key={label}>
-          <dt className="text-ui-data text-ink-600">{label}</dt>
-          <dd className="mt-1 text-ui-section tabular-nums">{value}</dd>
-        </div>)}
-      </dl>
-
-      {allJobs.length === 0 ? <section className="ui-card ui-card-outlined px-5"><ProviderConnectionEmpty onConnect={onConnect} /></section> : <section className="grid items-start gap-5 xl:grid-cols-[minmax(20rem,0.88fr)_minmax(0,1.12fr)]">
-        <section aria-labelledby="provider-job-list-title" className="ui-card ui-card-outlined overflow-hidden">
-          <h3 className="sr-only" id="provider-job-list-title">연결된 작업</h3>
-          <div aria-label="작업 상태 필터" className="no-scrollbar flex gap-2 overflow-x-auto px-4 py-3">
-            <FilterChip active={filter === "all"} onClick={() => setFilter("all")}>전체 {allJobs.length}</FilterChip>
-            <FilterChip active={filter === "action"} onClick={() => setFilter("action")}>검토 필요</FilterChip>
-            <FilterChip active={filter === "confirmed"} onClick={() => setFilter("confirmed")}>공동확정</FilterChip>
+      {linkedJobs.length === 0 ? <section className="ui-card ui-card-outlined mt-4 px-5 lg:mt-0"><ProviderConnectionEmpty onConnect={onConnect} /></section> : <section className="ui-card ui-card-outlined mt-4 overflow-hidden lg:mt-0 xl:grid xl:grid-cols-[minmax(22rem,0.92fr)_minmax(0,1.08fr)]">
+        <section aria-labelledby="provider-job-list-title" className="min-w-0 border-b border-line xl:border-b-0 xl:border-r">
+          <div className="flex items-center justify-between gap-3 px-4 py-4">
+            <div className="flex min-w-0 items-baseline gap-2"><h2 className="text-ui-component" id="provider-job-list-title">작업 큐</h2><span className="text-ui-data tabular-nums text-ink-600">{allJobs.length}</span></div>
+            {actionableIssues.length > 0 ? <button className="min-h-11 shrink-0 whitespace-nowrap text-ui-data text-ink-600 hover:text-primary-700" onClick={onIssue} type="button">현장 이슈 <span className="tabular-nums">{actionableIssues.length}</span></button> : null}
           </div>
-          <div className="border-t border-line">
-            <div className="flex items-center justify-between gap-3 px-4 py-3">
-              <p className="text-ui-control">작업 목록</p>
-              <span className="text-ui-data text-ink-600">최신순</span>
-            </div>
-            {jobs.length ? <ListGroup className="mt-0" label="작업 목록" variant="plain">
-              {jobs.map((job) => <ListRow
-                description={<><span className="block truncate">{job.route}</span><span className="mt-1 block text-ui-micro text-ink-400">작업 ID {job.jobCode}</span></>}
-                end={<StatusTag tone={statusTone(job.status)}>{statusLabel(job.status)}</StatusTag>}
-                key={job.session.actor.job_id}
-                leading={<time className="block w-12 text-center text-ui-data">{job.date ? day.format(new Date(job.date)) : "–"}</time>}
-                onClick={() => onSelect(job.session)}
-                selected={job.current}
-              >
-                {job.customer}
-              </ListRow>)}
-            </ListGroup> : <p className="border-t border-line px-5 py-10 text-center text-ui-support text-ink-600">이 조건에 맞는 작업이 없습니다.</p>}
+          <div aria-label="작업 상태 필터" className="no-scrollbar flex gap-2 overflow-x-auto border-t border-line px-4 py-3">
+            <FilterChip active={filter === "all"} onClick={() => setFilter("all")}>전체 {allJobs.length}</FilterChip>
+            <FilterChip active={filter === "action"} onClick={() => setFilter("action")}>검토 필요 {statusCounts.action}</FilterChip>
+            <FilterChip active={filter === "customer"} onClick={() => setFilter("customer")}>고객 확인 중 {statusCounts.customer}</FilterChip>
+            <FilterChip active={filter === "confirmed"} onClick={() => setFilter("confirmed")}>공동확정 {statusCounts.confirmed}</FilterChip>
+          </div>
+          <div aria-label="작업 목록" className="border-t border-line">
+            {queueGroups.length ? queueGroups.map((group) => <section aria-labelledby={`provider-job-group-${group.key}`} key={group.key}>
+              <div className="flex items-center justify-between bg-surface-muted px-4 py-2.5"><h3 className="text-ui-data text-ink-600" id={`provider-job-group-${group.key}`}>{group.label}</h3><span className="text-ui-micro tabular-nums text-ink-500">{group.jobs.length}</span></div>
+              {group.jobs.map((job) => <button aria-pressed={job.current} className={`grid min-h-[4.75rem] w-full grid-cols-[3.75rem_minmax(0,1fr)] items-center gap-x-3 gap-y-2 border-b border-l-2 border-b-line px-4 py-3 text-left sm:grid-cols-[4.5rem_minmax(0,1fr)_auto] ${job.current ? "border-l-primary-600 bg-primary-50/70" : "border-l-transparent hover:bg-surface-muted"}`} key={job.session.actor.job_id} onClick={() => onSelect(job.session)} type="button">
+                <time className="text-center text-ui-data tabular-nums text-ink-600 sm:row-span-1">{job.date ? day.format(new Date(job.date)) : "–"}</time>
+                <span className="min-w-0"><strong className="block truncate text-ui-list-title">{job.customer}</strong><span className="mt-0.5 block truncate text-ui-list-detail text-ink-600">{job.route}</span></span>
+                <span className="col-start-2 justify-self-start sm:col-start-3 sm:row-start-1 sm:justify-self-end"><StatusTag tone={statusTone(job.status)}>{statusLabel(job.status)}</StatusTag></span>
+              </button>)}
+            </section>) : <p className="px-5 py-10 text-center text-ui-support text-ink-600">이 조건에 맞는 작업이 없습니다.</p>}
           </div>
         </section>
 
-        <article className="ui-card ui-card-outlined ui-card-pad min-w-0">
+        <article aria-label="선택 작업 상세" className="min-w-0 p-5 sm:p-6">
           {scope ? <>
-            <header className="flex min-w-0 items-start justify-between gap-4">
-              <div className="min-w-0">
-                <StatusTag tone={statusTone(scope.scope.status)}>{statusLabel(scope.scope.status)}</StatusTag>
-                <h3 className="mt-3 truncate text-ui-section">{scope.job.customer_display_name ?? "고객"} 고객</h3>
-                <p className="mt-1 break-words text-ui-support text-ink-600">{scope.job.origin_summary ?? "출발지"} → {scope.job.destination_summary ?? "도착지"}</p>
-              </div>
-              <Button className="shrink-0" onClick={() => setHistoryOpen(true)} size="chip" variant="ghost"><History aria-hidden="true" /> 이력</Button>
+            <header className="min-w-0 border-b border-line pb-4">
+              <div className="flex min-w-0 items-start justify-between gap-3"><h3 className="truncate text-ui-section">{scope.job.customer_display_name ?? "고객"}</h3><StatusTag tone={statusTone(scope.scope.status)}>{statusLabel(scope.scope.status)}</StatusTag></div>
+              <p className="mt-1 break-words text-ui-support text-ink-600">{scope.job.origin_summary ?? "출발지"} → {scope.job.destination_summary ?? "도착지"}</p>
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-2"><time className="text-ui-data text-ink-600">{scope.job.scheduled_at ? schedule.format(new Date(scope.job.scheduled_at)) : "일정 확인 중"}</time><div className="flex flex-wrap justify-end gap-1"><Button onClick={() => setHistoryOpen(true)} size="chip" variant="ghost"><History aria-hidden="true" /> 이력</Button>{!needsQuoteAction ? <Button onClick={onQuote} size="chip" variant="outline">범위·견적</Button> : null}</div></div>
             </header>
 
-            <section className="mt-5 rounded-[var(--radius-feature)] border border-line bg-surface-muted p-4">
-              <div className="flex flex-wrap items-end justify-between gap-3">
-                <div>
-                  <p className="text-ui-data text-ink-600">현재 확인서</p>
-                  <strong className="mt-1 block text-ui-component">{scope.scope.version_label}</strong>
-                </div>
-                <strong className="text-ui-step-title text-primary-700">{money(scope.quote?.total_amount_krw)}</strong>
-              </div>
+            {priority ? <section className="mt-5 flex flex-col gap-4 border-y border-line py-4 sm:flex-row sm:items-center">
+              <div className="min-w-0 flex-1"><h4 className="text-ui-component">{priority.title}</h4><p className="mt-1 break-words text-ui-support text-ink-600">{priority.description}</p></div>
+              <Button className="w-full shrink-0 sm:w-auto" onClick={priority.onClick}>{priority.action}<CaretRight aria-hidden="true" /></Button>
+            </section> : null}
+
+            <section className="border-b border-line py-5">
+              <div className="flex flex-wrap items-end justify-between gap-3"><p className="text-ui-data text-ink-600">제안 금액</p><strong className="text-ui-step-title text-primary-700">{money(scope.quote?.total_amount_krw)}</strong></div>
               <p className="mt-3 max-w-3xl break-words text-ui-support text-ink-600">{scope.proposal_id ? scope.proposal_reason : "아직 업체 제안이 없습니다. 작업범위와 금액을 확인해 고객에게 보내주세요."}</p>
               <dl className="mt-4 grid grid-cols-3 divide-x divide-line border-t border-line pt-4 text-center">
-                <div><dt className="text-ui-micro text-ink-600">짐</dt><dd className="mt-1 text-ui-control">{scope.scope.item_count}개</dd></div>
-                <div><dt className="text-ui-micro text-ink-600">작업조건</dt><dd className="mt-1 text-ui-control">{scope.scope.work_count}개</dd></div>
-                <div><dt className="text-ui-micro text-ink-600">버전</dt><dd className="mt-1 text-ui-control">{scope.scope.version_label}</dd></div>
+                <div className="px-2"><dt className="text-ui-micro text-ink-600">짐</dt><dd className="mt-1 text-ui-control">{scope.scope.item_count}개</dd></div>
+                <div className="px-2"><dt className="text-ui-micro text-ink-600">포함 작업</dt><dd className="mt-1 text-ui-control">{scope.scope.work_count}개</dd></div>
+                <div className="px-2"><dt className="text-ui-micro text-ink-600">확인서</dt><dd className="mt-1 text-ui-control">{scope.scope.version_label}</dd></div>
               </dl>
             </section>
 
@@ -245,9 +250,7 @@ function JobDashboard({ history, issues, jobs: linkedJobs, onConnect, onIssue, o
               <MoveJourneyProgress current={progress} steps={["범위 검토", "업체 제안", "고객 확인", "공동확정"]} />
             </section>
 
-            {scope.scope.status === "company_review" || scope.scope.status === "revision_requested"
-              ? <Button className="mt-5 w-full" onClick={onQuote}>{scope.scope.status === "revision_requested" ? "수정 요청 반영하기" : "범위·견적 작성하기"}</Button>
-              : <p className={"mt-5 rounded-[var(--radius-card)] px-4 py-3 text-ui-support " + (scope.scope.status === "confirmed" ? "bg-success-bg text-success-ink" : "bg-primary-50 text-primary-800")}>{scope.scope.status === "customer_review" ? "고객이 현재 제안을 확인하고 있습니다." : "고객과 업체가 같은 범위와 금액을 확인했습니다."}</p>}
+            {!needsQuoteAction ? <p className={"mt-5 flex items-start gap-2 border-t border-line pt-4 text-ui-support " + (scope.scope.status === "confirmed" ? "text-success-ink" : "text-primary-800")}><CheckCircle aria-hidden="true" className="mt-0.5 shrink-0" />{scope.scope.status === "customer_review" ? "고객이 현재 제안을 확인하고 있습니다." : "고객과 업체가 같은 범위와 금액을 확인했습니다."}</p> : null}
           </> : <ProviderConnectionEmpty onConnect={onConnect} />}
         </article>
       </section>}
@@ -275,6 +278,7 @@ function ProviderConnectionDialog({ connect, onOpenChange, open }: { connect: Re
     setError(null);
     try {
       await connect(secret, "company_manager");
+      if (mockApiEnabled) setSecret(mockProviderDraftAccessSecret);
       onOpenChange(false);
     } catch (caught) {
       setError(apiErrorMessage(caught));

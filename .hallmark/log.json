@@ -72,15 +72,16 @@
     "verification": "390x844 customer, provider and field-worker flows verified with no horizontal overflow; final reference/implementation comparison saved under .codex/frontend-brief-qa"
   },
   "providerDashboardIteration": {
-    "date": "2026-08-18",
-    "source": "three user-supplied provider dashboard references",
-    "macrostructure": "desktop workbench with persistent side rail, job ledger, scope quote editor and evidence-led change proposal",
+    "date": "2026-08-19",
+    "source": "Vercel dashboard and project hierarchy, Linear issue workspace, Neon project hierarchy, OpenAI Platform project-console reference supplied by the user",
+    "macrostructure": "persistent workspace rail, compact status strip, master-detail job and issue ledgers, linear operations list and dense quote editor with contextual inspector",
     "changes": [
-      "Routed company managers directly to the provider web console",
-      "Kept mock-only sample jobs out of production data",
-      "Made customer-review quotes explicitly read-only",
-      "Connected shared input borders to the existing neutral token",
-      "Adjusted the field-issue workbench for 1280px laptop widths"
+      "Kept the workspace rail visible from tablet widths and moved view state into the URL",
+      "Consolidated four status cards into one compact rule-separated strip",
+      "Merged job and field-issue lists with their selected detail into consistent master-detail surfaces",
+      "Grouped invitation, dispatch and completion into one ordered operations list",
+      "Converted repeated quote item cards into dense editable rows and kept the quote summary in a contextual inspector",
+      "Removed the selected decorative provider-page label without adding replacement copy"
     ],
     "preEmitCritique": {
       "philosophy": 5,
@@ -91,7 +92,21 @@
       "variety": 4
     },
     "slopTest": "pass",
-    "verification": "Role entry, job dashboard, quote view and field-issue workbench verified in the Codex in-app browser at 1280x800 and 1536x1024 with zero horizontal overflow"
+    "verification": "Two-job dashboard, quote view, field-issue workbench and dispatch workflow verified in the Codex in-app browser at 1441x731; responsive breakpoints and horizontal clipping reviewed statically; ESLint, TypeScript and Vite production build passed",
+    "latestRefinement": {
+      "date": "2026-08-19",
+      "source": "Official Vercel, OpenAI Platform, Linear and Neon dashboard/project-structure references",
+      "macrostructure": "Index-First work queue with a selected-job inspector and scoped job navigation",
+      "changes": [
+        "Removed the detached priority card and four-cell status strip",
+        "Moved status counts into queue filters and grouped the queue by operational state",
+        "Moved the selected job's next action into its inspector",
+        "Separated the global job queue from selected-job issue and dispatch navigation",
+        "Flattened nested field-issue detail cards into rule-separated evidence and proposal sections",
+        "Kept existing data, actions, URL state, palette and typography"
+      ],
+      "verification": "Work queue, selected job, quote editor, field-issue detail and dispatch workflow verified in the Codex in-app browser at 1441x731 with zero horizontal overflow; ESLint, TypeScript and Vite production build passed"
+    }
   },
   "consumerMoveIteration": {
     "date": "2026-08-18",
