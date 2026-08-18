@@ -13,10 +13,24 @@
   --radius-2xl: var(--radius-card);
   --radius-3xl: var(--radius-sheet);
   --font-weight-medium: var(--weight-body);
+  --font-weight-normal: var(--weight-body);
   --font-weight-semibold: var(--weight-control);
   --font-weight-bold: var(--weight-strong);
   --font-weight-extrabold: var(--display-weight);
   --font-weight-black: var(--display-weight);
+  /* Keep Tailwind's native type utilities on the canonical type scale. */
+  --text-base: var(--text-md);
+  --text-xs--line-height: var(--line-label);
+  --text-sm--line-height: var(--line-support);
+  --text-base--line-height: var(--line-body);
+  --text-lg--line-height: var(--line-component);
+  --text-xl--line-height: var(--line-section);
+  --text-2xl: var(--text-step-title);
+  --text-2xl--line-height: var(--line-section);
+  --text-3xl: var(--text-title-lg);
+  --text-3xl--line-height: var(--line-screen);
+  --text-4xl: var(--text-display-lg);
+  --text-4xl--line-height: var(--line-screen);
   --color-primary-50: var(--primary-50);
   --color-primary-100: var(--primary-100);
   --color-primary-400: var(--primary-400);
@@ -49,6 +63,7 @@
   --text-ui-data: var(--text-data);
   --text-ui-support: var(--text-support);
   --text-ui-control: var(--text-control);
+  --text-ui-body: var(--text-md);
   --text-ui-component: var(--text-component);
   --text-ui-section: var(--text-xl);
   --text-ui-step-title: var(--text-step-title);
@@ -148,7 +163,6 @@ button:disabled,
   opacity: 0.55;
 }
 
-button:not(:disabled),
 a {
   transition:
     transform var(--dur-micro) var(--ease-out),
@@ -163,7 +177,6 @@ a {
   }
 }
 
-button:not(:disabled):active,
 a:active {
   transform: scale(0.98);
 }
@@ -175,11 +188,11 @@ a.press-static:active {
 
 button:focus-visible,
 a:focus-visible,
-input:focus-visible,
-textarea:focus-visible,
-select:focus-visible {
-  outline: 2px solid var(--color-focus);
-  outline-offset: 2px;
+input:not([data-slot]):focus-visible,
+textarea:not([data-slot]):focus-visible,
+select:not([data-slot]):focus-visible {
+  outline: var(--rule-fine) solid var(--color-focus);
+  outline-offset: var(--rule-fine);
 }
 
 h1,
@@ -219,13 +232,34 @@ p {
   font-size: var(--text-xl);
   font-weight: var(--weight-strong);
   line-height: var(--line-section);
-  letter-spacing: var(--tracking-display);
+  letter-spacing: var(--tracking-none);
 }
 
 .text-ui-component {
   font-size: var(--text-component);
   font-weight: var(--weight-component);
   line-height: var(--line-component);
+  letter-spacing: var(--tracking-none);
+}
+
+.text-ui-list-title {
+  font-size: var(--text-list-title);
+  font-weight: var(--weight-list-title);
+  line-height: var(--line-list-title);
+  letter-spacing: var(--tracking-none);
+}
+
+.text-ui-list-detail {
+  font-size: var(--text-list-detail);
+  font-weight: var(--weight-list-detail);
+  line-height: var(--line-list-detail);
+  letter-spacing: var(--tracking-none);
+}
+
+.text-ui-body {
+  font-size: var(--text-md);
+  font-weight: var(--weight-body);
+  line-height: var(--line-body);
   letter-spacing: var(--tracking-none);
 }
 
@@ -239,14 +273,14 @@ p {
 .text-ui-support {
   font-size: var(--text-support);
   font-weight: var(--weight-support);
-  line-height: var(--line-control);
+  line-height: var(--line-support);
   letter-spacing: var(--tracking-none);
 }
 
 .text-ui-data {
   font-size: var(--text-data);
   font-weight: var(--weight-data);
-  line-height: var(--line-control);
+  line-height: var(--line-data);
   letter-spacing: var(--tracking-none);
 }
 
@@ -297,7 +331,7 @@ p {
 
 .mobile-screen {
   min-width: 0;
-  padding: 1.875rem var(--content-gutter) calc(var(--bottom-rail-height) + 2.5rem);
+  padding: var(--space-lg) var(--content-gutter) calc(var(--bottom-rail-height) + var(--space-xl));
 }
 
 .app-section-title {
@@ -309,20 +343,32 @@ p {
 
 .app-list {
   overflow: hidden;
-  border-block: 1px solid var(--line);
+  border-block: var(--rule-hair) solid var(--line);
   background: var(--color-paper-2);
 }
 
 .app-panel {
-  border: 1px solid var(--line);
   border-radius: var(--radius-card);
   background: var(--color-paper-2);
 }
 
 .ui-card {
-  border: 1px solid var(--line);
   border-radius: var(--radius-card);
   background: var(--color-paper-2);
+}
+
+.ui-card-tinted {
+  background: var(--color-primary-50);
+}
+
+.ui-card[data-variant="outlined"],
+.ui-card-outlined {
+  border: var(--rule-hair) solid var(--line);
+}
+
+/* Surface-colored cards need an edge when they sit on the same surface. */
+.ui-surface .ui-card:not(.ui-card-tinted) {
+  border: var(--rule-hair) solid var(--line);
 }
 
 .ui-card-pad {

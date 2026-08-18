@@ -67,7 +67,7 @@ export function WorkflowShell({
     <>
       {retryAfter > 0 ? <p aria-live="polite" className="rounded-xl bg-warning-bg p-3 text-sm font-bold text-warning-ink">요청 제한으로 {retryAfter}초 동안 다시 제출할 수 없습니다.</p> : null}
       {context}
-      <section className={cn(embedded ? "pb-6" : "rounded-[var(--radius-card)] border border-line bg-surface p-5 shadow-[var(--shadow-card)]")}>
+      <section className={cn(embedded ? "pb-6" : "ui-card p-5 shadow-[var(--shadow-card)]")}> 
         <p className="text-sm font-bold text-primary-700">공동 거래 기록</p>
         <h2 className="mt-2 text-ui-section leading-8 font-extrabold tracking-[var(--tracking-display)]">{embedded ? title : "처리할 작업"}</h2>
         <p className="mt-2 text-sm leading-5 text-ink-600">{summary ?? "각 단계의 최신 상태를 확인하고 필요한 작업만 열어 처리할 수 있습니다."}</p>

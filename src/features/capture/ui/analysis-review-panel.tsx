@@ -29,6 +29,7 @@ import type { FormEvent } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import type { AnalysisReview } from "@/features/capture/api/capture-api";
@@ -61,9 +62,9 @@ export const MANUAL_SCOPE_FORM_ID = "manual-scope-form";
 
 type ManualCategory = "가구" | "가전" | "기타";
 const manualCategoryTone: Record<ManualCategory, string> = {
-  가구: "bg-primary-50 text-primary-700",
-  가전: "bg-success-bg text-success-ink",
-  기타: "bg-warning-bg text-warning-ink",
+  가구: "text-primary-700",
+  가전: "text-success-ink",
+  기타: "text-warning-ink",
 };
 const manualCatalog: Array<{ category: ManualCategory; icon: Icon; label: string }> = [
   { category: "가구", icon: Bed, label: "침대" },
@@ -106,7 +107,7 @@ export function ManualScopeEditor({
   return (
     <form id={MANUAL_SCOPE_FORM_ID} onSubmit={(event) => { event.preventDefault(); onSubmit(); }}>
       <section>
-        {(["가구", "가전", "기타"] as ManualCategory[]).map((category) => <section className="mt-7 first:mt-0" key={category}><h3 className="text-ui-section font-black">{category}</h3><div className="mt-3 grid grid-cols-3 gap-x-2 gap-y-5 min-[400px]:grid-cols-4">{manualCatalog.filter((item) => item.category === category).map(({ icon: CatalogIcon, label }) => { const active = selected.has(label); return <button aria-pressed={active} className={`press-static relative flex min-h-[116px] min-w-0 flex-col items-center justify-center rounded-2xl px-1 text-center ${active ? "bg-primary-50 text-primary-800 ring-2 ring-primary-600" : "bg-surface text-ink-900"}`} key={label} onClick={() => toggle(label)} type="button"><span className={`grid size-14 place-items-center rounded-2xl ${manualCategoryTone[category]}`}><CatalogIcon aria-hidden="true" size="var(--icon-category)" weight="duotone" /></span><span className="mt-2 line-clamp-2 text-ui-data font-extrabold">{label}</span>{active ? <span className="absolute right-2 top-2 grid size-6 place-items-center rounded-full bg-primary-600 text-white"><Check aria-hidden="true" size="var(--icon-xs)" weight="bold" /></span> : null}</button>; })}</div></section>)}
+        {(["가구", "가전", "기타"] as ManualCategory[]).map((category) => <section className="mt-7 first:mt-0" key={category}><h3 className="text-ui-section font-black">{category}</h3><div className="mt-3 grid grid-cols-3 gap-x-2 gap-y-5 min-[400px]:grid-cols-4">{manualCatalog.filter((item) => item.category === category).map(({ icon: CatalogIcon, label }) => { const active = selected.has(label); return <button aria-pressed={active} className={`press-static relative flex min-h-[116px] min-w-0 flex-col items-center justify-center rounded-2xl px-1 text-center ${active ? "bg-primary-50 text-primary-800 ring-2 ring-primary-600" : "bg-surface text-ink-900"}`} key={label} onClick={() => toggle(label)} type="button"><span className={`grid size-14 place-items-center ${manualCategoryTone[category]}`}><CatalogIcon aria-hidden="true" size="var(--icon-category)" weight="duotone" /></span><span className="mt-2 line-clamp-2 text-ui-data">{label}</span>{active ? <span className="absolute right-2 top-2 grid size-6 place-items-center rounded-full bg-primary-600 text-white"><Check aria-hidden="true" size="var(--icon-xs)" weight="bold" /></span> : null}</button>; })}</div></section>)}
       </section>
     </form>
   );
@@ -273,11 +274,11 @@ export function AnalysisReviewPanel({
                   <div className="mt-3 grid grid-cols-2 gap-3">
                     <label className="text-sm font-bold text-ink-400">
                       수량
-                      <input className="mt-1.5 h-11 w-full rounded-[var(--radius-control)] border border-line px-3 text-base text-ink-900" disabled={completed} min="1" onChange={(event) => onChange(draft.itemKey, { quantity: Number(event.target.value) })} required type="number" value={draft.quantity ?? ""} />
+                      <Input className="mt-1.5 px-3" disabled={completed} min="1" onChange={(event) => onChange(draft.itemKey, { quantity: Number(event.target.value) })} required type="number" value={draft.quantity ?? ""} />
                     </label>
                     <label className="text-sm font-bold text-ink-400">
                       단위
-                      <input className="mt-1.5 h-11 w-full rounded-[var(--radius-control)] border border-line px-3 text-base text-ink-900" disabled={completed} maxLength={20} onChange={(event) => onChange(draft.itemKey, { unit: event.target.value })} required value={draft.unit ?? ""} />
+                      <Input className="mt-1.5 px-3" disabled={completed} maxLength={20} onChange={(event) => onChange(draft.itemKey, { unit: event.target.value })} required value={draft.unit ?? ""} />
                     </label>
                     <label className="col-span-2 text-sm font-bold text-ink-400">
                       작업 메모

@@ -36,6 +36,7 @@ export const designSystemNavigation: ReadonlyArray<DesignSystemNavigationGroup> 
       { id: "icon-standard", label: "아이콘" },
       { id: "button-standard", label: "버튼" },
       { id: "filter-chip-standard", label: "필터 칩" },
+      { id: "selection-standard", label: "선택과 상태" },
       { id: "input-standard", label: "입력" },
       { id: "list-standard", label: "목록" },
     ],

@@ -5,8 +5,9 @@ import { cn } from "@/lib/utils";
 function Input({ className, type = "text", ...props }: ComponentProps<"input">) {
   return (
     <input
+      data-slot="input"
       className={cn(
-        "flex h-[var(--control-touch)] w-full rounded-[var(--radius-control)] border border-input bg-surface px-4 text-base text-ink-900 shadow-none outline-2 outline-transparent outline-offset-1 placeholder:text-ink-400 disabled:cursor-not-allowed disabled:bg-canvas disabled:text-ink-400 disabled:opacity-60 aria-invalid:border-danger aria-invalid:ring-3 aria-invalid:ring-danger/20 focus-visible:border-primary-600 focus-visible:outline-focus-ring",
+        "flex h-[var(--control-touch)] w-full rounded-[var(--radius-control)] border border-input bg-surface px-[var(--field-padding-x)] text-ui-body text-ink-900 shadow-none outline-none placeholder:text-ink-400 disabled:cursor-not-allowed disabled:bg-canvas disabled:text-ink-400 disabled:opacity-60 focus-visible:border-primary-400 focus-visible:ring-3 focus-visible:ring-primary-100 aria-invalid:border-danger aria-invalid:ring-3 aria-invalid:ring-danger/20 aria-invalid:focus-visible:border-danger aria-invalid:focus-visible:ring-danger/20",
         className,
       )}
       type={type}

@@ -7,6 +7,7 @@ import {
   CircleNotchIcon as LoaderCircle,
   LockKeyIcon as LockKeyhole,
   PackageIcon as Package,
+  PlayIcon as Play,
   SignOutIcon as LogOut,
   ArrowClockwiseIcon as RefreshCw,
   ArrowCounterClockwiseIcon as RotateCcw,
@@ -74,7 +75,7 @@ function VideoCaptureStage({
   onBack: () => void;
   onFile: (file: File) => void;
   onMockCapture: () => void;
-  onSubmit: () => void;
+  onSubmit: (items: { key: string; name: string; quantity: number }[]) => void;
   pending: boolean;
 }) {
   const [resultQuantities, setResultQuantities] = useState<Record<string, number>>({ boxes: 4 });
@@ -96,7 +97,7 @@ function VideoCaptureStage({
   if (fileUrl !== null)
     return (
       <div className="min-h-dvh bg-canvas text-ink-900">
-        <main className="pb-28">
+        <main className="pb-44">
           <figure className="relative overflow-hidden bg-ink-900 text-white">
             <button aria-label="다시 촬영" className="app-safe-header absolute left-4 top-3 z-10 grid size-10 place-items-center rounded-full bg-ink-900/65" onClick={onBack} type="button"><ArrowLeft aria-hidden="true" size="var(--icon-sm)" /></button>
             {fileUrl === "mock" ? (
@@ -117,12 +118,13 @@ function VideoCaptureStage({
                 src={fileUrl}
               />
             )}
-            <figcaption className="absolute inset-x-4 bottom-8 flex items-center text-sm">
-              <span className="rounded-lg bg-ink-900/75 px-3 py-2 font-bold">촬영 영상 01:02</span>
+            <figcaption className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2 text-sm">
+              <span aria-hidden="true" className="grid size-12 place-items-center rounded-full bg-ink-900/70 text-white backdrop-blur-sm"><Play size="var(--icon-md)" weight="fill" /></span>
+              <span className="rounded-lg bg-ink-900/70 px-3 py-1.5 font-bold">촬영 영상 01:02</span>
             </figcaption>
           </figure>
-          <div className="relative -mt-6 rounded-t-[var(--radius-feature)] bg-canvas px-5 pt-6">
-          <div aria-hidden="true" className="mx-auto mb-5 h-1 w-12 rounded-full bg-ink-300" />
+          <div className="relative -mt-6 rounded-t-[var(--radius-feature)] bg-canvas px-5 pt-5">
+          <div aria-hidden="true" className="mx-auto mb-4 h-1 w-12 rounded-full bg-ink-300" />
           <h1 className="text-center text-ui-section font-black">AI가 짐 8개를 발견했어요</h1>
           <p className="mt-2 text-center text-sm text-ink-600">AI가 확실한 것만 골랐어요.</p>
           <div className="mt-6 flex gap-2" role="tablist" aria-label="AI 인식 결과 필터"><FilterChip active={resultFilter === "all"} onClick={() => setResultFilter("all")}>전체 8</FilterChip><FilterChip active={resultFilter === "review"} onClick={() => setResultFilter("review")}>확인 필요 2</FilterChip></div>
@@ -133,7 +135,7 @@ function VideoCaptureStage({
           <Button
             className="w-full"
             disabled={pending}
-            onClick={onSubmit}
+            onClick={() => onSubmit(detectedItems.filter((item) => quantityFor(item.key) > 0).map((item) => ({ key: item.key, name: item.name, quantity: quantityFor(item.key) })))}
             size="cta"
           >
             {pending ? (
@@ -143,7 +145,7 @@ function VideoCaptureStage({
             )}
             확인한 짐 8개 반영
           </Button>
-          <Button className="mt-2 w-full" onClick={onBack} size="cta" variant="outline"><RotateCcw aria-hidden="true" />다시 촬영</Button>
+          <Button className="mt-2 w-full" onClick={onBack} size="cta" variant="ghost"><RotateCcw aria-hidden="true" />다시 촬영</Button>
         </div>
       </div>
     );
@@ -1019,10 +1021,22 @@ function ConnectedCapture({
     setVideoMode("review");
   };
 
-  const applyVideo = () => {
+  const applyVideo = (detectedItems: { key: string; name: string; quantity: number }[]) => {
     if (!videoFile) {
-      setLocalNotice("Mock 촬영 결과를 검수 목록에 불러왔어요.");
-      setVideoMode(null);
+      if (!review || reviewCompleted || workflow.reviewMutation.isPending) return;
+      const roomZoneId = review.zones[0]?.room_zone_id;
+      if (!roomZoneId) return;
+      workflow.reviewMutation.mutate(
+        {
+          sourceScopeVersionId: review.source_scope_version_id,
+          scopeSchemaVersion: review.scope_schema_version,
+          locationConditions: review.location_conditions,
+          items: review.scope_schema_version === 2
+            ? detectedItems.map((item) => ({ item_key: `mock-${item.key}`, room_zone_id: roomZoneId, name: item.name, quantity: item.quantity, unit: "개", work_note: null }))
+            : detectedItems.map((item) => ({ item_key: `mock-${item.key}`, room_zone_id: roomZoneId, description: item.quantity > 1 ? `${item.name} ${item.quantity}개` : item.name })),
+        },
+        { onSuccess: onComplete },
+      );
       return;
     }
     const roomZoneId = zones[0]?.id;
@@ -1067,7 +1081,7 @@ function ConnectedCapture({
           setVideoMode("review");
         }}
         onSubmit={applyVideo}
-        pending={busy}
+        pending={busy || workflow.reviewQuery.isPending || !review}
       />
     );
 
@@ -1099,7 +1113,7 @@ function ConnectedCapture({
         </button>
       </header>
 
-      <main className={`flex-1 px-5 pb-8 ${manualMode ? "pt-0" : "pt-5"}`}>
+      <main className={`flex-1 px-5 pb-8 ${manualMode ? "pt-4" : "pt-5"}`}>
         {!manualMode ? (
           <>
             <div className="flex items-start justify-between gap-4">

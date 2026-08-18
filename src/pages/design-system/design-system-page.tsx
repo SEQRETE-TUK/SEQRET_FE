@@ -6,11 +6,11 @@ import {
 import {
   SecurityStatusIcon as ShieldCheck,
 } from "@/components/icons";
-import type { ReactNode } from "react";
-import { Link } from "react-router-dom";
+import { useState, type ComponentProps, type ReactNode } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ChoiceGroup } from "@/components/ui/choice-group";
 import { FilterChip, ListGroup, ListRow } from "@/components/layout/app-primitives";
 import { Input } from "@/components/ui/input";
 import { InfoList, type InfoListColumn } from "@/components/ui/info-list";
@@ -88,29 +88,23 @@ const colorGroups = [
 ] as const;
 
 const typeScale = [
-  { name: "섹션 제목", spec: "20 / 28 · 700 · −0.025em", className: "text-ui-section", sample: "확인할 내용" },
+  { name: "섹션 제목", spec: "20 / 28 · 700 · 0", className: "text-ui-section", sample: "확인할 내용" },
   { name: "컴포넌트 제목", spec: "17 / 24 · 600 · 0", className: "text-ui-component", sample: "작업 범위와 금액" },
-  { name: "본문", spec: "16 / 24 · 400 · 0", className: "text-base leading-6 font-medium", sample: "현재 상태와 다음 작업을 설명합니다." },
-  { name: "컨트롤", spec: "14 / 20 · 500 · 0", className: "text-ui-control", sample: "변경 내용 확인" },
+  { name: "목록 제목", spec: "16 / 22 · 500 · 0", className: "text-ui-list-title", sample: "범위와 견적" },
+  { name: "본문", spec: "16 / 24 · 400 · 0", className: "text-ui-body", sample: "현재 상태와 다음 작업을 설명합니다." },
+  { name: "컨트롤", spec: "14 / 19 · 500 · 0", className: "text-ui-control", sample: "변경 내용 확인" },
   { name: "보조 정보", spec: "14 / 20 · 400 · 0", className: "text-ui-support text-ink-600", sample: "1월 15일 화요일 · 오전 10:00" },
-  { name: "데이터", spec: "13 / 20 · 600 · 0", className: "text-ui-data tabular-nums", sample: "v1.0 · 480,000원" },
-  { name: "상태·라벨", spec: "12 / 16 · 700 · 0", className: "text-xs leading-4 font-bold text-primary-700", sample: "확인 대기" },
+  { name: "목록 설명", spec: "13 / 18 · 400 · 0", className: "text-ui-list-detail text-ink-600", sample: "고객 확인 대기" },
+  { name: "데이터", spec: "13 / 18 · 500 · 0", className: "text-ui-data tabular-nums", sample: "v1.0 · 480,000원" },
+  { name: "상태·라벨", spec: "12 / 16 · 500 · 0", className: "text-xs leading-4 font-[var(--weight-status)] text-primary-700", sample: "확인 대기" },
 ];
 
 type TypeScaleItem = (typeof typeScale)[number];
 
-const typeScaleColumns: Array<InfoListColumn<TypeScaleItem>> = [
-  {
-    id: "role",
-    label: "역할·값",
-    render: (type) => (
-      <div>
-        <strong className="block text-sm">{type.name}</strong>
-        <span className="mt-1 block text-xs text-ink-600">{type.spec}</span>
-      </div>
-    ),
-  },
-  { id: "sample", label: "표본", render: (type) => <p className={type.className}>{type.sample}</p> },
+const typeGroups: ReadonlyArray<{ description: string; items: ReadonlyArray<TypeScaleItem>; name: string }> = [
+  { name: "제목", description: "화면 안의 문맥과 정보 덩어리를 구분합니다.", items: [typeScale[0], typeScale[1], typeScale[2]] },
+  { name: "읽기", description: "설명과 보조 정보를 편안한 밀도로 전달합니다.", items: [typeScale[3], typeScale[5], typeScale[6]] },
+  { name: "UI", description: "조작, 수치, 상태처럼 빠르게 훑는 정보에 씁니다.", items: [typeScale[4], typeScale[7], typeScale[8]] },
 ];
 
 const spacingScale = [
@@ -118,25 +112,15 @@ const spacingScale = [
   { name: "2XS", token: "--space-2xs", use: "인접한 조작·라벨 간격" },
   { name: "XS", token: "--space-xs", use: "컨트롤 내부 여백" },
   { name: "SM", token: "--space-sm", use: "기본 카드 여백" },
+  { name: "Control gap", token: "--control-gap", use: "버튼 아이콘·라벨 사이" },
+  { name: "Compact inset", token: "--control-compact-padding-x", use: "조밀 버튼 좌우 패딩" },
+  { name: "Control inset", token: "--control-padding-x", use: "기본 버튼·입력 좌우 패딩" },
+  { name: "Row block", token: "--list-row-padding-y", use: "목록 행 상하 패딩" },
   { name: "Gutter", token: "--content-gutter", use: "화면 좌우 여백" },
   { name: "MD", token: "--space-md", use: "넓은 화면 여백·섹션 내부" },
   { name: "LG", token: "--space-lg", use: "섹션 사이 분리" },
   { name: "XL", token: "--space-xl", use: "큰 문맥 전환" },
 ] as const;
-
-type SpacingItem = (typeof spacingScale)[number];
-
-const spacingColumns: Array<InfoListColumn<SpacingItem>> = [
-  { id: "name", label: "단계", cellClassName: "text-sm font-bold", render: (space) => space.name },
-  { id: "token", label: "토큰", render: (space) => <code className="text-xs text-ink-600">{space.token}</code> },
-  { id: "value", label: "값", cellClassName: "text-xs font-semibold tabular-nums", render: (space) => <TokenValue token={space.token} /> },
-  {
-    id: "measure",
-    label: "실측",
-    render: (space) => <span aria-hidden="true" className="block h-2 max-w-40 rounded-full bg-primary-600" style={{ width: `calc(var(${space.token}) * 2)` }} />,
-  },
-  { id: "use", label: "사용", cellClassName: "text-sm text-ink-600", render: (space) => space.use },
-];
 
 const radiusScale = [
   { name: "작은 surface", token: "--radius-small", use: "문서 표본·조밀한 내부 영역" },
@@ -145,26 +129,6 @@ const radiusScale = [
   { name: "Feature", token: "--radius-feature", use: "화면당 하나의 우선 작업" },
   { name: "Sheet", token: "--radius-sheet", use: "하단 시트의 상단 모서리" },
 ] as const;
-
-type RadiusItem = (typeof radiusScale)[number];
-
-const radiusColumns: Array<InfoListColumn<RadiusItem>> = [
-  {
-    id: "shape",
-    label: "형태",
-    render: (radius) => (
-      <span aria-hidden="true" className="block size-8 border border-primary-200 bg-primary-50" style={{ borderRadius: `var(${radius.token})` }} />
-    ),
-  },
-  { id: "name", label: "이름", cellClassName: "text-sm font-bold", render: (radius) => radius.name },
-  {
-    id: "token",
-    label: "토큰·값",
-    cellClassName: "flex flex-wrap items-center gap-2",
-    render: (radius) => <><code className="text-xs text-ink-600">{radius.token}</code><TokenValue token={radius.token} /></>,
-  },
-  { id: "use", label: "사용", cellClassName: "text-sm text-ink-600", render: (radius) => radius.use },
-];
 
 const patterns = [
   {
@@ -215,23 +179,16 @@ const patternColumns: Array<InfoListColumn<PatternItem>> = [
 ];
 
 export function DesignSystemPage() {
+  const [exampleChoice, setExampleChoice] = useState("있음");
+
   return (
     <main className="min-h-dvh bg-canvas text-ink-900" id="main-content">
-      <header className="sticky top-0 z-[var(--z-sticky)] border-b border-line bg-surface/98 backdrop-blur">
-        <div className="mx-auto flex min-h-16 max-w-[1440px] items-center gap-4 px-5 lg:px-8">
-          <Link className="inline-flex min-h-11 items-center gap-2 text-sm font-bold text-ink-600" to="/">
-            <ArrowLeft aria-hidden="true" className="size-4" />
-            서비스로 돌아가기
-          </Link>
-        </div>
-      </header>
-
       <div className="mx-auto max-w-[1440px] lg:grid lg:grid-cols-[200px_minmax(0,1fr)] lg:gap-10 lg:pr-8">
         <DesignSystemRail groups={designSystemNavigation} />
 
         <div className="min-w-0 px-5 pb-24 lg:px-0">
           <section className="border-b border-line pt-10 pb-14 md:pt-12 md:pb-16">
-            <h1 className="min-w-0 max-w-[760px] break-keep text-[32px] leading-10 font-extrabold tracking-[-0.035em] [overflow-wrap:anywhere] md:text-[36px]">
+            <h1 className="min-w-0 max-w-[760px] break-keep text-ui-title-lg font-extrabold tracking-[var(--tracking-brand)] [overflow-wrap:anywhere] md:text-ui-display">
               SEQRET 디자인 시스템
             </h1>
             <p className="mt-4 max-w-[720px] text-ui-support text-ink-600">
@@ -265,14 +222,12 @@ export function DesignSystemPage() {
           </DocSection>
 
           <DocSection id="foundations" title="기초" summary="Pretendard, 중립 표면, 인디고 상호작용색, 4px 간격 체계를 사용합니다.">
-            <Subsection id="color-roles" title="색상 역할">
+            <section className="scroll-mt-20 mt-8 first:mt-0" id="color-roles">
               <div className="space-y-8">
                 {colorGroups.map((group) => (
                   <section key={group.name}>
-                    <h4 className="mb-3 text-sm font-bold">{group.name}</h4>
-                    <div
-                      className="grid gap-px overflow-hidden rounded-[var(--radius-small)] border border-line bg-line [grid-template-columns:repeat(auto-fit,minmax(10rem,1fr))]"
-                    >
+                    <h3 className="mb-3 text-ui-component">{group.name}</h3>
+                    <div className="grid gap-px overflow-hidden rounded-[var(--radius-small)] bg-line [grid-template-columns:repeat(auto-fit,minmax(10rem,1fr))]">
                       {group.colors.map((color) => (
                         <article className="min-w-0 bg-surface" key={color.token}>
                           <div aria-hidden="true" className="h-24 w-full sm:h-28" style={{ backgroundColor: `var(${color.token})` }} />
@@ -288,44 +243,43 @@ export function DesignSystemPage() {
                   </section>
                 ))}
               </div>
-            </Subsection>
+            </section>
 
             <Subsection id="typography-scale" title="타이포그래피">
-              <InfoList
-                aria-label="타이포그래피 역할"
-                columns={typeScaleColumns}
-                getKey={(type) => type.name}
-                gridTemplateColumns="10rem minmax(18rem, 1fr)"
-                items={typeScale}
-                minWidth="520px"
-                showHeader={false}
-                variant="contained"
-              />
+              <div aria-label="타이포그래피 역할" className="grid gap-4 lg:grid-cols-3">
+                {typeGroups.map((group) => <TypeGroup group={group} key={group.name} />)}
+              </div>
             </Subsection>
 
             <Subsection id="spacing-and-shape" title="간격과 형태">
-              <InfoList
-                aria-label="간격 토큰"
-                columns={spacingColumns}
-                getKey={(space) => space.token}
-                gridTemplateColumns="5rem 10rem 10rem 8rem minmax(12rem, 1fr)"
-                items={spacingScale}
-                minWidth="760px"
-                showHeader={false}
-                variant="contained"
-              />
+              <TokenTileList aria-label="간격 토큰">
+                {spacingScale.map((space) => (
+                  <li className="min-w-0 bg-surface p-4" key={space.token}>
+                    <div className="flex items-start justify-between gap-3">
+                      <strong className="text-ui-control">{space.name}</strong>
+                      <TokenValue token={space.token} />
+                    </div>
+                    <span aria-hidden="true" className="mt-5 block h-2 max-w-full rounded-full bg-primary-600" style={{ width: `min(calc(var(${space.token}) * 2), 100%)` }} />
+                    <p className="mt-4 text-sm text-ink-600">{space.use}</p>
+                    <code className="mt-1 block break-all text-xs text-ink-400">{space.token}</code>
+                  </li>
+                ))}
+              </TokenTileList>
 
-              <h4 className="mt-8 mb-3 text-ui-component leading-6 font-bold">모서리</h4>
-              <InfoList
-                aria-label="모서리 토큰"
-                columns={radiusColumns}
-                getKey={(radius) => radius.token}
-                gridTemplateColumns="3rem 8rem 12rem minmax(0, 1fr)"
-                items={radiusScale}
-                minWidth="680px"
-                showHeader={false}
-                variant="contained"
-              />
+              <h4 className="mt-8 mb-3 text-ui-component">모서리</h4>
+              <TokenTileList aria-label="모서리 토큰">
+                {radiusScale.map((radius) => (
+                  <li className="min-w-0 bg-surface p-4" key={radius.token}>
+                    <span aria-hidden="true" className="block size-14 border border-primary-200 bg-primary-50" style={{ borderRadius: `var(${radius.token})` }} />
+                    <strong className="mt-4 block text-ui-control">{radius.name}</strong>
+                    <p className="mt-1 text-sm text-ink-600">{radius.use}</p>
+                    <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <code className="break-all text-xs text-ink-400">{radius.token}</code>
+                      <TokenValue token={radius.token} />
+                    </div>
+                  </li>
+                ))}
+              </TokenTileList>
             </Subsection>
           </DocSection>
 
@@ -370,18 +324,22 @@ export function DesignSystemPage() {
               id="button-standard"
               title="버튼"
             >
-              <div className="flex flex-wrap gap-2">
+              <h4 className="text-ui-support font-semibold">행동 위계</h4>
+              <div className="mt-2 flex flex-wrap gap-2">
                 <Button>다음 단계</Button>
                 <Button variant="outline">이전</Button>
                 <Button variant="secondary">임시 저장</Button>
                 <Button variant="destructive">연결 종료</Button>
               </div>
-              <div className="mt-5 grid max-w-[560px] gap-3 border-t border-line pt-5 sm:grid-cols-3 sm:items-end">
-                <Button size="chip" variant="secondary">작게</Button>
-                <Button>기본</Button>
-                <Button size="cta">모바일 CTA</Button>
+              <div className="mt-5 max-w-[560px] border-t border-line pt-5">
+                <h4 className="text-ui-support font-semibold">크기와 배치</h4>
+                <div className="mt-2 grid gap-3 sm:grid-cols-3 sm:items-end">
+                  <Button size="chip" variant="secondary">조밀 32</Button>
+                  <Button>기본 44</Button>
+                  <Button size="cta">주요 CTA 44</Button>
+                </div>
               </div>
-              <p className="mt-4 text-sm leading-6 text-ink-600">포인터가 거친 모바일 환경에서는 모든 조작 영역을 최소 44px로 확장합니다. 주요 버튼은 화면 또는 시트 하나에 한 개를 기본으로 합니다.</p>
+              <p className="mt-4 max-w-[680px] text-sm leading-6 text-ink-600">기본 버튼은 44px · 14/19 · 500 · 좌우 16px · 아이콘 간격 6px입니다. 조밀 버튼은 32px · 13/18 · 좌우 14px · 간격 4px로 제한하고, 주요 CTA의 위계는 높이가 아니라 색과 너비로 구분합니다.</p>
             </ComponentSpecimen>
 
             <ComponentSpecimen id="filter-chip-standard" title="필터 칩">
@@ -391,6 +349,23 @@ export function DesignSystemPage() {
                 <FilterChip onClick={() => undefined}>침실 3</FilterChip>
               </div>
               <p className="mt-4 max-w-[560px] text-sm leading-6 text-ink-600">필터 칩은 높이 36px, 좌우 여백 12px, 500 두께의 글자를 사용해 목록보다 가볍게 보이도록 합니다.</p>
+            </ComponentSpecimen>
+
+            <ComponentSpecimen id="selection-standard" title="선택과 상태">
+              <div className="grid gap-6 md:grid-cols-2">
+                <ChoiceGroup columns={2} label="엘리베이터 유무" onChange={setExampleChoice} options={["있음", "없음"]} value={exampleChoice} />
+                <div>
+                  <h4 className="text-ui-support font-semibold">업무 상태</h4>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <Badge variant="primary">확인 대기</Badge>
+                    <Badge variant="success">완료</Badge>
+                    <Badge variant="warning">주의</Badge>
+                    <Badge variant="danger">오류</Badge>
+                    <Badge>보조 정보</Badge>
+                  </div>
+                </div>
+              </div>
+              <p className="mt-4 text-sm leading-6 text-ink-600">한 질문에서 하나만 고르는 값은 탭처럼 묶인 segmented radio로 표시합니다. 화면 구역을 전환하는 Tabs나 독립적으로 켜고 끄는 Toggle에는 사용하지 않습니다.</p>
             </ComponentSpecimen>
 
             <ComponentSpecimen
@@ -485,10 +460,43 @@ function ComponentSpecimen({
   return (
     <section className="scroll-mt-20 mt-8 first:mt-0" id={id}>
       <h3 className="text-ui-component leading-6 font-bold">{title}</h3>
-      <div className="mt-4 rounded-[var(--radius-small)] border border-line bg-surface p-4 md:p-5">
+      <div className="mt-4 rounded-[var(--radius-small)] bg-surface p-4 md:p-5">
         {children}
       </div>
     </section>
+  );
+}
+
+function TypeGroup({ group }: { group: (typeof typeGroups)[number] }) {
+  return (
+    <section className="overflow-hidden rounded-[var(--radius-small)] bg-surface">
+      <header className="px-4 py-4">
+        <h4 className="text-ui-component">{group.name}</h4>
+        <p className="mt-1 text-sm leading-5 text-ink-600">{group.description}</p>
+      </header>
+      <ul className="divide-y divide-line border-t border-line">
+        {group.items.map((type) => (
+          <li className="px-4 py-4" key={type.name}>
+            <p className={type.className}>{type.sample}</p>
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-ink-600">
+              <strong className="font-semibold text-ink-900">{type.name}</strong>
+              <span className="tabular-nums">{type.spec}</span>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function TokenTileList({ children, ...props }: { children: ReactNode } & ComponentProps<"ul">) {
+  return (
+    <ul
+      className="grid grid-cols-1 gap-px overflow-hidden rounded-[var(--radius-small)] bg-line sm:grid-cols-2 xl:grid-cols-4"
+      {...props}
+    >
+      {children}
+    </ul>
   );
 }
 

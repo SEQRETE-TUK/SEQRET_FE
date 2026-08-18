@@ -36,7 +36,7 @@ function InfoList<Item>({
     <div
       className={cn(
         "overflow-hidden",
-        variant === "contained" && "rounded-[var(--radius-small)] border border-line bg-surface",
+        variant === "contained" && "rounded-[var(--radius-small)] bg-surface",
         className,
       )}
       {...props}

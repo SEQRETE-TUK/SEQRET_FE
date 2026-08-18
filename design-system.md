@@ -87,7 +87,7 @@ utilities:
     className: "mobile-frame"
   focus-ring:
     description: "키보드 포커스 표시"
-    css: "2px solid var(--color-focus); outline-offset: var(--rule-fine)"
+    css: "control은 primary-400 border + primary-100 3px ring, link·button은 2px outline"
 
 components:
   button-primary:
@@ -106,6 +106,9 @@ components:
     base: "Badge"
     variants: "primary | neutral | success | warning | danger"
     usage: "진행·완료·대기·위험 상태"
+  choice-group:
+    base: "ChoiceGroup"
+    usage: "한 질문에서 하나의 짧은 값을 고르는 2~3열 segmented radio. 화면 전환 Tabs와 독립 Toggle에는 사용하지 않는다."
   card:
     base: "Card + CardHeader + CardContent + CardFooter"
     usage: "작업범위, 금액, 증거와 상태의 한 단위"
@@ -146,7 +149,7 @@ SEQRET은 거래 상태를 오해 없이 전달하는 것을 시각적 장식보
 - Indigo 기반의 primary action과 version 강조
 - 성공·대기·위험을 구분하는 semantic color
 - 320–432px 집중 업무 열과 4개 하단 메뉴를 기준으로 한 역할별 흐름
-- border와 surface 차이를 중심으로 한 낮은 elevation
+- surface와 spacing을 중심으로 한 낮은 elevation
 - Pretendard 기반의 한국어 우선 typography
 
 ## Documentation Architecture
@@ -175,7 +178,7 @@ SEQRET은 거래 상태를 오해 없이 전달하는 것을 시각적 장식보
 
 - **Background** (`{colors.background}`): 화면 전체 canvas
 - **Card** (`{colors.card}`): 작업 카드, 입력 영역, sheet와 고정 CTA
-- **Border** (`{colors.border}`): 목록 구분·입력·작업 카드 경계
+- **Border** (`{colors.border}`): 목록 내부 구분·입력·선택 control 경계
 
 ### Text
 
@@ -198,20 +201,24 @@ semantic color는 장식용으로 사용하지 않는다. 금액 증가와 오�
 ### Font Stack
 
 - **Sans**: Pretendard → Inter → system UI
-- 기본 본문 굵기: 500
-- 기본 자간: `-0.2px`
+- 기본 본문 굵기: 400
+- 본문·제목·UI 역할 자간: `0`. 브랜드 워드마크만 `--tracking-brand` 예외를 사용한다.
 
 ### Hierarchy
 
+SEED의 `regular 400 / medium 500 / bold 700` 구조를 기준으로 한다. 다만 Pretendard에서 700이 과하게 보이는 컴포넌트 제목은 제품 보정값 600을 사용하고, 데이터와 상태는 medium 500으로 통일한다. 별도 화면·페이지 제목 역할은 만들지 않고 일반 화면에서는 section-title을 최고 위계로 사용한다.
+
 | Role | Size / Line height | Weight | Tracking | Use |
 | --- | --- | ---: | --- | --- |
-| section-title | 20 / 28px | 700 | −0.025em | 화면과 서로 다른 판단 단위의 제목 |
+| section-title | 20 / 28px | 700 | 0 | 화면과 서로 다른 판단 단위의 제목 |
 | component-title | 17 / 24px | 600 | 0 | 카드와 목록 묶음 제목 |
+| list-title | 16 / 22px | 500 | 0 | 목록 행의 판단 대상 |
 | body | 16 / 24px | 400 | 0 | 설명, 입력과 주요 목록 내용 |
-| control | 14 / 20px | 500 | 0 | 버튼, 탭과 짧은 조작 label |
+| control | 14 / 19px | 500 | 0 | 버튼, 탭과 짧은 조작 label |
 | supporting | 14 / 20px | 400 | 0 | 시간, metadata와 보조 설명 |
-| data | 13 / 20px | 600 | 0 | 버전, 금액과 조밀한 실측값 |
-| status-label | 12 / 16px | 700 | 0 | 상태, 버전과 짧은 label |
+| list-detail | 13 / 18px | 400 | 0 | 목록 행의 상태와 보조 설명 |
+| data | 13 / 18px | 500 | 0 | 버전, 금액과 조밀한 실측값 |
+| status-label | 12 / 16px | 500 | 0 | 상태, 버전과 짧은 label |
 
 ### Principles
 
@@ -241,19 +248,30 @@ semantic color는 장식용으로 사용하지 않는다. 금액 증가와 오�
 | LG | `--space-lg` | 32px | 서로 다른 판단 단위 사이 |
 | XL | `--space-xl` | 40px | 큰 문맥 전환 |
 
+컴포넌트 내부 간격은 전역 간격 토큰을 임의 조합하지 않고 역할 토큰으로 고정한다.
+
+| 역할 | 토큰 | 값 | 적용 |
+|---|---|---:|---|
+| 기본 control gap | `--control-gap` | 6px | 버튼 아이콘과 label 사이 |
+| 조밀 control gap | `--control-compact-gap` | 4px | 32px 보조 버튼 내부 |
+| 기본 control inset | `--control-padding-x` | 16px | 44px 버튼 좌우 padding |
+| 조밀 control inset | `--control-compact-padding-x` | 14px | 32px 버튼 좌우 padding |
+| field inset | `--field-padding-x` | 16px | input 좌우 padding |
+| filter inset | `--filter-padding-x` | 12px | filter chip과 choice 좌우 padding |
+| list row block | `--list-row-padding-y` | 12px | 목록 행 상하 padding |
+
 ### Control and Layout Metrics
 
 | 대상 | Value | Rule |
 | --- | ---: | --- |
 | 작은 Button | `--control-compact` · 32px | 데스크톱의 필터와 짧은 inline action |
-| 기본 Button | `--control-default` · 36px | 데스크톱의 일반 행동 |
-| Mobile CTA·Input | `--control-touch` · 44px | 모바일 조작과 입력의 최소 터치 영역 |
+| 기본 Button·Mobile CTA·Input | `--control-touch` · 44px | 모든 기본 조작과 입력의 최소 터치 영역 |
 | List row | 64px 이상 | 제목, 보조 정보와 상태를 포함 |
 | Card inset | 16~20px | 정보 밀도에 맞춰 두 값 중 선택 |
 | Mobile gutter | 20~24px | 320~432px viewport에 적용 |
 | Section rhythm | 24~32px | 같은 문맥은 24px, 문맥 전환은 32px |
 
-LIKELION TUK의 조밀한 control 단계에서 `32px → 36px → 44px`의 역할 분리를 참고한다. SEQRET은 실제 버튼 높이를 이 세 단계로 제한하고, `(pointer: coarse)` 환경에서는 작은 버튼도 최소 44px 터치 영역을 확보한다.
+SEQRET의 버튼 높이는 `32px → 44px` 두 단계로 제한한다. 32px는 포인터 기반의 조밀한 보조 영역에서만 사용하고, mobile과 `(pointer: coarse)` 환경의 기본 조작은 44px를 사용한다. 주요 행동의 위계는 더 큰 높이가 아니라 variant와 너비로 구분한다.
 
 ### Mobile Frame
 
@@ -275,11 +293,11 @@ LIKELION TUK의 조밀한 control 단계에서 `32px → 36px → 44px`의 역�
 | --- | --- | --- |
 | Canvas | `--color-paper` | 화면 배경 |
 | Surface | `--color-paper-2` | 카드, 입력, CTA 영역 |
-| Bordered | `1px solid --color-rule` | 정보 단위와 입력 경계 |
+| Bordered | `1px solid --color-rule` | 입력과 선택 상태 경계 |
 | Selected | primary border + soft background | 선택된 항목과 현재 단계 |
 | Overlay | 반투명 backdrop + white sheet | modal, bottom sheet |
 
-과도한 shadow와 glassmorphism을 사용하지 않는다. 깊이는 surface, border와 spacing으로 표현한다.
+과도한 shadow와 glassmorphism을 사용하지 않는다. 깊이는 surface와 spacing으로 표현한다.
 
 ## Shapes
 
@@ -412,18 +430,20 @@ variant를 나열하는 것만으로 끝내지 않고 기본, 선택, 대기, �
 | `default` | 현재 화면의 primary CTA |
 | `outline` | 이전 정보 열람과 보조 행동 |
 | `secondary` | 카드 내부의 약한 강조 행동 |
-| `ghost` | 가벼운 탐색과 inline action |
+| `ghost` | 배경과 테두리 없이 표시하는 낮은 우선순위 행동 |
 | `destructive` | 링크 폐기, 삭제와 위험 행동 |
 | `kakao` | 역할 링크 카카오톡 공유에만 사용 |
 
 | Size | Height | Use |
 | --- | ---: | --- |
 | `chip` | 32px | 데스크톱의 필터와 짧은 inline action |
-| `default` | 36px | 입력과 나란히 쓰는 일반 행동 |
+| `default` | 44px | 일반 행동과 입력에 쓰는 기본 터치 영역 |
 | `cta` | 44px | 화면 또는 sheet의 단일 우선 행동 |
-| `icon` | 36×36px | 아이콘만 있는 조작. 접근 가능한 이름을 제공한다. |
+| `icon` | 44×44px | 아이콘만 있는 조작. 접근 가능한 이름을 제공한다. |
 
-모바일의 `(pointer: coarse)` 환경에서는 모든 크기의 터치 영역을 최소 44px로 확장한다. 크기 차이는 label과 좌우 padding, 배치 맥락으로 구분하며 한 화면에 primary CTA를 여러 개 두지 않는다.
+모든 기본 조작은 44px 터치 영역을 사용한다. 크기 차이는 label과 좌우 padding, 배치 맥락으로 구분하며 한 화면에 primary CTA를 여러 개 두지 않는다.
+
+`ghost`는 크기를 지정하지 않으면 compact 높이를 사용한다. 하단의 주요 보조 행동처럼 44px이 필요한 경우에만 `size="cta"`를 명시한다.
 
 ### Badges
 
@@ -440,9 +460,19 @@ Badge만으로 상태를 설명하지 않는다. 가까운 제목이나 본문�
 ### Cards
 
 - 한 card에는 하나의 판단 대상이나 정보 단위만 담는다.
+- 기본 `plain` card는 외곽선 없이 surface와 주변 spacing으로 구분한다.
+- 강조가 필요한 card는 `ui-card-tinted`로 primary soft surface를 사용한다.
+- card와 배경 surface가 같아 경계가 사라지는 경우에만 `variant="outlined"`를 사용한다. border는 내부 구분선, 선택·경고 상태와 form control에도 사용할 수 있다.
+- 주요 행동 hero, 상태 요약, 여러 행을 묶은 contained list도 card 범주에 포함한다.
 - 제목과 설명은 `CardHeader`, 실제 값은 `CardContent`, 행동은 `CardFooter`에 배치한다.
 - card 전체가 눌리는 것처럼 보이면 전체를 실제 interactive element로 만든다.
 - summary 화면에서 같은 모양의 card를 반복하지 않는다. 경계가 필요한 우선 작업 1개와 구분선 목록·수치를 조합한다.
+
+### Tailwind aliases
+
+- `text-xs`, `text-sm`, `text-base`, `text-lg`, `text-xl`, `text-2xl`, `text-3xl`, `text-4xl`은 `tokens.css`의 canonical type scale에 매핑한다.
+- 날짜, 금액, 상태처럼 읽어야 하는 값은 크기와 굵기를 따로 조합하지 않고 `text-ui-data`를 사용한다.
+- 본문 입력은 `text-ui-body`, 목록 제목과 설명은 각각 `text-ui-list-title`, `text-ui-list-detail`을 사용한다.
 
 ### Form controls
 
@@ -460,7 +490,7 @@ Badge만으로 상태를 설명하지 않는다. 가까운 제목이나 본문�
 ### List rows and tabs
 
 - 목록 행은 `left / contents / right` 세 영역으로 구성한다. 왼쪽에는 실제 근거 이미지나 항목 이해에 필요한 아이콘만 둔다.
-- 설정·기록 목록은 `ListGroup`/`ListRow`, 다중 보조 정보 목록은 `InfoList`를 사용한다. 목록에는 항목 사이 구분선만 두고 위·아래 외곽선은 두지 않는다.
+- 설정·기록 목록은 `ListGroup`/`ListRow`, 다중 보조 정보 목록은 `InfoList`를 사용한다. 항목은 하나의 surface로 묶고 항목 사이에만 구분선을 두며 위·아래 외곽선은 두지 않는다.
 - 사진은 완료·현장 증빙처럼 사진 자체가 판단 근거일 때 72px 썸네일로 제공하고 `alt`, `width`, `height`, 지연 로딩을 함께 적용한다.
 - 같은 화면의 동등한 콘텐츠 전환은 44–48px 높이의 underline tab을 사용한다. 선택 상태는 굵기·텍스트 색·2px indicator로 표시한다.
 

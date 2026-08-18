@@ -87,7 +87,7 @@ export function MobileAppShell<T extends string>({
                 aria-current={active ? "page" : undefined}
                 className={cn(
                   "relative flex min-h-13 min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl text-xs font-semibold",
-                  active ? "font-extrabold text-primary-700" : "text-ink-400",
+                  active ? "text-primary-700" : "text-ink-400",
                 )}
                 key={id}
                 onClick={() => onChange(id)}

@@ -1,4 +1,5 @@
 import {
+  ArrowLeftIcon as ArrowLeft,
   ArticleIcon as Article,
   CaretDownIcon as CaretDown,
   CubeIcon as Cube,
@@ -6,8 +7,9 @@ import {
   ListIcon as List,
   StackIcon as Stack,
 } from "@phosphor-icons/react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
+import { ButtonLink } from "@/components/ui/button";
 import {
   Sheet,
   SheetContent,
@@ -36,6 +38,8 @@ export function DesignSystemRail({ groups }: { groups: ReadonlyArray<DesignSyste
   const [activeId, setActiveId] = useState(() => window.location.hash.slice(1) || targetIds[0]);
   const [expandedGroups, setExpandedGroups] = useState(() => new Set(groups.map((group) => group.id)));
   const [mobileOpen, setMobileOpen] = useState(false);
+  const pendingTargetId = useRef<string | null>(null);
+  const pendingTargetTimeout = useRef<number | null>(null);
 
   useEffect(() => {
     let frame = 0;
@@ -52,6 +56,13 @@ export function DesignSystemRail({ groups }: { groups: ReadonlyArray<DesignSyste
         ? targets.at(-1)
         : [...targets].reverse().find((section) => section.getBoundingClientRect().top <= VIEWPORT_MARKER) ?? targets[0];
       const nextId = current?.id ?? targetIds[0];
+
+      if (pendingTargetId.current && pendingTargetId.current !== nextId) return;
+      pendingTargetId.current = null;
+      if (pendingTargetTimeout.current) {
+        window.clearTimeout(pendingTargetTimeout.current);
+        pendingTargetTimeout.current = null;
+      }
       setActiveId(nextId);
 
       const activeGroup = groups.find((group) => group.id === nextId || group.items.some((item) => item.id === nextId));
@@ -86,6 +97,7 @@ export function DesignSystemRail({ groups }: { groups: ReadonlyArray<DesignSyste
       window.removeEventListener("hashchange", alignHashTarget);
       if (frame) window.cancelAnimationFrame(frame);
       if (hashFrame) window.cancelAnimationFrame(hashFrame);
+      if (pendingTargetTimeout.current) window.clearTimeout(pendingTargetTimeout.current);
     };
   }, [groups, targetIds]);
 
@@ -101,6 +113,12 @@ export function DesignSystemRail({ groups }: { groups: ReadonlyArray<DesignSyste
   const selectSection = (id: string) => {
     const target = document.getElementById(id);
     if (!target) return;
+    pendingTargetId.current = id;
+    if (pendingTargetTimeout.current) window.clearTimeout(pendingTargetTimeout.current);
+    pendingTargetTimeout.current = window.setTimeout(() => {
+      pendingTargetId.current = null;
+      pendingTargetTimeout.current = null;
+    }, 1200);
     window.history.replaceState(null, "", `#${id}`);
     target.scrollIntoView({ behavior: "smooth", block: "start" });
     setActiveId(id);
@@ -108,7 +126,12 @@ export function DesignSystemRail({ groups }: { groups: ReadonlyArray<DesignSyste
   };
 
   const renderNavigation = (instance: "desktop" | "mobile") => (
-    <nav aria-label="디자인 시스템 목차" className="space-y-1">
+    <div>
+      <ButtonLink className="mb-4" href="/" size="chip" variant="ghost">
+        <ArrowLeft aria-hidden="true" className="size-4" />
+        서비스로 돌아가기
+      </ButtonLink>
+      <nav aria-label="디자인 시스템 목차" className="space-y-1">
       {groups.map((group) => {
         const Icon = groupIcons[group.id as keyof typeof groupIcons] ?? Article;
         const expanded = expandedGroups.has(group.id);
@@ -163,12 +186,13 @@ export function DesignSystemRail({ groups }: { groups: ReadonlyArray<DesignSyste
           </div>
         );
       })}
-    </nav>
+      </nav>
+    </div>
   );
 
   return (
     <>
-      <aside className="sticky top-16 hidden h-[calc(100dvh-4rem)] overflow-y-auto border-r border-line px-3 py-4 lg:block">
+      <aside className="sticky top-0 hidden h-dvh overflow-y-auto border-r border-line bg-surface px-3 py-4 lg:block">
         {renderNavigation("desktop")}
       </aside>
 

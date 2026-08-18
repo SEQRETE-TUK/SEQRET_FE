@@ -1,3 +1,4 @@
+/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V4 */
 import { useState, type KeyboardEvent } from "react";
 import {
   ArrowRightIcon as ArrowRight,
@@ -44,28 +45,56 @@ export function RoleEntry() {
   return (
     <div className="mobile-stage">
       <MobileFrame className="flex min-h-dvh flex-col bg-canvas">
-        <header className="app-safe-header flex items-center justify-between gap-3 px-5 pb-3">
-          <strong className="text-lg font-black tracking-[var(--tracking-display)] text-primary-800">SEQRET</strong>
-          <span className="inline-flex items-center gap-1.5 text-xs font-bold text-ink-600"><ShieldCheck aria-hidden="true" className="text-primary-700" size="var(--icon-xs)" weight="bold" />{mockApiEnabled ? "Mock 모드" : "보안 연결"}</span>
+        <header className="app-safe-header flex min-h-16 items-center justify-between gap-3 px-5">
+          <strong className="text-lg font-black tracking-[var(--tracking-brand)] text-primary-800">SEQRET</strong>
+          <span className="inline-flex min-h-8 items-center gap-1.5 rounded-[var(--radius-pill)] bg-surface-muted px-3 text-ui-data text-ink-600">
+            <ShieldCheck aria-hidden="true" className="text-primary-700" size="var(--icon-xs)" weight="bold" />
+            {mockApiEnabled ? "Mock 모드" : "보안 연결"}
+          </span>
         </header>
-        <main className="flex-1 px-5 pb-32 pt-8" id="main-content">
-          <h1 className="max-w-[19rem] text-ui-section leading-9 font-extrabold tracking-[var(--tracking-display)] min-[380px]:text-ui-section">어떤 역할로 시작할까요?</h1>
-          <fieldset className="mt-6 border-y border-line bg-surface">
+        <main className="flex-1 px-[var(--content-gutter)] pb-32 pt-8" id="main-content">
+          <section aria-labelledby="role-entry-title">
+            <h1 className="text-ui-section" id="role-entry-title">어떤 역할로 시작할까요?</h1>
+            <p className="mt-2 text-ui-support text-ink-600">선택한 역할에 맞는 작업 화면으로 이동합니다.</p>
+          </section>
+
+          <fieldset className="mt-7 overflow-hidden rounded-[var(--radius-card)] bg-surface">
             <legend className="sr-only">연결 역할</legend>
             {roles.map((item) => {
               const active = item.id === selected;
               const Icon = item.icon;
-              return <label className={cn("interactive-row flex min-h-[88px] cursor-pointer items-center gap-3 border-b border-line px-4 py-4 last:border-b-0 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-focus-ring", active && "bg-primary-50/70")} key={item.id}>
-                <input checked={active} className="sr-only" id={`role-${item.id}`} name="participantRole" onChange={() => chooseRole(item.id)} onKeyDown={(event) => moveRole(event, item.id)} type="radio" value={item.id} />
-                <span className={cn("grid size-10 shrink-0 place-items-center rounded-xl", active ? "bg-primary-600 text-white" : "bg-surface-muted text-ink-600")}><Icon aria-hidden="true" size="var(--icon-md)" weight="duotone" /></span>
-                <span className="min-w-0 flex-1"><strong className="block text-base leading-6">{item.label}</strong><span className="mt-0.5 block text-sm leading-5 text-ink-600">{item.description}</span></span>
-                <span className={cn("grid size-6 shrink-0 place-items-center rounded-full border", active ? "border-primary-600 bg-primary-600 text-white" : "border-line bg-surface")}>{active ? <Check aria-hidden="true" className="size-3.5" /> : null}</span>
-              </label>;
+              return (
+                <label
+                  className={cn(
+                    "interactive-row relative flex min-h-24 cursor-pointer items-center gap-3 border-b border-line px-4 py-4 last:border-b-0 has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:-outline-offset-2 has-[:focus-visible]:outline-focus-ring",
+                    active && "bg-primary-50",
+                  )}
+                  key={item.id}
+                >
+                  {active ? <span aria-hidden="true" className="absolute inset-y-3 left-0 w-0.5 rounded-r-full bg-primary-600" /> : null}
+                  <input checked={active} className="sr-only" id={`role-${item.id}`} name="participantRole" onChange={() => chooseRole(item.id)} onKeyDown={(event) => moveRole(event, item.id)} type="radio" value={item.id} />
+                  <span className={cn("grid size-11 shrink-0 place-items-center rounded-[var(--radius-card)]", active ? "bg-primary-600 text-white" : "bg-surface-muted text-ink-600")}>
+                    <Icon aria-hidden="true" size="var(--icon-md)" weight="duotone" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <strong className="block text-ui-list-title">{item.label}</strong>
+                    <span className="mt-1 block text-ui-list-detail text-ink-600">{item.description}</span>
+                  </span>
+                  <span className={cn("grid size-6 shrink-0 place-items-center rounded-full border", active ? "border-primary-600 bg-primary-600 text-white" : "border-line bg-surface")}>
+                    {active ? <Check aria-hidden="true" className="size-3.5" weight="bold" /> : null}
+                  </span>
+                </label>
+              );
             })}
           </fieldset>
-          <div className="mt-6 flex items-start gap-3 border-l-2 border-primary-600 bg-surface-muted px-4 py-3"><ShieldCheck aria-hidden="true" className="mt-0.5 shrink-0 text-primary-700" size="var(--icon-sm)" weight="bold" /><p className="text-sm leading-5 text-ink-600">업체와 현장기사는 각 화면에서 초대 코드를 입력해 이사 건을 연결합니다.</p></div>
+          <div className="mt-5 flex items-start gap-2.5 px-1">
+            <ShieldCheck aria-hidden="true" className="mt-0.5 shrink-0 text-primary-700" size="var(--icon-sm)" weight="bold" />
+            <p className="text-ui-support text-ink-600">업체와 현장기사는 초대 코드로 이사 건을 연결합니다.</p>
+          </div>
         </main>
-        <div className="app-fixed-action fixed inset-x-0 bottom-0 z-[var(--z-sticky)] mx-auto w-full max-w-[var(--shell-mobile)] border-t border-line bg-surface/95 px-5 pt-4 backdrop-blur"><Button className="w-full" onClick={start} size="cta">{selectedRole.startLabel} <ArrowRight aria-hidden="true" /></Button></div>
+        <div className="app-fixed-action fixed inset-x-0 bottom-0 z-[var(--z-sticky)] mx-auto w-full max-w-[var(--shell-mobile)] border-t border-line bg-surface px-[var(--content-gutter)] pt-3">
+          <Button className="w-full" onClick={start} size="cta">{selectedRole.startLabel}<ArrowRight aria-hidden="true" /></Button>
+        </div>
       </MobileFrame>
     </div>
   );
