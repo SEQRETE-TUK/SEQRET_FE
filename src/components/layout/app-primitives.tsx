@@ -93,11 +93,11 @@ export function StatusTag({ children, tone = "primary" }: { children: ReactNode;
 }
 
 export function FilterChip({ active = false, children, onClick }: { active?: boolean; children: ReactNode; onClick: () => void }) {
-  return <button aria-pressed={active} className={cn("min-h-9 whitespace-nowrap rounded-full border px-[var(--filter-padding-x)] text-[length:var(--text-control)] leading-[var(--line-control)] font-[var(--weight-control)] tracking-[var(--tracking-none)]", active ? "border-primary-600 bg-primary-50 text-primary-700" : "border-line bg-surface text-ink-600")} onClick={onClick} type="button">{children}</button>;
+  return <button aria-pressed={active} className={cn("min-h-9 whitespace-nowrap rounded-full border px-[var(--filter-padding-x)] text-ui-control", active ? "border-primary-600 bg-primary-50 text-primary-700" : "border-line bg-surface text-ink-600")} onClick={onClick} type="button">{children}</button>;
 }
 
 export function ActiveMoveCard({ children, heading, leading, meta, onOpen, route }: { children?: ReactNode; heading: ReactNode; leading?: ReactNode; meta: ReactNode; onOpen: () => void; route: ReactNode }) {
-  return <section className="mt-4 ui-card p-3 shadow-[var(--shadow-card)]"><h2 className="text-ui-component font-black">{heading}</h2><button className="mt-1.5 flex min-h-13 w-full items-center gap-3 text-left" onClick={onOpen} type="button">{leading}<span className="min-w-0 flex-1"><strong className="block truncate text-ui-component">{route}</strong><span className="mt-1 block text-sm text-ink-600">{meta}</span></span><ChevronRight aria-hidden="true" className="shrink-0 text-ink-400" size="var(--icon-md)" /></button>{children}</section>;
+  return <div className="mt-6"><h2 className="text-ui-component font-black">{heading}</h2><section className="mt-2 ui-card p-3 shadow-[var(--shadow-card)]"><button className="flex min-h-13 w-full items-center gap-3 text-left" onClick={onOpen} type="button">{leading}<span className="min-w-0 flex-1"><strong className="block truncate text-ui-component">{route}</strong><span className="mt-1 block text-sm text-ink-600">{meta}</span></span><ChevronRight aria-hidden="true" className="shrink-0 text-ink-400" size="var(--icon-md)" /></button>{children}</section></div>;
 }
 
 export function MoveJourneyProgress({ current }: { current: number }) {

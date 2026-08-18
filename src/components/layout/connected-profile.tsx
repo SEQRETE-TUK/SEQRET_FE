@@ -64,10 +64,10 @@ export function ConnectedProfile({
       <section className="mt-7" aria-labelledby="profile-menu-title">
         <SectionHeader><span id="profile-menu-title">설정과 안내</span></SectionHeader>
         <ListGroup label="설정과 안내">
-          <ListRow description="역할·허용 범위·접근 만료" leading={<ShieldCheck aria-hidden="true" className="size-6 text-primary-700" />} onClick={() => setPanel("access")}>내 접근 권한</ListRow>
-          <ListRow description="사진과 영상의 사용·보관 기준" leading={<Info aria-hidden="true" className="size-6 text-primary-700" />} onClick={() => setPanel("privacy")}>촬영·개인정보 안내</ListRow>
-          <ListRow description={isCrew ? "현장 차이 보고와 작업 원칙" : "역할별 확인과 응답 원칙"} leading={<Question aria-hidden="true" className="size-6 text-primary-700" />} onClick={() => setPanel("help")}>{roleLabel} 도움말</ListRow>
-          <ListRow description="공동확인 기록의 의미와 정책" onClick={() => setPanel("service")}>서비스 정보</ListRow>
+          <ListRow leading={<ShieldCheck aria-hidden="true" className="size-6 text-primary-700" />} onClick={() => setPanel("access")}>내 접근 권한</ListRow>
+          <ListRow leading={<Info aria-hidden="true" className="size-6 text-primary-700" />} onClick={() => setPanel("privacy")}>촬영·개인정보 안내</ListRow>
+          <ListRow leading={<Question aria-hidden="true" className="size-6 text-primary-700" />} onClick={() => setPanel("help")}>{roleLabel} 도움말</ListRow>
+          <ListRow onClick={() => setPanel("service")}>서비스 정보</ListRow>
         </ListGroup>
       </section>
 

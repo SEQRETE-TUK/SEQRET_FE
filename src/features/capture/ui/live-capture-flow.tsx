@@ -6,7 +6,6 @@ import {
   UploadSimpleIcon as FileUp,
   CircleNotchIcon as LoaderCircle,
   LockKeyIcon as LockKeyhole,
-  PackageIcon as Package,
   PlayIcon as Play,
   SignOutIcon as LogOut,
   ArrowClockwiseIcon as RefreshCw,
@@ -23,6 +22,7 @@ import {
 import { useEffect, useState, type FormEvent } from "react";
 
 import { MobileFrame } from "@/components/layout/mobile-frame";
+import { MobileHeaderButton, MobilePageHeader } from "@/components/layout/mobile-app-shell";
 import { FilterChip, InventoryQuantityRow } from "@/components/layout/app-primitives";
 import { ProgressSteps } from "@/components/workflow/workflow-task";
 import {
@@ -50,6 +50,7 @@ import {
 } from "@/features/capture/model/use-capture-workflow";
 import { ApiError, SignedUploadError } from "@/api/client";
 import { mockAccessSecrets, mockApiEnabled, mockJobId } from "@/api/mock-api";
+import { MovingItemIcon } from "@/components/moving-item-icon";
 
 interface ConnectionFormProps {
   onConnect: (jobId: string, accessToken: string) => void;
@@ -120,7 +121,6 @@ function VideoCaptureStage({
             )}
             <figcaption className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2 text-sm">
               <span aria-hidden="true" className="grid size-12 place-items-center rounded-full bg-ink-900/70 text-white backdrop-blur-sm"><Play size="var(--icon-md)" weight="fill" /></span>
-              <span className="rounded-lg bg-ink-900/70 px-3 py-1.5 font-bold">촬영 영상 01:02</span>
             </figcaption>
           </figure>
           <div className="relative -mt-6 rounded-t-[var(--radius-feature)] bg-canvas px-5 pt-5">
@@ -128,7 +128,7 @@ function VideoCaptureStage({
           <h1 className="text-center text-ui-section font-black">AI가 짐 8개를 발견했어요</h1>
           <p className="mt-2 text-center text-sm text-ink-600">AI가 확실한 것만 골랐어요.</p>
           <div className="mt-6 flex gap-2" role="tablist" aria-label="AI 인식 결과 필터"><FilterChip active={resultFilter === "all"} onClick={() => setResultFilter("all")}>전체 8</FilterChip><FilterChip active={resultFilter === "review"} onClick={() => setResultFilter("review")}>확인 필요 2</FilterChip></div>
-          <section className="mt-3 space-y-2">{visibleItems.map((item) => { const quantity = quantityFor(item.key); return <InventoryQuantityRow icon={<Package aria-hidden="true" size="var(--icon-md)" weight="duotone" />} key={item.key} name={item.name} onDecrease={() => updateResultQuantity(item.key, quantity - 1)} onIncrease={() => updateResultQuantity(item.key, quantity + 1)} onRemove={() => updateResultQuantity(item.key, 0)} quantity={quantity} reviewRequired={item.review} />; })}</section>
+          <section className="mt-3 space-y-2">{visibleItems.map((item) => { const quantity = quantityFor(item.key); return <InventoryQuantityRow icon={<MovingItemIcon name={item.name} />} key={item.key} name={item.name} onDecrease={() => updateResultQuantity(item.key, quantity - 1)} onIncrease={() => updateResultQuantity(item.key, quantity + 1)} onRemove={() => updateResultQuantity(item.key, 0)} quantity={quantity} reviewRequired={item.review} />; })}</section>
           </div>
         </main>
         <div className="app-fixed-action fixed inset-x-0 bottom-0 z-[var(--z-sticky)] mx-auto max-w-[var(--shell-mobile)] bg-surface px-5 pt-3">
@@ -1087,31 +1087,12 @@ function ConnectedCapture({
 
   return (
     <div className="flex min-h-dvh flex-col bg-canvas text-ink-900">
-      <header className={`app-safe-header flex items-center bg-surface px-5 pb-3 ${manualMode ? "" : "border-b border-line"}`}>
-        <button
-          aria-label="이전 화면으로 돌아가기"
-          className="grid size-11 place-items-center rounded-full"
-          onClick={disconnectSafely}
-          type="button"
-        >
-          <ArrowLeft aria-hidden="true" size="var(--icon-sm)" />
-        </button>
-        <p className="mx-auto truncate px-3 text-xl font-bold">
-          {manualMode ? "짐 목록 선택" : job.title}
-        </p>
-        <button
-          aria-label={manualMode ? "짐 목록 선택 닫기" : "연결 해제"}
-          className="grid size-11 place-items-center rounded-full text-ink-600"
-          onClick={disconnectSafely}
-          type="button"
-        >
-          {manualMode ? (
-            <X aria-hidden="true" size="var(--icon-sm)" />
-          ) : (
-            <LogOut aria-hidden="true" size="var(--icon-sm)" />
-          )}
-        </button>
-      </header>
+      <MobilePageHeader
+        className={manualMode ? "border-b-0" : undefined}
+        left={<MobileHeaderButton ariaLabel="이전 화면으로 돌아가기" onClick={disconnectSafely}><ArrowLeft aria-hidden="true" size="var(--icon-sm)" /></MobileHeaderButton>}
+        right={<MobileHeaderButton ariaLabel={manualMode ? "짐 목록 선택 닫기" : "연결 해제"} className="text-ink-600" onClick={disconnectSafely}>{manualMode ? <X aria-hidden="true" size="var(--icon-sm)" /> : <LogOut aria-hidden="true" size="var(--icon-sm)" />}</MobileHeaderButton>}
+        title={manualMode ? "짐 목록 선택" : job.title}
+      />
 
       <main className={`flex-1 px-5 pb-8 ${manualMode ? "pt-4" : "pt-5"}`}>
         {!manualMode ? (

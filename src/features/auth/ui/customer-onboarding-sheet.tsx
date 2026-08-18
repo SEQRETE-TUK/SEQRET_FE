@@ -8,10 +8,11 @@ import { useNavigate } from "react-router-dom";
 
 import { mockApiEnabled } from "@/api/mock-api";
 import { Button } from "@/components/ui/button";
+import { MobilePageHeader } from "@/components/layout/mobile-app-shell";
 import { ChoiceGroup } from "@/components/ui/choice-group";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetFooter } from "@/components/ui/sheet";
 import { useAuth } from "@/features/auth/model/auth-context";
 import { AddressSearchInput } from "@/features/consumer/ui/address-search-input";
 import { apiErrorMessage } from "@/features/workflow/api/workflow-api";
@@ -136,5 +137,5 @@ export function CustomerOnboardingSheet({ onOpenChange, open }: { onOpenChange: 
   const next = () => { if (valid) setStep(stepOrder[Math.min(index + 1, stepOrder.length - 1)]); };
   const previous = () => setStep(stepOrder[Math.max(index - 1, 0)]);
 
-  return <Sheet onOpenChange={close} open={open}><SheetContent presentation="page"><SheetHeader className="border-b border-line px-16 pb-4 pt-[max(14px,env(safe-area-inset-top))] text-center"><SheetTitle className="text-ui-component font-[var(--weight-component)] leading-[var(--line-component)]">새 이사 {stepLabel[step]} 입력</SheetTitle></SheetHeader>{error ? <p className="mx-5 mt-4 rounded-xl bg-danger-bg p-3 text-sm font-bold text-danger-ink" role="alert">{error}</p> : null}<form onSubmit={submit}>{step === "schedule" ? <CalendarStep month={month} onMonth={setMonth} onSelect={setSelectedDate} onTime={setTime} selectedDate={selectedDate} time={time} /> : step === "origin" ? <StopStep kind="origin" onChange={setOrigin} value={origin} /> : <StopStep kind="destination" onChange={setDestination} value={destination} />}<SheetFooter className="grid grid-cols-[auto_1fr] gap-2">{index > 0 ? <Button className="min-w-[calc(var(--control-touch)*2)]" onClick={previous} type="button" variant="outline">이전</Button> : null}{step === "destination" ? <Button disabled={!valid || creating} type="submit">{creating ? <><LoaderCircle aria-hidden="true" className="animate-spin" />초안 만드는 중</> : "이사 초안 만들기"}</Button> : <Button className={index === 0 ? "col-span-full" : ""} disabled={!valid} onClick={next} type="button">다음 · {stepLabel[stepOrder[index + 1]]}</Button>}</SheetFooter></form></SheetContent></Sheet>;
+  return <Sheet onOpenChange={close} open={open}><SheetContent presentation="page" showClose={false}><MobilePageHeader onBack={() => close(false)} title={`새 이사 ${stepLabel[step]} 입력`} />{error ? <p className="mx-5 mt-4 rounded-xl bg-danger-bg p-3 text-sm font-bold text-danger-ink" role="alert">{error}</p> : null}<form onSubmit={submit}>{step === "schedule" ? <CalendarStep month={month} onMonth={setMonth} onSelect={setSelectedDate} onTime={setTime} selectedDate={selectedDate} time={time} /> : step === "origin" ? <StopStep kind="origin" onChange={setOrigin} value={origin} /> : <StopStep kind="destination" onChange={setDestination} value={destination} />}<SheetFooter className="grid grid-cols-[auto_1fr] gap-2">{index > 0 ? <Button className="min-w-[calc(var(--control-touch)*2)]" onClick={previous} type="button" variant="outline">이전</Button> : null}{step === "destination" ? <Button disabled={!valid || creating} type="submit">{creating ? <><LoaderCircle aria-hidden="true" className="animate-spin" />초안 만드는 중</> : "이사 초안 만들기"}</Button> : <Button className={index === 0 ? "col-span-full" : ""} disabled={!valid} onClick={next} type="button">다음 · {stepLabel[stepOrder[index + 1]]}</Button>}</SheetFooter></form></SheetContent></Sheet>;
 }

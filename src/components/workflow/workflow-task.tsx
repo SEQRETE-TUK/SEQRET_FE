@@ -1,16 +1,16 @@
 import {
+  ArrowLeftIcon as ArrowLeft,
   CheckIcon as Check,
   CaretRightIcon as ChevronRight,
 } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
 
+import { MobileHeaderButton, MobilePageHeader } from "@/components/layout/mobile-app-shell";
 import { Badge } from "@/components/ui/badge";
 import {
   Sheet,
+  SheetClose,
   SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
@@ -96,11 +96,8 @@ export function WorkflowTask({
         <Badge className="max-w-24 shrink-0" variant={tone}>{status}</Badge>
         <ChevronRight aria-hidden="true" className="size-5 shrink-0 text-ink-400" />
       </SheetTrigger>
-      <SheetContent presentation="page">
-        <SheetHeader className="app-safe-header sticky top-0 z-10 border-b border-line bg-surface/98 px-16 py-4 text-center backdrop-blur">
-          <SheetTitle>{detailTitle ?? title}</SheetTitle>
-          <SheetDescription>{description}</SheetDescription>
-        </SheetHeader>
+      <SheetContent presentation="page" showClose={false}>
+        <MobilePageHeader description={description} left={<SheetClose render={<MobileHeaderButton ariaLabel="뒤로가기" />}><ArrowLeft aria-hidden="true" size="var(--icon-sm)" /></SheetClose>} title={detailTitle ?? title} />
         <div className="px-5 pb-2">{children}</div>
       </SheetContent>
     </Sheet>

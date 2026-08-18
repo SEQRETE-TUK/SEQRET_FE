@@ -284,6 +284,13 @@ p {
   letter-spacing: var(--tracking-none);
 }
 
+.text-ui-status {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-status);
+  line-height: var(--line-label);
+  letter-spacing: var(--tracking-none);
+}
+
 .text-ui-micro {
   font-size: var(--text-micro);
   font-weight: var(--weight-strong);

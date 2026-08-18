@@ -5,7 +5,7 @@ import type { ComponentProps } from "react";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "ui-button relative inline-flex touch-manipulation items-center justify-center gap-[var(--control-gap)] whitespace-nowrap rounded-[var(--radius-control)] border text-sm leading-[var(--line-control)] font-[var(--weight-control)] tracking-[var(--tracking-none)] select-none shadow-none disabled:cursor-not-allowed disabled:border-ink-400 disabled:bg-ink-400 disabled:!text-white disabled:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "ui-button relative inline-flex touch-manipulation items-center justify-center gap-[var(--control-gap)] whitespace-nowrap rounded-[var(--radius-control)] border text-ui-control select-none shadow-none disabled:cursor-not-allowed disabled:border-ink-400 disabled:bg-ink-400 disabled:!text-white disabled:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
@@ -19,7 +19,7 @@ const buttonVariants = cva(
       size: {
         default: "h-[var(--control-touch)] px-[var(--control-padding-x)]",
         cta: "h-[var(--control-touch)] px-[var(--control-padding-x)]",
-        chip: "h-[var(--control-compact)] gap-[var(--control-compact-gap)] px-[var(--control-compact-padding-x)] text-[length:var(--text-data)] leading-[var(--line-data)]",
+        chip: "h-[var(--control-compact)] gap-[var(--control-compact-gap)] px-[var(--control-compact-padding-x)] text-ui-data",
         icon: "size-[var(--control-touch)] rounded-full p-0",
       },
     },

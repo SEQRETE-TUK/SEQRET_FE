@@ -11,7 +11,7 @@ const Sheet = Dialog.Root;
 const SheetTrigger = Dialog.Trigger;
 const SheetClose = Dialog.Close;
 
-function SheetContent({ className, children, presentation = "sheet", ...props }: Dialog.Popup.Props & { presentation?: "sheet" | "page" }) {
+function SheetContent({ className, children, presentation = "sheet", showClose = true, ...props }: Dialog.Popup.Props & { presentation?: "sheet" | "page"; showClose?: boolean }) {
   return (
     <Dialog.Portal>
       <Dialog.Backdrop className="demo-sheet-backdrop fixed inset-0 z-[var(--z-modal)] bg-[var(--color-overlay)]" />
@@ -27,15 +27,15 @@ function SheetContent({ className, children, presentation = "sheet", ...props }:
         >
           {presentation === "sheet" ? <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-line md:hidden" aria-hidden="true" /> : null}
           {children}
-          <Dialog.Close
-            className={cn(
-              "absolute z-20 flex items-center justify-center rounded-full text-ink-600 hover:bg-canvas focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring",
-              presentation === "page" ? "top-[max(16px,env(safe-area-inset-top))] left-3 size-9" : "top-4 right-4 size-11",
-            )}
-            aria-label={presentation === "page" ? "뒤로가기" : "닫기"}
-          >
-            {presentation === "page" ? <ArrowLeft aria-hidden="true" /> : <X aria-hidden="true" />}
-          </Dialog.Close>
+          {showClose ? <Dialog.Close
+              className={cn(
+                "absolute z-20 flex items-center justify-center rounded-full text-ink-900 hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring",
+                presentation === "page" ? "top-[max(16px,env(safe-area-inset-top))] left-2 size-9" : "top-4 right-4 size-11",
+              )}
+              aria-label={presentation === "page" ? "뒤로가기" : "닫기"}
+            >
+              {presentation === "page" ? <ArrowLeft aria-hidden="true" size="var(--icon-sm)" /> : <X aria-hidden="true" />}
+            </Dialog.Close> : null}
         </Dialog.Popup>
       </Dialog.Viewport>
     </Dialog.Portal>

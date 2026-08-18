@@ -1,26 +1,9 @@
 import {
-  ArmchairIcon as Armchair,
-  BedIcon as Bed,
-  BooksIcon as Books,
-  ChairIcon as Chair,
   CheckIcon as Check,
-  CoatHangerIcon as CoatHanger,
-  CookingPotIcon as CookingPot,
-  DeskIcon as Desk,
-  FanIcon as Fan,
   ImageIcon as Image,
-  LampIcon as Lamp,
-  OfficeChairIcon as OfficeChair,
-  OvenIcon as Oven,
-  PackageIcon as Package,
   PlusIcon as Plus,
   ArrowCounterClockwiseIcon as RotateCcw,
-  ShirtFoldedIcon as ShirtFolded,
-  TableIcon as Table,
-  TelevisionSimpleIcon as Television,
   TrashIcon as Trash2,
-  WashingMachineIcon as WashingMachine,
-  type Icon,
 } from "@phosphor-icons/react";
 import {
   WarningStatusIcon as AlertTriangle,
@@ -66,25 +49,25 @@ const manualCategoryTone: Record<ManualCategory, string> = {
   가전: "text-success-ink",
   기타: "text-warning-ink",
 };
-const manualCatalog: Array<{ category: ManualCategory; icon: Icon; label: string }> = [
-  { category: "가구", icon: Bed, label: "침대" },
-  { category: "가구", icon: Armchair, label: "소파" },
-  { category: "가구", icon: CoatHanger, label: "옷장" },
-  { category: "가구", icon: ShirtFolded, label: "서랍장" },
-  { category: "가구", icon: Books, label: "책장" },
-  { category: "가구", icon: Desk, label: "책상" },
-  { category: "가구", icon: Table, label: "테이블" },
-  { category: "가구", icon: Chair, label: "의자" },
-  { category: "가구", icon: OfficeChair, label: "사무용 의자" },
-  { category: "가구", icon: Lamp, label: "스탠드" },
-  { category: "가전", icon: Television, label: "TV" },
-  { category: "가전", icon: WashingMachine, label: "세탁기" },
-  { category: "가전", icon: Oven, label: "전자레인지" },
-  { category: "가전", icon: Fan, label: "선풍기" },
-  { category: "가전", icon: CookingPot, label: "주방 가전" },
-  { category: "기타", icon: Package, label: "이사 박스" },
-  { category: "기타", icon: CoatHanger, label: "행거" },
-  { category: "기타", icon: Books, label: "책" },
+const manualCatalog: Array<{ category: ManualCategory; icon: string; label: string }> = [
+  { category: "가구", icon: "/moving-items/bed.png", label: "침대" },
+  { category: "가구", icon: "/moving-items/sofa.png", label: "소파" },
+  { category: "가구", icon: "/moving-items/wardrobe.png", label: "옷장" },
+  { category: "가구", icon: "/moving-items/cabinet.png", label: "신발장" },
+  { category: "가구", icon: "/moving-items/drawer.png", label: "서랍장" },
+  { category: "가구", icon: "/moving-items/bookshelf.png", label: "책장" },
+  { category: "가구", icon: "/moving-items/desk.png", label: "책상" },
+  { category: "가구", icon: "/moving-items/table.png", label: "테이블" },
+  { category: "가구", icon: "/moving-items/chair.png", label: "의자" },
+  { category: "가구", icon: "/moving-items/office-chair.png", label: "사무용 의자" },
+  { category: "가구", icon: "/moving-items/lamp.png", label: "스탠드" },
+  { category: "가전", icon: "/moving-items/tv.png", label: "TV" },
+  { category: "가전", icon: "/moving-items/washing-machine.png", label: "세탁기" },
+  { category: "가전", icon: "/moving-items/microwave.png", label: "전자레인지" },
+  { category: "가전", icon: "/moving-items/fan.png", label: "선풍기" },
+  { category: "가전", icon: "/moving-items/kitchen.png", label: "주방 가전" },
+  { category: "기타", icon: "/moving-items/moving-box.png", label: "이사 박스" },
+  { category: "기타", icon: "/moving-items/book.png", label: "책" },
 ];
 
 export function ManualScopeEditor({
@@ -107,7 +90,7 @@ export function ManualScopeEditor({
   return (
     <form id={MANUAL_SCOPE_FORM_ID} onSubmit={(event) => { event.preventDefault(); onSubmit(); }}>
       <section>
-        {(["가구", "가전", "기타"] as ManualCategory[]).map((category) => <section className="mt-7 first:mt-0" key={category}><h3 className="text-ui-section font-black">{category}</h3><div className="mt-3 grid grid-cols-3 gap-x-2 gap-y-5 min-[400px]:grid-cols-4">{manualCatalog.filter((item) => item.category === category).map(({ icon: CatalogIcon, label }) => { const active = selected.has(label); return <button aria-pressed={active} className={`press-static relative flex min-h-[116px] min-w-0 flex-col items-center justify-center rounded-2xl px-1 text-center ${active ? "bg-primary-50 text-primary-800 ring-2 ring-primary-600" : "bg-surface text-ink-900"}`} key={label} onClick={() => toggle(label)} type="button"><span className={`grid size-14 place-items-center ${manualCategoryTone[category]}`}><CatalogIcon aria-hidden="true" size="var(--icon-category)" weight="duotone" /></span><span className="mt-2 line-clamp-2 text-ui-data">{label}</span>{active ? <span className="absolute right-2 top-2 grid size-6 place-items-center rounded-full bg-primary-600 text-white"><Check aria-hidden="true" size="var(--icon-xs)" weight="bold" /></span> : null}</button>; })}</div></section>)}
+        {(["가구", "가전", "기타"] as ManualCategory[]).map((category) => <section className="mt-7 first:mt-0" key={category}><h3 className="text-ui-section font-black">{category}</h3><div className="mt-3 grid grid-cols-4 gap-2">{manualCatalog.filter((item) => item.category === category).map(({ icon, label }) => { const active = selected.has(label); return <button aria-pressed={active} className={`press-static relative flex min-h-[104px] min-w-0 flex-col items-center justify-center rounded-xl px-0.5 text-center ${active ? "bg-primary-50 text-primary-800 ring-2 ring-primary-600" : "bg-surface text-ink-900"}`} key={label} onClick={() => toggle(label)} type="button"><span className={`grid size-10 place-items-center ${manualCategoryTone[category]}`}><img alt="" aria-hidden="true" className="size-10 object-contain" src={icon} /></span><span className="mt-1 line-clamp-2 text-xs leading-4">{label}</span>{active ? <span className="absolute right-1 top-1 grid size-5 place-items-center rounded-full bg-primary-600 text-white"><Check aria-hidden="true" size="var(--icon-xs)" weight="bold" /></span> : null}</button>; })}</div></section>)}
       </section>
     </form>
   );

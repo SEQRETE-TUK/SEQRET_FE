@@ -162,7 +162,7 @@ function createState(): MockState {
         label: "현관",
         item_count: 2,
         review_required_count: 0,
-        items: ["신발장", "우산꽂이"].map((description, index) => ({ item_key: `entrance-item-${index + 1}`, room_zone_id: ENTRANCE_ZONE_ID, description, name: description, quantity: null, unit: null, work_note: null, review_status: "confirmed" as const, source: "ai" as const, review_required: false, source_media_asset_ids: [] })),
+        items: ["신발장"].map((description, index) => ({ item_key: `entrance-item-${index + 1}`, room_zone_id: ENTRANCE_ZONE_ID, description, name: description, quantity: null, unit: null, work_note: null, review_status: "confirmed" as const, source: "ai" as const, review_required: false, source_media_asset_ids: [] })),
       }],
       location_conditions: [],
       included_works: ["포장 및 운반", "기본 가구 분해·조립", "가구 배치", "보호 포장"],

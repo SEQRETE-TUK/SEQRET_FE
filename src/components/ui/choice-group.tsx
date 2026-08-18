@@ -49,7 +49,7 @@ function ChoiceGroup<Value extends string>({
           return (
             <Radio.Root
               className={cn(
-                "flex cursor-pointer items-center justify-center px-[var(--filter-padding-x)] text-center text-[length:var(--text-control)] leading-[var(--line-control)] font-[var(--weight-control)] tracking-[var(--tracking-none)] text-ink-600 outline-none focus-visible:ring-2 focus-visible:ring-primary-300 data-checked:text-primary-700",
+                "flex cursor-pointer items-center justify-center px-[var(--filter-padding-x)] text-center text-ui-control text-ink-600 outline-none focus-visible:ring-2 focus-visible:ring-primary-300 data-checked:text-primary-700",
                 outlined
                   ? "h-[var(--control-touch)] rounded-[var(--radius-control)] border border-line bg-surface data-checked:border-primary-400 data-checked:bg-primary-50"
                   : "rounded-[calc(var(--radius-control)-3px)] border border-transparent data-checked:border-primary-400 data-checked:bg-surface",

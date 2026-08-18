@@ -68,7 +68,7 @@ export function AddressSearchInput({ id, onChange, value }: { id: string; onChan
   return <div>
     <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
       <Input autoComplete="street-address" id={id} onChange={(event) => onChange(event.target.value)} placeholder="도로명 또는 지번 주소" value={value} />
-      <button className="inline-flex min-h-11 items-center justify-center gap-[var(--control-gap)] whitespace-nowrap rounded-[var(--radius-control)] border border-primary-400 bg-surface px-[var(--control-padding-x)] text-ui-control font-[var(--weight-control)] text-primary-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring" disabled={loading} onClick={search} type="button"><MagnifyingGlass aria-hidden="true" className="shrink-0" size="var(--icon-sm)" />{loading ? "불러오는 중" : "주소 검색"}</button>
+      <button className="inline-flex min-h-11 items-center justify-center gap-[var(--control-gap)] whitespace-nowrap rounded-[var(--radius-control)] border border-primary-400 bg-surface px-[var(--control-padding-x)] text-ui-control text-primary-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring" disabled={loading} onClick={search} type="button"><MagnifyingGlass aria-hidden="true" className="shrink-0" size="var(--icon-sm)" />{loading ? "불러오는 중" : "주소 검색"}</button>
     </div>
     {error ? <p className="mt-2 text-sm font-bold text-danger-ink" role="alert">{error} 직접 입력할 수도 있어요.</p> : null}
   </div>;

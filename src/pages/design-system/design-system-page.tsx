@@ -96,7 +96,7 @@ const typeScale = [
   { name: "보조 정보", spec: "14 / 20 · 400 · 0", className: "text-ui-support text-ink-600", sample: "1월 15일 화요일 · 오전 10:00" },
   { name: "목록 설명", spec: "13 / 18 · 400 · 0", className: "text-ui-list-detail text-ink-600", sample: "고객 확인 대기" },
   { name: "데이터", spec: "13 / 18 · 500 · 0", className: "text-ui-data tabular-nums", sample: "v1.0 · 480,000원" },
-  { name: "상태·라벨", spec: "12 / 16 · 500 · 0", className: "text-xs leading-4 font-[var(--weight-status)] text-primary-700", sample: "확인 대기" },
+  { name: "상태·라벨", spec: "12 / 16 · 500 · 0", className: "text-ui-status text-primary-700", sample: "확인 대기" },
 ];
 
 type TypeScaleItem = (typeof typeScale)[number];
