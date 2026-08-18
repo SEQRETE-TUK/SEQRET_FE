@@ -42,6 +42,10 @@ typography:
     fontSize: "--text-control"
     fontWeight: "--weight-control"
     lineHeight: "20px"
+  button:
+    fontSize: "--text-control"
+    fontWeight: "--weight-button"
+    lineHeight: "20px"
   supporting:
     fontSize: "--text-support"
     fontWeight: "--weight-support"

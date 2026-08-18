@@ -41,11 +41,12 @@
   --weight-body: 400;
   --weight-support: 400;
   --weight-control: 600;
+  --weight-button: 500;
   --weight-component: 600;
   --weight-list-title: 500;
   --weight-list-detail: 400;
   --weight-data: 500;
-  --weight-status: 500;
+  --weight-status: 400;
   --weight-micro: 600;
   --weight-strong: 700;
   --display-weight: 800;

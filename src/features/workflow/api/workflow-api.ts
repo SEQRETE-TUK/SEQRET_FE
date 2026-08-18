@@ -79,6 +79,16 @@ export interface CustomerOnboardingResult {
   customer_access_link: AccessLink;
 }
 
+export interface MockMoveSummary {
+  job: MoveJob;
+  version_label: string;
+  scope_status: ScopeReview["scope"]["status"];
+  company_participation_status: ScopeReview["company_participation_status"];
+  quote: QuoteSnapshot | null;
+  item_count: number;
+  adjustment_count: number;
+}
+
 export interface QuoteSnapshot {
   base_amount_krw: number;
   adjustments: Array<{ label: string; amount_krw: number }>;
@@ -329,8 +339,20 @@ export interface CompletionSummary {
   completed_at: string | null;
   final_amount_krw: number | null;
   duration_minutes: number | null;
+  completion_media: Array<{
+    media_asset_id: string;
+    room_zone_id: string;
+    room_zone_label: string;
+    content_type: string;
+    read_url: string;
+    expires_at: string;
+  }>;
   completion_media_count: number;
-  checklist: { completed_count: number; total_count: number };
+  checklist: {
+    completed_count: number;
+    total_count: number;
+    items?: Array<{ key: string; label: string; confirmed: boolean }>;
+  };
   onsite_confirmation_completed: boolean;
   worker_shifts: Array<{
     worker_id: string;
@@ -376,6 +398,7 @@ const command = <T>(connection: Connection, path: string, method: "POST" | "PUT"
 
 export const workflowKeys = {
   root: (jobId: string) => ["workflow", jobId] as const,
+  moves: (accessToken: string) => ["workflow", "moves", accessToken] as const,
   actor: (jobId: string) => ["workflow", jobId, "actor"] as const,
   invitations: (jobId: string) => ["workflow", jobId, "invitations"] as const,
   scope: (jobId: string) => ["workflow", jobId, "scope"] as const,
@@ -402,6 +425,14 @@ export function getMoveJob(connection: Connection) {
   return apiRequest<MoveJob>(jobPath(connection.jobId), { accessToken: connection.accessToken, method: "GET" });
 }
 
+export function listMoveJobs(connection: Connection) {
+  return apiRequest<{ moves: MockMoveSummary[] }>("/api/v1/move-jobs", { accessToken: connection.accessToken, method: "GET" });
+}
+
+export function deleteMoveJob(connection: Connection) {
+  return apiRequest<void>(jobPath(connection.jobId), { accessToken: connection.accessToken, method: "DELETE" });
+}
+
 export function listInvitations(connection: Connection) {
   return apiRequest<{ invitations: Invitation[] }>(`${jobPath(connection.jobId)}/invitations`, {
     accessToken: connection.accessToken,
@@ -409,10 +440,10 @@ export function listInvitations(connection: Connection) {
   });
 }
 
-export function createInvitation(connection: Connection, role: Exclude<ParticipantRole, "customer">, displayName: string) {
+export function createInvitation(connection: Connection, role: Exclude<ParticipantRole, "customer">, displayName?: string) {
   return command<unknown>(connection, `${jobPath(connection.jobId)}/invitations`, "POST", {
     role,
-    display_name: displayName,
+    ...(displayName?.trim() ? { display_name: displayName.trim() } : {}),
   }) as Promise<InvitationIssued>;
 }
 
@@ -426,6 +457,14 @@ export function manageInvitation(connection: Connection, invitationId: string, a
 
 export function getScopeReview(connection: Connection) {
   return apiRequest<ScopeReview>(`${jobPath(connection.jobId)}/scope-review`, { accessToken: connection.accessToken, method: "GET" });
+}
+
+export function confirmScopeReview(connection: Connection, scopeVersionId: string) {
+  return command(connection, `${jobPath(connection.jobId)}/scope-review/confirm`, "POST", { scope_version_id: scopeVersionId });
+}
+
+export function requestScopeRevision(connection: Connection, scopeVersionId: string, reason: string) {
+  return command(connection, `${jobPath(connection.jobId)}/scope-review/revision-request`, "POST", { scope_version_id: scopeVersionId, reason });
 }
 
 export function scopeContentFromReview(review: ScopeReview): ScopeContent {
@@ -550,6 +589,15 @@ export function createCompletionRequest(connection: Connection, completionSubmis
     client_reference: clientReference,
     completion_submission_id: completionSubmissionId,
   }) as Promise<CompletionRequest>;
+}
+
+export function decideCompletionRequest(connection: Connection, requestId: string, input: {
+  decision: "confirm" | "report_issue";
+  problem_type?: "missing_work" | "damage" | "amount" | "other";
+  problem_description?: string;
+  unrecorded_extra_charge?: boolean;
+}) {
+  return command(connection, `${jobPath(connection.jobId)}/completion-requests/${segment(requestId)}/decision`, "POST", input);
 }
 
 export function downloadCompletionArchive(connection: Connection) {

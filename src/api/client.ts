@@ -178,7 +178,7 @@ export async function downloadApiFile(
   accessToken: string,
 ): Promise<{ blob: Blob; filename: string }> {
   if (mockApiEnabled) {
-    return { blob: new Blob(["SEQRET Mock 문서"], { type: "application/zip" }), filename: "seqret-mock-documents.zip" };
+    return { blob: new Blob(["짐확정 Mock 문서"], { type: "application/zip" }), filename: "jimhakjeong-documents.zip" };
   }
   const normalizedToken = accessToken.trim();
   if (!normalizedToken) {

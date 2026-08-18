@@ -4,6 +4,7 @@ import {
   CaretRightIcon as CaretRight,
   CheckCircleIcon as CheckCircle,
   ClipboardTextIcon as ClipboardText,
+  PlusIcon as Plus,
   WarningCircleIcon as WarningCircle,
 } from "@phosphor-icons/react";
 import { useRef, useState, type ChangeEvent } from "react";
@@ -12,6 +13,7 @@ import { mockApiEnabled } from "@/api/mock-api";
 import { InfoCallout } from "@/components/layout/app-primitives";
 import { MobilePageHeader } from "@/components/layout/mobile-app-shell";
 import { Button } from "@/components/ui/button";
+import { ChoiceGroup } from "@/components/ui/choice-group";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -43,6 +45,14 @@ const issueStatusLabel = (status: FieldIssue["status"]) => ({
   approved: "확인서 반영 완료",
   rejected: "반영하지 않음",
 })[status];
+const issueTypeOptions = [
+  { label: "범위 밖 작업", value: "out_of_scope" },
+  { label: "현장 장애", value: "site_blocker" },
+  { label: "파손 위험", value: "damage_risk" },
+] as const;
+
+type EvidenceDraft = { file: File | null; id: string; url: string };
+const maxEvidenceCount = 5;
 
 export function CrewIssueReport({ brief, connection, issues }: {
   brief: FieldBrief | undefined;
@@ -57,7 +67,7 @@ export function CrewIssueReport({ brief, connection, issues }: {
   const [issueType, setIssueType] = useState<FieldIssue["issue_type"]>("site_blocker");
   const [title, setTitle] = useState(mockApiEnabled ? "엘리베이터 운행 중단" : "");
   const [description, setDescription] = useState(mockApiEnabled ? "점검 중이라 5층까지 계단 운반이 필요합니다." : "");
-  const [evidenceId, setEvidenceId] = useState<string | null>(mockApiEnabled ? "mock-elevator-evidence" : null);
+  const [evidence, setEvidence] = useState<EvidenceDraft[]>(mockApiEnabled ? [{ file: null, id: "mock-elevator-evidence", url: "/elevator-outage-evidence.png" }] : []);
   const [submitted, setSubmitted] = useState(false);
   const jobQuery = useQuery({ queryKey: [...workflowKeys.root(connection.jobId), "job"], queryFn: () => getMoveJob(connection) });
   const refreshBrief = () => queryClient.invalidateQueries({ queryKey: workflowKeys.brief(connection.jobId) });
@@ -67,16 +77,20 @@ export function CrewIssueReport({ brief, connection, issues }: {
     onSuccess: refreshBrief,
   });
   const uploadMutation = useMutation({
-    mutationFn: async (file: File) => {
+    mutationFn: async (drafts: Array<Pick<EvidenceDraft, "file" | "url"> & { file: File }>) => {
       const roomZoneId = jobQuery.data?.locations.flatMap((location) => location.room_zones)[0]?.id;
       if (!roomZoneId) throw new Error("증거를 연결할 공간이 없습니다.");
       const policy = await getMediaConsentPolicy(connection);
       const capture = await createCaptureSession({ ...connection, consentPolicyVersion: policy.policy_version, privacyNoticeAcknowledged: true });
-      const target = await createMediaUpload({ ...connection, captureSessionId: capture.id, contentLength: file.size, contentType: asSupportedContentType(file), mediaPurpose: "change_evidence", roomZoneId });
-      await uploadCaptureFile(target, file);
-      return completeMediaUpload({ ...connection, captureSessionId: capture.id, mediaAssetId: target.asset.id });
+      return Promise.all(drafts.map(async ({ file, url }) => {
+        const target = await createMediaUpload({ ...connection, captureSessionId: capture.id, contentLength: file.size, contentType: asSupportedContentType(file), mediaPurpose: "change_evidence", roomZoneId });
+        await uploadCaptureFile(target, file);
+        const asset = await completeMediaUpload({ ...connection, captureSessionId: capture.id, mediaAssetId: target.asset.id });
+        return { file, id: asset.id, url };
+      }));
     },
-    onSuccess: (asset) => setEvidenceId(asset.id),
+    onError: (_error, drafts) => drafts.forEach(({ url }) => URL.revokeObjectURL(url)),
+    onSuccess: (assets) => setEvidence((current) => [...current, ...assets].slice(0, maxEvidenceCount)),
   });
   const issueMutation = useMutation({
     mutationFn: () => createFieldIssue(connection, {
@@ -85,7 +99,7 @@ export function CrewIssueReport({ brief, connection, issues }: {
       issue_type: issueType,
       title: title.trim(),
       description: description.trim(),
-      evidence_media_asset_ids: [evidenceId!],
+      evidence_media_asset_ids: evidence.map(({ id }) => id),
     }),
     onError: async (error) => { if (shouldRecoverState(error)) await queryClient.invalidateQueries({ queryKey: workflowKeys.fieldIssues(connection.jobId) }); },
     onSuccess: async () => {
@@ -97,9 +111,13 @@ export function CrewIssueReport({ brief, connection, issues }: {
   const checkedIn = Boolean(brief?.checked_in_at) || mockApiEnabled;
   const allChecked = Boolean(brief && brief.check_in_items.every((item) => item.confirmed || checkKeys.includes(item.key)));
   const pickEvidence = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) uploadMutation.mutate(file);
+    const files = [...(event.target.files ?? [])].slice(0, maxEvidenceCount - evidence.length);
+    if (files.length) uploadMutation.mutate(files.map((file) => ({ file, url: URL.createObjectURL(file) })));
     event.target.value = "";
+  };
+  const removeEvidence = (item: EvidenceDraft) => {
+    if (item.file) URL.revokeObjectURL(item.url);
+    setEvidence((current) => current.filter((candidate) => candidate !== item));
   };
   const error = checkInMutation.error ?? uploadMutation.error ?? issueMutation.error;
   const sentIssues = issues.length > 0 ? issues : mockApiEnabled ? [{
@@ -118,18 +136,12 @@ export function CrewIssueReport({ brief, connection, issues }: {
 
   if (formOpen) {
     return <Sheet onOpenChange={setFormOpen} open={formOpen}><SheetContent presentation="page" showClose={false}><MobilePageHeader onBack={() => setFormOpen(false)} title="새 현장 보고" /><SheetTitle className="sr-only">새 현장 보고</SheetTitle><SheetDescription className="sr-only">현장 사실과 증거를 업체에 보고합니다.</SheetDescription><div className="px-[var(--content-gutter)] pb-28 pt-4">
-      <section className="ui-card p-4">
-        <div className="mt-5"><h2 className="text-ui-section font-black">현장 사실과 증거를 남겨주세요</h2><p className="mt-1 text-sm leading-5 text-ink-600">업체가 사실을 확인한 뒤 변경 범위와 금액을 고객에게 제안합니다.</p></div>
-        <fieldset className="mt-6"><legend className="text-sm font-extrabold">어떤 문제인가요?</legend><div className="mt-2 grid grid-cols-3 overflow-hidden rounded-xl border border-line">{([
-          ["out_of_scope", "범위 밖 작업"], ["site_blocker", "현장 장애"], ["damage_risk", "파손 위험"],
-        ] as const).map(([id, label]) => <button aria-pressed={issueType === id} className={`press-static min-h-12 border-r border-line px-1 text-xs font-extrabold last:border-r-0 ${issueType === id ? "bg-primary-50 text-primary-700 ring-1 ring-inset ring-primary-400" : "text-ink-600"}`} key={id} onClick={() => setIssueType(id)} type="button">{label}</button>)}</div></fieldset>
+        <ChoiceGroup className="mt-2" columns={3} label="어떤 문제인가요?" onChange={(label) => setIssueType(issueTypeOptions.find((option) => option.label === label)?.value ?? "site_blocker")} options={issueTypeOptions.map((option) => option.label)} value={issueTypeOptions.find((option) => option.value === issueType)?.label ?? "현장 장애"} />
         <Label className="mt-5 block text-sm font-extrabold" htmlFor="issue-title">제목</Label><Input className="mt-2" id="issue-title" maxLength={100} onChange={(event) => setTitle(event.target.value)} placeholder="예: 엘리베이터 운행 중단" value={title} />
         <Label className="mt-5 block text-sm font-extrabold" htmlFor="issue-description">현장 설명</Label><Textarea className="mt-2 min-h-28" id="issue-description" maxLength={200} onChange={(event) => setDescription(event.target.value)} placeholder="무엇이 달라졌고 작업에 어떤 영향이 있는지 적어주세요." value={description} /><p className="mt-1 text-right text-xs text-ink-400">{description.length}/200</p>
-        <h3 className="mt-5 text-sm font-extrabold">현장 증거</h3>{mockApiEnabled || evidenceId ? <img alt="엘리베이터 운행 중단 현장 증거" className="mt-2 aspect-[16/10] w-full rounded-[var(--radius-card)] object-cover" src="/elevator-outage-evidence.png" /> : <div className="mt-2 grid aspect-[16/10] place-items-center rounded-[var(--radius-card)] bg-surface-muted text-sm text-ink-600">현장 사진을 촬영해 주세요.</div>}
-        <Label className="mt-3 flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-xl border border-primary-400 text-sm font-extrabold text-primary-700"><Camera aria-hidden="true" /> {uploadMutation.isPending ? "업로드 중…" : evidenceId ? "증거 다시 촬영" : "사진·영상 촬영"}<input accept="image/jpeg,image/png,video/mp4" capture="environment" className="sr-only" disabled={uploadMutation.isPending} onChange={pickEvidence} type="file" /></Label>
+        <h3 className="mt-5 text-sm font-extrabold">현장 증거</h3><div className="mt-2 grid grid-cols-3 gap-2">{evidence.map((item, index) => <div className="relative" key={item.id}><img alt={`현장 증거 ${index + 1}`} className="aspect-square w-full rounded-[var(--radius-card)] object-cover" src={item.url} /><button aria-label={`현장 증거 ${index + 1} 삭제`} className="absolute right-1 top-1 grid size-9 place-items-center rounded-full bg-ink-900/75 text-lg text-white" onClick={() => removeEvidence(item)} type="button">×</button></div>)}{evidence.length < maxEvidenceCount ? <Label className="grid aspect-square cursor-pointer place-items-center rounded-[var(--radius-card)] border border-dashed border-primary-300 bg-primary-50 text-center text-sm font-extrabold text-primary-700"><span><Plus aria-hidden="true" className="mx-auto mb-1" size="var(--icon-md)" />{uploadMutation.isPending ? "업로드 중…" : "사진 추가"}</span><input accept="image/jpeg,image/png" capture="environment" className="sr-only" disabled={uploadMutation.isPending} multiple onChange={pickEvidence} type="file" /></Label> : null}</div>
         <InfoCallout icon={<WarningCircle aria-hidden="true" />}>기사는 현장 사실만 보고하며 금액을 입력하지 않아요.</InfoCallout>{error ? <p className="mt-3 text-sm font-bold text-danger-ink" role="alert">{apiErrorMessage(error)}</p> : null}
-        <Button className="mt-5 w-full whitespace-nowrap" disabled={!evidenceId || !title.trim() || !description.trim() || issueMutation.isPending} onClick={() => issueMutation.mutate()} size="cta"><Camera aria-hidden="true" /> {issueMutation.isPending ? "보고 중…" : "증거와 함께 업체에 보고"}</Button>
-      </section>
+        <div className="app-fixed-action fixed inset-x-0 bottom-0 z-[var(--z-sticky)] mx-auto w-full max-w-[var(--shell-mobile)] bg-surface px-[var(--content-gutter)] pt-3"><Button className="w-full" disabled={!evidence.length || uploadMutation.isPending || !title.trim() || !description.trim() || issueMutation.isPending} onClick={() => issueMutation.mutate()} size="cta">{issueMutation.isPending ? "보고 중…" : "이슈 보고"}</Button></div>
     </div></SheetContent></Sheet>;
   }
 

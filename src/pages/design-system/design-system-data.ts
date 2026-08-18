@@ -27,7 +27,6 @@ export const designSystemNavigation: ReadonlyArray<DesignSystemNavigationGroup> 
       { id: "color-roles", label: "색상" },
       { id: "typography-scale", label: "타이포그래피" },
       { id: "spacing-and-shape", label: "간격과 형태" },
-      { id: "token-inventory", label: "전체 토큰" },
     ],
   },
   {

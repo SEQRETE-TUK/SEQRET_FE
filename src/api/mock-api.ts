@@ -1,5 +1,6 @@
 import type {
   AnalysisReview,
+  AnalysisReviewItemInput,
   CaptureSession,
   MediaAsset,
   MediaUploadTarget,
@@ -18,6 +19,7 @@ import type {
   Invitation,
   InvitationIssued,
   MoveJob,
+  MockMoveSummary,
   ParticipantRole,
   ScopeReview,
 } from "@/features/workflow/api/workflow-api";
@@ -32,6 +34,7 @@ export const mockAccessSecrets: Record<ParticipantRole, string> = {
 
 export const mockJobId = "11111111-1111-4111-8111-111111111111";
 const JOB_ID = mockJobId;
+const MOCK_DRAFT_JOB_ID = "99999999-9999-4999-8999-999999999999";
 const CUSTOMER_ID = "22222222-2222-4222-8222-222222222222";
 const PROVIDER_ID = "33333333-3333-4333-8333-333333333333";
 const WORKER_ID = "44444444-4444-4444-8444-444444444444";
@@ -41,6 +44,12 @@ const ENTRANCE_ZONE_ID = "55555555-5555-4555-8555-555555555557";
 const DESTINATION_ZONE_ID = "66666666-6666-4666-8666-666666666666";
 const SCOPE_ID = "77777777-7777-4777-8777-777777777777";
 const DISPATCH_ID = "88888888-8888-4888-8888-888888888888";
+const completionCheckItems = [
+  { key: "packing", label: "포장 및 운반" },
+  { key: "assembly", label: "침대 분해·조립" },
+  { key: "placement", label: "요청 위치 배치" },
+  { key: "cleanup", label: "현장 정리" },
+];
 
 const now = () => new Date().toISOString();
 const future = () => new Date(Date.now() + 86_400_000).toISOString();
@@ -72,9 +81,9 @@ interface MockDispatchSetupInput {
   workers: Array<Omit<DispatchView["worker_options"][number], "id">>;
 }
 
-function actor(role: ParticipantRole, participantId: string, displayName: string): ActorSelf {
+function actor(role: ParticipantRole, participantId: string, displayName: string, jobId = JOB_ID): ActorSelf {
   return {
-    job_id: JOB_ID,
+    job_id: jobId,
     participant_id: participantId,
     role,
     display_name: displayName,
@@ -84,10 +93,10 @@ function actor(role: ParticipantRole, participantId: string, displayName: string
   };
 }
 
-function createState(): MockState {
+function createState(jobId = JOB_ID, customerAccessToken = mockAccessSecrets.customer): MockState {
   const createdAt = now();
   const job: MoveJob = {
-    id: JOB_ID,
+    id: jobId,
     title: "우리 집 이사",
     status: "active",
     scheduled_at: new Date(Date.now() + 7 * 86_400_000).toISOString(),
@@ -104,7 +113,7 @@ function createState(): MockState {
     ],
   };
   const jobHeader = {
-    job_id: JOB_ID,
+    job_id: jobId,
     job_code: "MOCK-2026-001",
     title: job.title,
     scheduled_at: job.scheduled_at,
@@ -182,8 +191,8 @@ function createState(): MockState {
     revision_request: null,
   };
   const invitations: Invitation[] = [
-    { id: "invite-provider", job_id: JOB_ID, issuer_participant_id: CUSTOMER_ID, invitee_participant_id: PROVIDER_ID, role: "company_manager", display_name: "안심이사 매니저", status: "accepted", issued_at: createdAt, expires_at: future(), resolved_at: createdAt },
-    { id: "invite-worker", job_id: JOB_ID, issuer_participant_id: PROVIDER_ID, invitee_participant_id: WORKER_ID, role: "field_worker", display_name: "박현장", status: "accepted", issued_at: createdAt, expires_at: future(), resolved_at: createdAt },
+    { id: "invite-provider", job_id: jobId, issuer_participant_id: CUSTOMER_ID, invitee_participant_id: PROVIDER_ID, role: "company_manager", display_name: "안심이사 매니저", status: "accepted", issued_at: createdAt, expires_at: future(), resolved_at: createdAt },
+    { id: "invite-worker", job_id: jobId, issuer_participant_id: PROVIDER_ID, invitee_participant_id: WORKER_ID, role: "field_worker", display_name: "박현장", status: "accepted", issued_at: createdAt, expires_at: future(), resolved_at: createdAt },
   ];
   const vehicle = { id: "vehicle-1", external_reference: "mock-truck", display_name: "5톤 탑차", specification: "28㎡ 적재", equipment: ["보호 패드", "카트"], capacity_m2: 28, available: true, conflict_reason: null };
   const dispatch: DispatchView = {
@@ -224,8 +233,12 @@ function createState(): MockState {
     completed_at: createdAt,
     final_amount_krw: quote.total_amount_krw,
     duration_minutes: 420,
+    completion_media: [
+      { media_asset_id: "mock-completion-1", room_zone_id: DESTINATION_ZONE_ID, room_zone_label: "도착지", content_type: "image/jpeg", read_url: "/room-after-evidence.png", expires_at: future() },
+      { media_asset_id: "mock-completion-2", room_zone_id: DESTINATION_ZONE_ID, room_zone_label: "도착지", content_type: "image/jpeg", read_url: "/built-in-wardrobe-evidence.png", expires_at: future() },
+    ],
     completion_media_count: 2,
-    checklist: { completed_count: 3, total_count: 3 },
+    checklist: { completed_count: 3, total_count: completionCheckItems.length, items: completionCheckItems.map((item, index) => ({ ...item, confirmed: index < 3 })) },
     onsite_confirmation_completed: true,
     worker_shifts: [{ worker_id: WORKER_ID, display_name: "박현장", role_label: "팀장", started_at: createdAt, ended_at: createdAt, duration_minutes: 420 }],
     field_changes: [],
@@ -242,9 +255,9 @@ function createState(): MockState {
   const analysisRunId = crypto.randomUUID();
   const media: MediaAsset = { id: crypto.randomUUID(), capture_session_id: sessionId, room_zone_id: ORIGIN_ZONE_ID, media_purpose: "inventory", status: "ready", content_type: "image/jpeg", expected_size_bytes: 1024, actual_size_bytes: 1024, sha256_hex: null, created_at: createdAt, uploaded_at: createdAt };
   const consent: CaptureSession["media_processing_consent"] = { policy_version: "2026-08-17.v1", processing_purposes: ["inventory_analysis", "condition_record", "field_change_evidence", "completion_record"], privacy_notice_acknowledged: true, retention_days_after_job_completion: 30, consented_at: createdAt };
-  const sessions: CaptureSession[] = [{ id: sessionId, job_id: JOB_ID, created_by_participant_id: CUSTOMER_ID, created_at: createdAt, media_processing_consent: consent, media_assets: [media], analysis: { analysis_run_id: analysisRunId, capture_session_id: sessionId, status: "completed", scope_version_id: SCOPE_ID, failure_code: null, retryable: null, submitted_at: createdAt, completed_at: createdAt } }];
+  const sessions: CaptureSession[] = [{ id: sessionId, job_id: jobId, created_by_participant_id: CUSTOMER_ID, created_at: createdAt, media_processing_consent: consent, media_assets: [media], analysis: { analysis_run_id: analysisRunId, capture_session_id: sessionId, status: "completed", scope_version_id: SCOPE_ID, failure_code: null, retryable: null, submitted_at: createdAt, completed_at: createdAt } }];
   const analysisReview: AnalysisReview = {
-    job_id: JOB_ID,
+    job_id: jobId,
     analysis_run_id: analysisRunId,
     capture_session_id: sessionId,
     source_scope_version_id: SCOPE_ID,
@@ -268,26 +281,28 @@ function createState(): MockState {
     created_at: createdAt,
     locked_at: null,
   }];
+  const actors: Record<string, ActorSelf> = {
+    [customerAccessToken]: actor("customer", CUSTOMER_ID, "김서큐", jobId),
+    [mockAccessSecrets.company_manager]: actor("company_manager", PROVIDER_ID, "안심이사 매니저", jobId),
+    [mockAccessSecrets.field_worker]: actor("field_worker", WORKER_ID, "박현장", jobId),
+  };
+  if (customerAccessToken !== mockAccessSecrets.customer) actors[mockAccessSecrets.customer] = actor("customer", CUSTOMER_ID, "김서큐", jobId);
   return {
-    actors: {
-      [mockAccessSecrets.customer]: actor("customer", CUSTOMER_ID, "김서큐"),
-      [mockAccessSecrets.company_manager]: actor("company_manager", PROVIDER_ID, "안심이사 매니저"),
-      [mockAccessSecrets.field_worker]: actor("field_worker", WORKER_ID, "박현장"),
-    },
+    actors,
     analysisReview,
     completion,
     dispatch,
     fieldBrief: {
       job: { ...jobHeader, viewer_role: "field_worker" }, dispatch_id: DISPATCH_ID, scope_version_id: SCOPE_ID, scope_version_label: "v3", start_at: job.scheduled_at!, masked_origin: "성수동 원룸", masked_destination: "자양동 오피스텔", lead_worker_name: "박현장", origin_conditions: ["엘리베이터 양쪽 모두 사용 가능", "출발지 건물 앞 주차"], field_check_required_count: 3,
       check_in_items: [{ key: "vehicle_checked", label: "차량과 적재 장비 확인", confirmed: false }, { key: "scope_checked", label: "최신 작업범위 확인", confirmed: false }, { key: "safety_checked", label: "현장 안전사항 확인", confirmed: false }],
-      completion_check_items: [{ key: "packing", label: "포장 및 운반", confirmed: false }, { key: "assembly", label: "침대 분해·조립", confirmed: false }, { key: "placement", label: "요청 위치 배치", confirmed: false }, { key: "cleanup", label: "현장 정리", confirmed: false }], completion_required_count: 4, completion_submission_id: null, assigned_vehicle: vehicle, assigned_worker_count: 1,
+      completion_check_items: completionCheckItems.map((item) => ({ ...item, confirmed: false })), completion_required_count: completionCheckItems.length, completion_submission_id: null, assigned_vehicle: vehicle, assigned_worker_count: 1,
       assigned_workers: [{ worker_id: WORKER_ID, external_reference: "mock-worker", display_name: "박현장", role_label: "팀장", is_lead: true }], required_skills: [], safety_notice: "승인 범위 밖 작업은 먼저 이슈로 보고해 주세요.", checked_in_at: null,
     },
     invitations,
     issues: [{
       field_issue_id: "field-issue-elevator",
       client_reference: "mock-elevator-outage",
-      job_id: JOB_ID,
+      job_id: jobId,
       base_scope_version_id: SCOPE_ID,
       issue_type: "site_blocker",
       title: "엘리베이터 운행 중단",
@@ -327,23 +342,104 @@ function createState(): MockState {
   };
 }
 
-let state = createState();
+function createDraftState(jobId: string, customerAccessToken: string) {
+  const draft = createState(jobId, customerAccessToken);
+  const emptyGroups = draft.scope.scope.room_groups.map((group) => ({ ...group, item_count: 0, review_required_count: 0, items: [] }));
+  const draftJob = { ...draft.scope.job, company_display_name: null, origin_summary: "서울 마포구", destination_summary: "서울 송파구", title: "새 이사 준비" };
+  draft.scope = {
+    ...draft.scope,
+    job: draftJob,
+    scope: { ...draft.scope.scope, status: "company_review", version_label: "v1", item_count: 0, review_required_count: 0, room_groups: emptyGroups },
+    proposal_id: null,
+    quote: null,
+    execution_plan: null,
+    proposal_reason: null,
+    company_participation_status: "company_not_invited",
+    collaboration_status: "draft",
+    agreement_notice: "업체 초대 링크를 보내면 견적서를 받을 수 있어요.",
+    company_confirmed_at: null,
+  };
+  draft.completion = { ...draft.completion, job: draftJob, final_amount_krw: null, completed_at: null, quote: null, completion_request: null, documents: [], archive_ready: false, retention_until: null };
+  draft.dispatch = { ...draft.dispatch, job: { ...draftJob, viewer_role: "company_manager" } };
+  draft.fieldBrief = { ...draft.fieldBrief, job: { ...draftJob, viewer_role: "field_worker" } };
+  draft.invitations = [];
+  draft.issues = [];
+  draft.proposals = {};
+  draft.sessions = [];
+  draft.analysisReview = { ...draft.analysisReview, items: [], review_scope_version_id: null, review_completed_at: null };
+  draft.scopeVersions = draft.scopeVersions.map((version) => ({ ...version, content: { schema_version: 1, items: [] } }));
+  draft.job = { ...draft.job, title: "새 이사 준비", locations: draft.job.locations.map((location, index) => ({ ...location, label: index === 0 ? "서울 마포구" : "서울 송파구" })) };
+  return draft;
+}
+
+function scopeItemsFromInput(items: AnalysisReviewItemInput) {
+  const isV2 = "name" in items;
+  const description = isV2 ? items.name : items.description;
+  return {
+    item_key: items.item_key,
+    room_zone_id: items.room_zone_id,
+    description,
+    name: description,
+    quantity: isV2 ? items.quantity : null,
+    unit: isV2 ? items.unit : null,
+    work_note: isV2 ? items.work_note ?? null : null,
+    review_status: "confirmed" as const,
+    source: "customer" as const,
+    review_required: false,
+    source_media_asset_ids: [],
+  };
+}
+
+function replaceDraftScopeItems(state: MockState, items: AnalysisReviewItemInput[]) {
+  const origin = state.job.locations.find((location) => location.kind === "origin");
+  const groups = (origin?.room_zones ?? []).map((zone) => ({ room_zone_id: zone.id, label: zone.name, item_count: 0, review_required_count: 0, items: [] as ReturnType<typeof scopeItemsFromInput>[] }));
+  items.forEach((item) => {
+    const group = groups.find((candidate) => candidate.room_zone_id === item.room_zone_id);
+    if (group) group.items.push(scopeItemsFromInput(item));
+  });
+  state.scope.scope = {
+    ...state.scope.scope,
+    item_count: items.length,
+    room_groups: groups.map((group) => ({ ...group, item_count: group.items.length })),
+  };
+  state.analysisReview.zones = groups.map((group, index) => ({ room_zone_id: group.room_zone_id, name: group.label, sort_order: index, total_media_count: 0, ready_media_count: 0, failed_media_count: 0 }));
+}
+
+const mockStates = new Map<string, MockState>([
+  [JOB_ID, createState(JOB_ID)],
+  [MOCK_DRAFT_JOB_ID, createDraftState(MOCK_DRAFT_JOB_ID, "seqret_mock_customer_draft_000000000000000000000000")],
+]);
 
 function result<T>(value: T): Promise<T> {
   return Promise.resolve(copy(value));
 }
 
-function accessLink(role: ParticipantRole, participantId: string, secret: string) {
-  return { id: crypto.randomUUID(), job_id: JOB_ID, participant_id: participantId, role, secret, expires_at: future() };
+function accessLink(role: ParticipantRole, participantId: string, secret: string, jobId = JOB_ID) {
+  return { id: crypto.randomUUID(), job_id: jobId, participant_id: participantId, role, secret, expires_at: future() };
+}
+
+function moveSummary(state: MockState): MockMoveSummary {
+  return {
+    job: state.job,
+    version_label: state.scope.scope.version_label,
+    scope_status: state.scope.scope.status,
+    company_participation_status: state.scope.company_participation_status,
+    quote: state.scope.quote,
+    item_count: state.scope.scope.item_count,
+    adjustment_count: state.scope.quote?.adjustments.length ?? 0,
+  };
 }
 
 export async function mockApiRequest<T>(path: string, init: RequestInit, accessToken?: string): Promise<T> {
-  await new Promise((resolve) => globalThis.setTimeout(resolve, 120));
   const method = init.method ?? "GET";
+  const isInvitationIssue = method === "POST" && /^\/api\/v1\/move-jobs\/[^/]+\/invitations$/.test(path);
+  if (!isInvitationIssue) await new Promise((resolve) => globalThis.setTimeout(resolve, 120));
 
   if (path === "/api/v1/move-jobs/onboarding" && method === "POST") {
     const input = jsonBody<CustomerOnboardingInput>(init);
-    state = createState();
+    const jobId = crypto.randomUUID();
+    const customerAccessToken = `seqret_mock_customer_${crypto.randomUUID().replaceAll("-", "")}`;
+    const state = createDraftState(jobId, customerAccessToken);
     state.scope.company_participation_status = "company_not_invited";
     state.scope.collaboration_status = "draft";
     state.scope.proposal_id = null;
@@ -355,28 +451,53 @@ export async function mockApiRequest<T>(path: string, init: RequestInit, accessT
     state.job.title = input.title;
     state.job.scheduled_at = input.scheduled_at;
     state.job.locations = input.locations.map((location) => ({ id: crypto.randomUUID(), ...location, room_zones: location.room_zones.map((zone) => ({ id: crypto.randomUUID(), ...zone })) }));
+    replaceDraftScopeItems(state, []);
     state.job.participants[0].display_name = input.customer_display_name;
-    state.actors[mockAccessSecrets.customer].display_name = input.customer_display_name;
-    return result({ job: state.job, customer_access_link: accessLink("customer", CUSTOMER_ID, mockAccessSecrets.customer) } as CustomerOnboardingResult) as Promise<T>;
+    Object.values(state.actors).filter((actor) => actor.role === "customer").forEach((actor) => { actor.display_name = input.customer_display_name; });
+    state.scope.job = { ...state.scope.job, title: input.title, scheduled_at: input.scheduled_at, customer_display_name: input.customer_display_name, origin_summary: input.locations.find((location) => location.kind === "origin")?.label ?? null, destination_summary: input.locations.find((location) => location.kind === "destination")?.label ?? null };
+    state.completion.job = state.scope.job;
+    state.dispatch.job = { ...state.scope.job, viewer_role: "company_manager" };
+    state.fieldBrief.job = { ...state.scope.job, viewer_role: "field_worker" };
+    state.job.title = input.title;
+    state.job.scheduled_at = input.scheduled_at;
+    mockStates.set(jobId, state);
+    return result({ job: state.job, customer_access_link: accessLink("customer", CUSTOMER_ID, customerAccessToken, jobId) } as CustomerOnboardingResult) as Promise<T>;
   }
   if (path === "/api/v1/me" && method === "GET") {
-    const found = accessToken ? state.actors[accessToken] : undefined;
+    const found = accessToken ? [...mockStates.values()].map((state) => state.actors[accessToken]).find(Boolean) : undefined;
     if (!found) throw new Error("Mock 초대 코드를 확인해 주세요.");
     return result(found) as Promise<T>;
   }
-  if (!accessToken || !state.actors[accessToken]) throw new Error("Mock 연결 정보가 없습니다.");
-  const jobPath = `/api/v1/move-jobs/${JOB_ID}`;
+  if (!accessToken) throw new Error("Mock 연결 정보가 없습니다.");
+  const requestedJobId = path.match(/^\/api\/v1\/move-jobs\/([^/]+)/)?.[1];
+  const authenticatedState = [...mockStates.values()].find((candidate) => candidate.actors[accessToken]);
+  const authenticatedActor = authenticatedState?.actors[accessToken];
+  const state = requestedJobId ? mockStates.get(decodeURIComponent(requestedJobId)) : authenticatedState;
+  if (!state || !authenticatedActor) throw new Error("Mock 연결 정보가 없습니다.");
+  if (!state.actors[accessToken] && authenticatedActor.role === "customer") state.actors[accessToken] = actor("customer", CUSTOMER_ID, authenticatedActor.display_name, state.job.id);
+  if (path === "/api/v1/move-jobs" && method === "GET") {
+    if (authenticatedActor.role !== "customer") throw new Error("고객 이사 목록은 고객만 확인할 수 있어요.");
+    return result({ moves: [...mockStates.values()].filter((candidate) => Object.values(candidate.actors).some((actor) => actor.role === "customer")).map(moveSummary) }) as Promise<T>;
+  }
+  const jobPath = `/api/v1/move-jobs/${encodeURIComponent(state.job.id)}`;
   if (path === jobPath && method === "GET") return result(state.job) as Promise<T>;
+  if (path === jobPath && method === "DELETE") {
+    if (state.actors[accessToken].role !== "customer") throw new Error("고객만 이사를 삭제할 수 있어요.");
+    if (state.scope.quote) throw new Error("견적서를 받은 이사는 삭제할 수 없어요.");
+    mockStates.delete(state.job.id);
+    return result(undefined) as Promise<T>;
+  }
   if (path === `${jobPath}/invitations` && method === "GET") return result({ invitations: state.invitations }) as Promise<T>;
   if (path === `${jobPath}/invitations` && method === "POST") {
-    const input = jsonBody<{ role: Exclude<ParticipantRole, "customer">; display_name: string }>(init);
+    const input = jsonBody<{ role: Exclude<ParticipantRole, "customer">; display_name?: string }>(init);
+    const displayName = input.display_name?.trim() || (input.role === "company_manager" ? "업체" : "현장기사");
     const participantId = crypto.randomUUID();
     const secret = `seqret_mock_${input.role}_${crypto.randomUUID().replaceAll("-", "")}`;
-    const invitation: Invitation = { id: crypto.randomUUID(), job_id: JOB_ID, issuer_participant_id: state.actors[accessToken].participant_id, invitee_participant_id: participantId, role: input.role, display_name: input.display_name, status: "pending", issued_at: now(), expires_at: future(), resolved_at: null };
+    const invitation: Invitation = { id: crypto.randomUUID(), job_id: state.job.id, issuer_participant_id: state.actors[accessToken].participant_id, invitee_participant_id: participantId, role: input.role, display_name: displayName, status: "pending", issued_at: now(), expires_at: future(), resolved_at: null };
     state.invitations.push(invitation);
     if (input.role === "company_manager") state.scope.company_participation_status = "company_invited";
-    state.actors[secret] = { ...actor(input.role, participantId, input.display_name), invitation };
-    return result({ invitation, access_link: accessLink(input.role, participantId, secret) } as InvitationIssued) as Promise<T>;
+    state.actors[secret] = { ...actor(input.role, participantId, displayName, state.job.id), invitation };
+    return result({ invitation, access_link: accessLink(input.role, participantId, secret, state.job.id) } as InvitationIssued) as Promise<T>;
   }
   const invitationAction = path.match(new RegExp(`^${jobPath}/invitations/([^/]+)/(accept|decline|revoke|reissue)$`));
   if (invitationAction && method === "POST") {
@@ -387,8 +508,8 @@ export async function mockApiRequest<T>(path: string, init: RequestInit, accessT
     Object.values(state.actors).filter((item) => item.invitation?.id === invitation.id).forEach((item) => { item.invitation = copy(invitation); });
     if (action !== "reissue") return result(invitation) as Promise<T>;
     const secret = `seqret_mock_reissued_${crypto.randomUUID().replaceAll("-", "")}`;
-    state.actors[secret] = { ...actor(invitation.role, invitation.invitee_participant_id, invitation.display_name), invitation };
-    return result({ invitation, access_link: accessLink(invitation.role, invitation.invitee_participant_id, secret) } as InvitationIssued) as Promise<T>;
+    state.actors[secret] = { ...actor(invitation.role, invitation.invitee_participant_id, invitation.display_name, state.job.id), invitation };
+    return result({ invitation, access_link: accessLink(invitation.role, invitation.invitee_participant_id, secret, state.job.id) } as InvitationIssued) as Promise<T>;
   }
   if (path === `${jobPath}/scope-review` && method === "GET") {
     const currentActor = state.actors[accessToken];
@@ -416,7 +537,7 @@ export async function mockApiRequest<T>(path: string, init: RequestInit, accessT
   if (path === `${jobPath}/field-issues` && method === "GET") return result(state.issues) as Promise<T>;
   if (path === `${jobPath}/field-issues` && method === "POST") {
     const input = jsonBody<Omit<FieldIssue, "field_issue_id" | "job_id" | "reported_by_participant_id" | "reported_at" | "status" | "change_proposal_id">>(init);
-    const issue: FieldIssue = { ...input, field_issue_id: crypto.randomUUID(), job_id: JOB_ID, reported_by_participant_id: state.actors[accessToken].participant_id, reported_at: now(), status: "open", change_proposal_id: null };
+    const issue: FieldIssue = { ...input, field_issue_id: crypto.randomUUID(), job_id: state.job.id, reported_by_participant_id: state.actors[accessToken].participant_id, reported_at: now(), status: "open", change_proposal_id: null };
     state.issues.push(issue);
     return result(issue) as Promise<T>;
   }
@@ -468,8 +589,12 @@ export async function mockApiRequest<T>(path: string, init: RequestInit, accessT
     return result({ checked_in_at: state.fieldBrief.checked_in_at }) as Promise<T>;
   }
   if (path === `${jobPath}/completion-submissions` && method === "POST") {
+    const input = jsonBody<{ completed_check_keys?: string[] }>(init);
+    const completedKeys = new Set(input.completed_check_keys ?? []);
+    const checklistItems = state.fieldBrief.completion_check_items.map((item) => ({ ...item, confirmed: completedKeys.has(item.key) }));
     state.fieldBrief.completion_submission_id = "completion-submission-1";
     state.completion.completion_submission_id = "completion-submission-1";
+    state.completion.checklist = { completed_count: checklistItems.filter((item) => item.confirmed).length, total_count: checklistItems.length, items: checklistItems };
     return result({ completion_submission_id: "completion-submission-1" }) as Promise<T>;
   }
   if (path === `${jobPath}/completion-summary` && method === "GET") return result(state.completion) as Promise<T>;
@@ -496,7 +621,7 @@ export async function mockApiRequest<T>(path: string, init: RequestInit, accessT
     if (input.consent_policy_version !== "2026-08-17.v1" || input.privacy_notice_acknowledged !== true) {
       throw new Error("Mock contract: explicit current media consent is required");
     }
-    const session: CaptureSession = { id: crypto.randomUUID(), job_id: JOB_ID, created_by_participant_id: state.actors[accessToken].participant_id, created_at: now(), media_processing_consent: { policy_version: input.consent_policy_version, processing_purposes: ["inventory_analysis", "condition_record", "field_change_evidence", "completion_record"], privacy_notice_acknowledged: true, retention_days_after_job_completion: 30, consented_at: now() }, media_assets: [], analysis: null };
+    const session: CaptureSession = { id: crypto.randomUUID(), job_id: state.job.id, created_by_participant_id: state.actors[accessToken].participant_id, created_at: now(), media_processing_consent: { policy_version: input.consent_policy_version, processing_purposes: ["inventory_analysis", "condition_record", "field_change_evidence", "completion_record"], privacy_notice_acknowledged: true, retention_days_after_job_completion: 30, consented_at: now() }, media_assets: [], analysis: null };
     state.sessions.unshift(session);
     return result(session) as Promise<T>;
   }
@@ -524,9 +649,12 @@ export async function mockApiRequest<T>(path: string, init: RequestInit, accessT
   }
   if (path === `${jobPath}/analysis-review` && method === "GET") return result(state.analysisReview) as Promise<T>;
   if (path === `${jobPath}/analysis-review/complete` && method === "POST") {
-    const input = jsonBody<{ items: AnalysisReview["items"]; scope_schema_version?: 1 | 2; location_conditions?: unknown[] }>(init);
+    const input = jsonBody<{ items: AnalysisReviewItemInput[]; scope_schema_version?: 1 | 2; location_conditions?: unknown[] }>(init);
     if (!input.scope_schema_version || !input.location_conditions) throw new Error("Mock contract: analysis review schema and location conditions are required");
-    state.analysisReview.items = input.items.map((item) => ({ ...item, source: "customer", confidence: null, review_required: false, source_media_asset_ids: [] }));
+    replaceDraftScopeItems(state, input.items);
+    state.analysisReview.scope_schema_version = input.scope_schema_version;
+    state.analysisReview.location_conditions = input.location_conditions as AnalysisReview["location_conditions"];
+    state.analysisReview.items = input.items.map((item) => ({ ...scopeItemsFromInput(item), scope_source: "customer" as const, source: "customer" as const, confidence: null }));
     state.analysisReview.review_completed_at = now();
     state.analysisReview.review_scope_version_id = SCOPE_ID;
     return result(state.analysisReview) as Promise<T>;
@@ -544,7 +672,20 @@ export async function mockApiRequest<T>(path: string, init: RequestInit, accessT
       locked_at: null,
     };
     state.scopeVersions.push(version);
+    replaceDraftScopeItems(state, input.content.items);
     return result(version) as Promise<T>;
+  }
+  const completionDecisionMatch = path.match(new RegExp(`^${jobPath}/completion-requests/([^/]+)/decision$`));
+  if (completionDecisionMatch && method === "POST") {
+    const input = jsonBody<{ decision: "confirm" | "report_issue"; problem_type?: "missing_work" | "damage" | "amount" | "other"; problem_description?: string; unrecorded_extra_charge?: boolean }>(init);
+    const request = state.completion.completion_request;
+    if (!request || request.completion_request_id !== completionDecisionMatch[1]) throw new Error("완료 확인 요청을 찾을 수 없어요.");
+    request.status = input.decision === "confirm" ? "confirmed" : "issue_reported";
+    request.decided_at = now();
+    request.unrecorded_extra_charge = input.unrecorded_extra_charge ?? null;
+    if (input.decision === "report_issue") request.problem_report = { problem_report_id: crypto.randomUUID(), problem_type: input.problem_type ?? "other", description: input.problem_description ?? "문제가 있어요.", reported_at: now() };
+    if (input.decision === "confirm") { state.completion.job_status = "completed"; state.job.status = "completed"; state.job.completed_at = now(); }
+    return result({ completion_request_id: request.completion_request_id, decision: input.decision, status: request.status, job_status: state.completion.job_status, completed_at: state.job.completed_at, decided_at: request.decided_at, problem_report: request.problem_report, retention_scheduled_count: input.decision === "confirm" ? 1 : 0 }) as Promise<T>;
   }
   throw new Error(`처리되지 않은 Mock API: ${method} ${path}`);
 }

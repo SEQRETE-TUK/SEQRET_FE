@@ -39,6 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [replaceSession]);
 
   const clearSession = useCallback(() => replaceSession(null), [replaceSession]);
+  const switchSession = useCallback((next: AuthSession) => setSession(next), []);
 
   const refreshActor = useCallback(async () => {
     if (!session) return null;
@@ -47,12 +48,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return actor;
   }, [session]);
 
-  const value = useMemo(() => ({ session, clearSession, connect, onboard, refreshActor }), [
+  const value = useMemo(() => ({ session, clearSession, connect, switchSession, onboard, refreshActor }), [
     clearSession,
     connect,
     onboard,
     refreshActor,
     session,
+    switchSession,
   ]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -32,6 +32,14 @@ import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useAuth, type AuthSession } from "@/features/auth/model/auth-context";
 import {
+  asSupportedContentType,
+  completeMediaUpload,
+  createCaptureSession,
+  createMediaUpload,
+  getMediaConsentPolicy,
+  uploadCaptureFile,
+} from "@/features/capture/api/capture-api";
+import {
   apiErrorMessage,
   getFieldBrief,
   getScopeReview,
@@ -43,6 +51,7 @@ import {
   type ScopeReview,
 } from "@/features/workflow/api/workflow-api";
 import { CrewIssueReport } from "@/features/crew/ui/crew-issue-report";
+import { InvitationPanel } from "@/features/workflow/ui/workflow-shell";
 
 type CrewTab = "home" | "work" | "more" | "notifications";
 type CrewWorkView = "list" | "agreement" | "report" | "completion";
@@ -54,10 +63,16 @@ const items: MobileNavItem<CrewTab>[] = [
 ];
 const validTabs = new Set<CrewTab>([...items.map(({ id }) => id), "notifications"]);
 const validWorkViews = new Set<CrewWorkView>(["list", "agreement", "report", "completion"]);
-const titles: Record<CrewTab, string> = { home: "SEQRET", work: "내 작업", more: "더보기", notifications: "알림" };
+const titles: Record<CrewTab, string> = { home: "짐확정", work: "내 작업", more: "더보기", notifications: "알림" };
 const dayFormatter = new Intl.DateTimeFormat("ko-KR", { month: "long", day: "numeric", weekday: "short" });
 const timeFormatter = new Intl.DateTimeFormat("ko-KR", { hour: "2-digit", minute: "2-digit", hour12: false });
 const issueStatusLabel = (status: string) => ({ open: "업체 처리 대기", customer_review: "고객 확인 대기", clarification_requested: "설명 보완 중", approved: "고객 승인", rejected: "고객 거절" })[status] ?? "상태 확인 중";
+
+type CrewHistoryRecord = { amount: number; date: string; destination: string; items: number; origin: string; reports: number; version: string };
+const crewHistoryRecords: CrewHistoryRecord[] = [
+  { amount: 1_430_000, date: "2026년 5월 18일", destination: "합정동", items: 21, origin: "성수동", reports: 1, version: "v4" },
+  { amount: 620_000, date: "2025년 8월 25일", destination: "성수동", items: 12, origin: "건대입구", reports: 0, version: "v2" },
+];
 
 export function CrewApp() {
   const { session } = useAuth();
@@ -76,19 +91,22 @@ function ConnectedCrewApp({ session }: { session: AuthSession }) {
   const [inviteOpen, setInviteOpen] = useState(false);
   useEffect(() => { window.scrollTo({ top: 0 }); }, [tab, workView]);
   const connection: Connection = { accessToken: session.accessToken, jobId: session.actor.job_id };
-  const briefQuery = useQuery({ queryKey: workflowKeys.brief(connection.jobId), queryFn: () => getFieldBrief(connection) });
-  const scopeQuery = useQuery({ queryKey: workflowKeys.scope(connection.jobId), queryFn: () => getScopeReview(connection) });
-  const issueQuery = useQuery({ queryKey: workflowKeys.fieldIssues(connection.jobId), queryFn: () => listFieldIssues(connection) });
+  const invitationPending = session.actor.invitation?.status === "pending";
+  const briefQuery = useQuery({ enabled: !invitationPending, queryKey: workflowKeys.brief(connection.jobId), queryFn: () => getFieldBrief(connection) });
+  const scopeQuery = useQuery({ enabled: !invitationPending, queryKey: workflowKeys.scope(connection.jobId), queryFn: () => getScopeReview(connection) });
+  const issueQuery = useQuery({ enabled: !invitationPending, queryKey: workflowKeys.fieldIssues(connection.jobId), queryFn: () => listFieldIssues(connection), refetchInterval: mockApiEnabled && !invitationPending ? 2_000 : false });
   const changeTab = (next: CrewTab) => setParams(next === "home" ? {} : next === "work" ? { tab: "work", view: "list" } : { tab: next }, { replace: true });
   const changeWorkView = (view: CrewWorkView) => setParams({ tab: "work", view }, { replace: true });
   const refresh = () => queryClient.invalidateQueries({ queryKey: workflowKeys.root(connection.jobId) });
   const disconnect = () => { clearSession(); navigate("/"); };
 
+  if (invitationPending) return <div className="mobile-stage min-h-dvh bg-canvas"><main className="mobile-frame min-h-dvh px-[var(--content-gutter)] py-8"><p className="text-sm font-extrabold text-primary-700">현장기사 초대</p><h1 className="mt-2 text-ui-section font-black">배정된 작업을 먼저 확인해 주세요</h1><p className="mt-2 text-sm leading-6 text-ink-600">수락하기 전에는 고객 주소와 작업범위를 불러오지 않습니다.</p><div className="mt-6"><InvitationPanel /></div></main></div>;
+
   const header = tab === "notifications" ? <CrewNotificationsHeader onBack={() => changeTab("home")} /> : tab === "home" ? <CrewHomeHeader onBell={() => changeTab("notifications")} /> : tab === "work" && workView !== "list" ? <CrewDetailHeader onBack={() => changeWorkView("list")} onMore={() => changeTab("more")} title={briefQuery.data?.job.title ?? "내 작업"} /> : <CrewSafeArea />;
   return (
     <>
     <MobileAppShell current={tab} eyebrow={`현장기사 · ${session.actor.display_name}`} header={header} items={items} onChange={changeTab} onProfile={() => changeTab("more")} onRefresh={tab === "more" ? undefined : refresh} root={tab === "home"} showNav={tab !== "work" || workView === "list"} title={titles[tab]}>
-      {tab === "home" ? <CrewHome brief={briefQuery.data} issueCount={issueQuery.data?.length ?? 0} onInvite={() => setInviteOpen(true)} onWork={() => changeWorkView("agreement")} /> : null}
+      {tab === "home" ? <CrewHome brief={briefQuery.data} issueCount={issueQuery.data?.filter((issue) => issue.status !== "approved" && issue.status !== "rejected").length ?? 0} onInvite={() => setInviteOpen(true)} onWork={() => changeWorkView("agreement")} /> : null}
       {tab === "work" ? <CrewWork brief={briefQuery.data} connection={connection} issues={issueQuery.data ?? []} onViewChange={changeWorkView} scope={scopeQuery.data} view={workView} /> : null}
       {tab === "notifications" ? <CrewNotifications onAction={() => setParams({ tab: "work", view: "report" }, { replace: true })} /> : null}
       {tab === "more" ? <ConnectedProfile displayName={session.actor.display_name} expiresAt={session.actor.expires_at} onDisconnect={disconnect} permissions={session.actor.permissions} roleLabel="현장기사" /> : null}
@@ -172,13 +190,13 @@ function CrewWork({ brief, connection, issues, onViewChange, scope, view }: {
   scope: ScopeReview | undefined;
   view: CrewWorkView;
 }) {
-  if (view === "list") return <CrewWorkList brief={brief} onOpen={() => onViewChange("agreement")} />;
+  if (view === "list") return <CrewWorkList brief={brief} issues={issues} onOpen={() => onViewChange("agreement")} scope={scope} />;
   return (
     <>
       <CrewDetailTabs current={view} onChange={onViewChange} />
       {view === "agreement" ? <CrewApprovedScope issue={issues[0]} scope={scope} /> : null}
       {view === "report" ? <CrewIssueReport brief={brief} connection={connection} issues={issues} /> : null}
-      {view === "completion" ? <CrewCompletion brief={brief} connection={connection} issues={issues} /> : null}
+      {view === "completion" ? <CrewCompletion brief={brief} connection={connection} issues={issues} scope={scope} /> : null}
     </>
   );
 }
@@ -188,21 +206,40 @@ function CrewDetailTabs({ current, onChange }: { current: Exclude<CrewWorkView, 
   return <MobileDetailTabs current={current} items={tabs} label="작업 상세 메뉴" onChange={onChange} />;
 }
 
-function CrewWorkList({ brief, onOpen }: { brief: Awaited<ReturnType<typeof getFieldBrief>> | undefined; onOpen: () => void }) {
+function CrewWorkList({ brief, issues = [], onOpen, scope }: { brief: Awaited<ReturnType<typeof getFieldBrief>> | undefined; issues?: FieldIssue[]; onOpen: () => void; scope?: ScopeReview }) {
   const hasWork = Boolean(brief);
   const completed = Boolean(brief?.completion_submission_id);
   const [listTab, setListTab] = useState<"active" | "history">(completed ? "history" : "active");
+  const [selectedHistory, setSelectedHistory] = useState<CrewHistoryRecord | null>(null);
   const showWork = hasWork && listTab === (completed ? "history" : "active");
   const startAt = brief?.start_at ? new Date(brief.start_at) : null;
   const historyCount = hasWork ? (completed ? 1 : 0) + (mockApiEnabled ? 2 : 0) : 0;
   return <div className="pb-28">
     <div className="bg-surface px-[var(--content-gutter)] pt-5"><h1 className="text-ui-section">내 작업</h1><div className="mt-6 grid grid-cols-2 border-b border-line" role="tablist" aria-label="기사 작업 목록"><button aria-selected={listTab === "active"} className={`relative min-h-11 text-ui-control ${listTab === "active" ? "text-primary-700 after:absolute after:inset-x-6 after:bottom-0 after:h-0.5 after:bg-primary-600" : "text-ink-600"}`} onClick={() => setListTab("active")} role="tab" type="button">진행 중 {hasWork && !completed ? 1 : 0}</button><button aria-selected={listTab === "history"} className={`relative min-h-11 text-ui-control ${listTab === "history" ? "text-primary-700 after:absolute after:inset-x-6 after:bottom-0 after:h-0.5 after:bg-primary-600" : "text-ink-600"}`} onClick={() => setListTab("history")} role="tab" type="button">작업 기록 {historyCount}</button></div></div>
-    <div className="px-[var(--content-gutter)]">{showWork ? <button className="press-static mt-5 w-full ui-card p-5 text-left shadow-[var(--shadow-card)]" onClick={onOpen} type="button"><span className={`inline-flex h-[var(--status-height)] items-center rounded-full px-3 text-ui-status ${completed ? "bg-success-bg text-success-ink" : "bg-primary-50 text-primary-700"}`}>{completed ? "작업 완료" : brief?.checked_in_at ? "현장 진행" : "작업 예정"}</span><strong className="mt-4 flex items-center justify-between gap-3 text-ui-section"><span className="min-w-0 truncate">{brief ? `${brief.masked_origin ?? "출발지"} → ${brief.masked_destination ?? "도착지"}` : "작업 정보를 불러오는 중"}</span><CaretRight aria-hidden="true" className="shrink-0 text-ink-400" size="var(--icon-sm)" /></strong><span className="mt-2 block text-ui-support text-ink-600">{startAt ? `${dayFormatter.format(startAt)} · ${timeFormatter.format(startAt)}` : "일정 확인 중"}</span><span className="mt-5 grid grid-cols-3 divide-x divide-line border-t border-line pt-4 text-center text-xs text-ink-600"><span><Package aria-hidden="true" className="mx-auto mb-1" size="var(--icon-sm)" />점검 {brief?.completion_required_count ?? "–"}개</span><span><Wrench aria-hidden="true" className="mx-auto mb-1" size="var(--icon-sm)" />작업 {brief?.completion_check_items.length ?? "–"}개</span><span><Buildings aria-hidden="true" className="mx-auto mb-1" size="var(--icon-sm)" />조건 {brief?.origin_conditions.length ?? "–"}개</span></span></button> : listTab === "history" && mockApiEnabled && hasWork ? <div className="mt-5 space-y-3"><CrewHistoryCard date="2026년 5월 18일" destination="합정동" origin="성수동" reports={1} /><CrewHistoryCard date="2025년 8월 25일" destination="성수동" origin="건대입구" reports={0} /></div> : <section className="mt-5 ui-card px-5 py-8 text-center"><Archive aria-hidden="true" className="mx-auto text-ink-400" size="var(--icon-category)" /><h2 className="mt-3 text-ui-component">{listTab === "active" ? "진행 중인 작업이 없어요" : "완료한 작업이 없어요"}</h2></section>}</div>
+    <div className="px-[var(--content-gutter)]">{showWork ? <button className="press-static mt-5 w-full ui-card p-5 text-left shadow-[var(--shadow-card)]" onClick={onOpen} type="button"><span className={`inline-flex h-[var(--status-height)] items-center rounded-full px-3 text-ui-status ${completed ? "bg-success-bg text-success-ink" : "bg-primary-50 text-primary-700"}`}>{completed ? "작업 완료" : brief?.checked_in_at ? "현장 진행" : "작업 예정"}</span><strong className="mt-4 flex items-center justify-between gap-3 text-ui-section"><span className="min-w-0 truncate">{brief ? `${brief.masked_origin ?? "출발지"} → ${brief.masked_destination ?? "도착지"}` : "작업 정보를 불러오는 중"}</span><CaretRight aria-hidden="true" className="shrink-0 text-ink-400" size="var(--icon-sm)" /></strong><span className="mt-2 block text-ui-support text-ink-600">{startAt ? `${dayFormatter.format(startAt)} · ${timeFormatter.format(startAt)}` : "일정 확인 중"}</span><MoveJourneyProgress current={completed ? 4 : brief?.checked_in_at ? 3 : 2} /><span className="mt-5 grid grid-cols-3 divide-x divide-line border-t border-line pt-4 text-center text-xs text-ink-600"><span><Package aria-hidden="true" className="mx-auto mb-1" size="var(--icon-sm)" />점검 {brief?.completion_required_count ?? "–"}개</span><span><Wrench aria-hidden="true" className="mx-auto mb-1" size="var(--icon-sm)" />작업 {brief?.completion_check_items.length ?? "–"}개</span><span><Buildings aria-hidden="true" className="mx-auto mb-1" size="var(--icon-sm)" />조건 {brief?.origin_conditions.length ?? "–"}개</span></span></button> : listTab === "history" && mockApiEnabled && hasWork ? <div className="mt-5 space-y-3">{crewHistoryRecords.map((record) => <CrewHistoryCard key={`${record.date}-${record.version}`} onOpen={() => setSelectedHistory(record)} record={record} />)}</div> : <section className="mt-5 ui-card px-5 py-8 text-center"><Archive aria-hidden="true" className="mx-auto text-ink-400" size="var(--icon-category)" /><h2 className="mt-3 text-ui-component">{listTab === "active" ? "진행 중인 작업이 없어요" : "완료한 작업이 없어요"}</h2></section>}</div>
+    <CrewArchivedAgreementSheet issue={selectedHistory?.reports ? issues[0] : undefined} onOpenChange={(open) => { if (!open) setSelectedHistory(null); }} record={selectedHistory} scope={scope} />
   </div>;
 }
 
-function CrewHistoryCard({ date, destination, origin, reports }: { date: string; destination: string; origin: string; reports: number }) {
-  return <article className="ui-card p-5"><span className="inline-flex h-[var(--status-height)] items-center rounded-full bg-success-bg px-3 text-ui-status text-success-ink"><Check aria-hidden="true" className="mr-1" size="var(--icon-xs)" />완료</span><h2 className="mt-4 text-ui-section font-black">{origin} → {destination}</h2><p className="mt-2 text-ui-support text-ink-600">{date}</p><div className="mt-4 flex gap-4 border-t border-line pt-4 text-ui-data text-ink-600"><span>완료 체크 4/4</span><span>현장 보고 {reports}건</span></div></article>;
+function CrewHistoryCard({ onOpen, record }: { onOpen: () => void; record: CrewHistoryRecord }) {
+  const { date, destination, origin, reports } = record;
+  return <button aria-label={`${origin}에서 ${destination} 완료 작업 보기`} className="press-static w-full ui-card p-5 text-left" onClick={onOpen} type="button"><span className="inline-flex h-[var(--status-height)] items-center rounded-full bg-success-bg px-3 text-ui-status text-success-ink"><Check aria-hidden="true" className="mr-1" size="var(--icon-xs)" />완료</span><strong className="mt-4 block text-ui-section font-black">{origin} → {destination}</strong><span className="mt-2 block text-ui-support text-ink-600">{date}</span><span className="mt-4 flex gap-4 border-t border-line pt-4 text-ui-data text-ink-600"><span>완료 체크 4/4</span><span>현장 보고 {reports}건</span></span></button>;
+}
+
+function CrewArchivedAgreementSheet({ issue, onOpenChange, record, scope }: { issue?: FieldIssue; onOpenChange: (open: boolean) => void; record: CrewHistoryRecord | null; scope?: ScopeReview }) {
+  const [historyOpen, setHistoryOpen] = useState(false);
+  if (!record || !scope) return null;
+  const adjustments = scope.quote?.adjustments ?? [];
+  const archivedScope: ScopeReview = {
+    ...scope,
+    job: { ...scope.job, origin_summary: record.origin, destination_summary: record.destination },
+    scope: { ...scope.scope, item_count: record.items, status: "confirmed", version_label: record.version },
+    quote: { base_amount_krw: record.amount - adjustments.reduce((sum, item) => sum + item.amount_krw, 0), adjustments, total_amount_krw: record.amount },
+    collaboration_status: "confirmed",
+    agreement_notice: "고객과 업체가 함께 확인하고 작업 완료 시점에 확정한 최종 기록입니다.",
+    customer_confirmed_at: scope.customer_confirmed_at ?? scope.company_confirmed_at,
+  };
+  return <><Sheet onOpenChange={(open) => { if (!open) setHistoryOpen(false); onOpenChange(open); }} open><SheetContent presentation="page" showClose={false}><MobilePageHeader onBack={() => { setHistoryOpen(false); onOpenChange(false); }} title={`이전 확인서 ${record.version}`} /><div className="space-y-2.5 px-[var(--content-gutter)] pb-28 pt-3"><AgreementOverview onOpenHistory={() => setHistoryOpen(true)} scope={archivedScope} showCurrentStatus={false} /></div></SheetContent></Sheet><CrewAgreementHistorySheet issue={issue} onOpenChange={setHistoryOpen} open={historyOpen} scope={archivedScope} /></>;
 }
 
 function CrewApprovedScope({ issue, scope }: { issue?: FieldIssue; scope: ScopeReview | undefined }) {
@@ -210,7 +247,7 @@ function CrewApprovedScope({ issue, scope }: { issue?: FieldIssue; scope: ScopeR
   if (!scope) return <div className="px-[var(--content-gutter)] py-8 text-sm text-ink-600">확인서를 불러오는 중입니다.</div>;
   return (
     <div className="space-y-2.5 px-[var(--content-gutter)] pb-28 pt-3">
-      <AgreementOverview onOpenHistory={() => setHistoryOpen(true)} scope={scope} />
+      <AgreementOverview onOpenHistory={() => setHistoryOpen(true)} scope={scope} showCurrentStatus={false} />
       <CrewAgreementHistorySheet issue={issue} onOpenChange={setHistoryOpen} open={historyOpen} scope={scope} />
     </div>
   );
@@ -275,36 +312,54 @@ function CrewHome({ brief, issueCount, onInvite, onWork }: {
     <div className="px-[var(--content-gutter)] pb-28 pt-4">
       <h1 className="text-ui-section leading-9 font-black tracking-[var(--tracking-display)]">{workerName} 기사님,<br />오늘 작업을 준비해요</h1>
       <CrewInviteHero onInvite={onInvite} />
-      <ActiveMoveCard heading="진행 중인 이사 1건" leading={<span className="grid size-12 shrink-0 place-items-center rounded-full bg-primary-50 text-primary-700"><Truck aria-hidden="true" size="var(--icon-md)" /></span>} meta={startAt ? `${dayFormatter.format(startAt)} · ${timeFormatter.format(startAt)}` : "일정 확인 중"} onOpen={onWork} route={<>{brief?.masked_origin ?? "출발지"} → {brief?.masked_destination ?? "도착지"}</>}><MoveJourneyProgress current={2} /><div className="mt-3 border-t border-line pt-3"><p className="flex min-w-0 items-baseline gap-2 whitespace-nowrap"><strong className="shrink-0 text-ui-support text-primary-700">작업범위 확인</strong><span className="ml-auto min-w-0 truncate text-right text-ui-data text-ink-600">최신 승인본과 현장 조건을 확인해요</span></p><button className="mt-2 flex min-h-10 w-full items-center justify-center rounded-xl bg-primary-600 text-ui-support font-extrabold text-white" onClick={onWork} type="button">지금 확인</button></div></ActiveMoveCard>
+      <ActiveMoveCard heading="진행 중인 이사 1건" leading={<span className="grid size-12 shrink-0 place-items-center rounded-full bg-primary-50 text-primary-700"><Truck aria-hidden="true" size="var(--icon-md)" /></span>} meta={startAt ? `${dayFormatter.format(startAt)} · ${timeFormatter.format(startAt)}` : "일정 확인 중"} onOpen={onWork} route={<>{brief?.masked_origin ?? "출발지"} → {brief?.masked_destination ?? "도착지"}</>}><MoveJourneyProgress current={brief?.completion_submission_id ? 4 : brief?.checked_in_at ? 3 : 2} /><div className="mt-3 border-t border-line pt-3"><p className="flex min-w-0 items-baseline gap-2 whitespace-nowrap"><strong className="shrink-0 text-ui-support text-primary-700">작업범위 확인</strong><span className="ml-auto min-w-0 truncate text-right text-ui-data text-ink-600">최신 승인본과 현장 조건을 확인해요</span></p><button className="mt-2 flex min-h-10 w-full items-center justify-center rounded-xl bg-primary-600 text-ui-support font-extrabold text-white" onClick={onWork} type="button">지금 확인</button></div></ActiveMoveCard>
       <aside className="mt-4 flex items-start gap-3 rounded-[var(--radius-card)] bg-warning-bg p-3 text-sm font-medium leading-5 text-warning-ink"><WarningCircle aria-hidden="true" className="mt-0.5 shrink-0" /><p>현장이 승인본과 다르면 추가 금액을 요구하지 말고 먼저 보고해 주세요. {issueCount > 0 ? `현재 보고 ${issueCount}건이 처리 중이에요.` : ""}</p></aside>
     </div>
   );
 }
 
-function CrewCompletion({ brief, connection, issues }: {
+function CrewCompletion({ brief, connection, issues, scope }: {
   brief: Awaited<ReturnType<typeof getFieldBrief>> | undefined;
   connection: Connection;
   issues: Awaited<ReturnType<typeof listFieldIssues>>;
+  scope: ScopeReview | undefined;
 }) {
   const queryClient = useQueryClient();
   const items = useMemo(() => brief?.completion_check_items ?? [], [brief?.completion_check_items]);
   const defaultCompletedKeys = useMemo(() => new Set(items.slice(0, Math.max(0, items.length - 1)).map((item) => item.key)), [items]);
   const [completionState, setCompletionState] = useState<Record<string, boolean>>({});
-  const [photos, setPhotos] = useState<string[]>(mockApiEnabled ? ["/room-after-evidence.png", "/built-in-wardrobe-evidence.png"] : []);
+  const [photos, setPhotos] = useState<Array<{ file: File | null; id: string | null; url: string }>>(mockApiEnabled ? [
+    { file: null, id: "mock-completion-1", url: "/room-after-evidence.png" },
+    { file: null, id: "mock-completion-2", url: "/built-in-wardrobe-evidence.png" },
+  ] : []);
   const checkedAt = brief?.checked_in_at ?? (mockApiEnabled ? brief?.start_at : null);
   const isCompleted = (key: string, confirmed: boolean) => confirmed || (completionState[key] ?? defaultCompletedKeys.has(key));
   const completedCount = items.filter((item) => isCompleted(item.key, item.confirmed)).length;
   const submitMutation = useMutation({
-    mutationFn: () => {
+    mutationFn: async () => {
       if (!brief) throw new Error("작업 정보를 불러오는 중입니다.");
+      const roomZoneId = scope?.scope.room_groups[0]?.room_zone_id;
+      if (!roomZoneId) throw new Error("완료 사진을 연결할 공간이 없습니다.");
+      let completionMediaAssetIds = photos.flatMap((photo) => photo.id ? [photo.id] : []);
+      const pendingFiles = photos.flatMap((photo) => photo.file ? [photo.file] : []);
+      if (pendingFiles.length) {
+        const policy = await getMediaConsentPolicy(connection);
+        const capture = await createCaptureSession({ ...connection, consentPolicyVersion: policy.policy_version, privacyNoticeAcknowledged: true });
+        const uploaded = await Promise.all(pendingFiles.map(async (file) => {
+          const target = await createMediaUpload({ ...connection, captureSessionId: capture.id, contentLength: file.size, contentType: asSupportedContentType(file), mediaPurpose: "completion", roomZoneId });
+          await uploadCaptureFile(target, file);
+          return completeMediaUpload({ ...connection, captureSessionId: capture.id, mediaAssetId: target.asset.id });
+        }));
+        completionMediaAssetIds = [...completionMediaAssetIds, ...uploaded.map((asset) => asset.id)];
+      }
       const now = new Date();
       const start = checkedAt ? new Date(checkedAt) : new Date(now.getTime() - 60_000);
       return submitCompletion(connection, {
         client_reference: crypto.randomUUID(),
         dispatch_id: brief.dispatch_id,
         scope_version_id: brief.scope_version_id,
-        completion_media_asset_ids: [],
-        completed_check_keys: items.map((item) => item.key),
+        completion_media_asset_ids: completionMediaAssetIds,
+        completed_check_keys: items.filter((item) => isCompleted(item.key, item.confirmed)).map((item) => item.key),
         worker_shifts: brief.assigned_workers.map((worker) => ({ worker_id: worker.worker_id, started_at: start.toISOString(), ended_at: now.toISOString() })),
         onsite_customer_confirmed: true,
         onsite_confirmed_at: now.toISOString(),
@@ -315,15 +370,15 @@ function CrewCompletion({ brief, connection, issues }: {
   });
   const addPhotos = (event: ChangeEvent<HTMLInputElement>) => {
     const selected = [...(event.target.files ?? [])].slice(0, Math.max(0, 3 - photos.length));
-    setPhotos((current) => [...current, ...selected.map(URL.createObjectURL)].slice(0, 3));
+    setPhotos((current) => [...current, ...selected.map((file) => ({ file, id: null, url: URL.createObjectURL(file) }))].slice(0, 3));
     event.target.value = "";
   };
   return <div className="space-y-4 px-[var(--content-gutter)] pb-28 pt-4">
     <div className="flex items-end justify-between"><h2 className="text-ui-section font-black">작업 완료 전 확인</h2><strong className="text-ui-section text-primary-700">{completedCount}<span className="text-ink-900"> / {items.length} 완료</span></strong></div>
      <section className="ui-card px-4 py-1">{items.map((item) => { const selected = isCompleted(item.key, item.confirmed); return <button aria-pressed={selected} className="press-static flex min-h-12 w-full items-center gap-3 text-left" key={item.key} onClick={() => setCompletionState((current) => ({ ...current, [item.key]: !selected }))} type="button"><span className={`grid size-5 shrink-0 place-items-center rounded-full border-2 ${selected ? "border-primary-600 bg-primary-600 text-white" : "border-line text-transparent"}`}><Check aria-hidden="true" size="0.875rem" weight="bold" /></span><span className="flex-1 text-ui-support font-medium">{item.label}</span></button>; })}</section>
-    <section className="ui-card p-4"><h2 className="text-ui-section font-black">완료 사진</h2><p className="mt-1 text-sm text-ink-600">작업 후 상태를 남겨주세요.</p><div className="mt-4 grid grid-cols-3 gap-2">{photos.map((url, index) => <img alt={`완료 사진 ${index + 1}`} className="aspect-square w-full rounded-xl object-cover" key={url} src={url} />)}{photos.length < 3 ? <label className="grid aspect-square cursor-pointer place-items-center rounded-xl border border-dashed border-primary-400 text-center text-sm font-extrabold text-primary-700"><span><Camera aria-hidden="true" className="mx-auto mb-1" size="var(--icon-md)" />사진 추가</span><input accept="image/*" capture="environment" className="sr-only" multiple onChange={addPhotos} type="file" /></label> : null}</div></section>
+    <section className="ui-card p-4"><h2 className="text-ui-section font-black">완료 사진</h2><p className="mt-1 text-sm text-ink-600">업체와 고객이 작업 후 상태를 확인할 수 있게 한 장 이상 남겨주세요.</p><div className="mt-4 grid grid-cols-3 gap-2">{photos.map((photo, index) => <div className="relative" key={photo.url}><img alt={`완료 사진 ${index + 1}`} className="aspect-square w-full rounded-xl object-cover" src={photo.url} /><button aria-label={`완료 사진 ${index + 1} 삭제`} className="absolute right-1 top-1 grid size-9 place-items-center rounded-full bg-ink-900/75 text-white" onClick={() => { if (photo.file) URL.revokeObjectURL(photo.url); setPhotos((current) => current.filter((item) => item !== photo)); }} type="button">×</button></div>)}{photos.length < 3 ? <label className="grid aspect-square cursor-pointer place-items-center rounded-xl border border-dashed border-primary-400 text-center text-sm font-extrabold text-primary-700"><span><Camera aria-hidden="true" className="mx-auto mb-1" size="var(--icon-md)" />사진 추가</span><input accept="image/jpeg,image/png" capture="environment" className="sr-only" multiple onChange={addPhotos} type="file" /></label> : null}</div></section>
     <section className="ui-card p-4"><h2 className="text-lg font-black">현장 보고</h2><p className="mt-2 text-sm text-success">보고 {issues.length}건이 확인서에 반영 또는 처리 중이에요.</p>{issues.slice(0, 2).map((issue) => <p className="mt-3 flex items-center justify-between border-t border-line pt-3 text-sm" key={issue.field_issue_id}><span>{issue.title}</span><span className="text-ink-600">{issueStatusLabel(issue.status)}</span></p>)}</section> 
     {submitMutation.error ? <p className="text-sm font-bold text-danger-ink" role="alert">{apiErrorMessage(submitMutation.error)}</p> : null}
-    <div className="app-fixed-action fixed inset-x-0 bottom-0 z-[var(--z-sticky)] mx-auto w-full max-w-[var(--shell-mobile)] bg-surface px-[var(--content-gutter)] pt-3"><Button className="w-full" disabled={Boolean(brief?.completion_submission_id) || completedCount !== items.length || !checkedAt || submitMutation.isPending} onClick={() => submitMutation.mutate()} size="cta"><PaperPlane aria-hidden="true" />{brief?.completion_submission_id ? "완료 내용 제출됨" : submitMutation.isPending ? "제출 중" : "완료 내용 제출"}</Button><p className="mt-2 text-center text-xs text-ink-600">제출 후 업체가 고객에게 완료 확인을 요청해요.</p></div>
+    <div className="app-fixed-action fixed inset-x-0 bottom-0 z-[var(--z-sticky)] mx-auto w-full max-w-[var(--shell-mobile)] bg-surface px-[var(--content-gutter)] pt-3"><Button className="w-full" disabled={Boolean(brief?.completion_submission_id) || completedCount !== items.length || photos.length === 0 || !checkedAt || submitMutation.isPending} onClick={() => submitMutation.mutate()} size="cta"><PaperPlane aria-hidden="true" />{brief?.completion_submission_id ? "완료 내용 제출됨" : submitMutation.isPending ? "사진 업로드 및 제출 중" : "완료 내용 제출"}</Button><p className="mt-2 text-center text-xs text-ink-600">체크리스트와 완료 사진이 업체 검토 화면에 함께 전달돼요.</p></div>
   </div>;
 }

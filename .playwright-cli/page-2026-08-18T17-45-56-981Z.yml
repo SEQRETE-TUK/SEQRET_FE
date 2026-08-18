@@ -1,0 +1,32 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - link [ref=e42] [cursor=pointer]:
+      - /url: "#main-content"
+      - text: 본문으로 건너뛰기
+    - generic [ref=e9]:
+      - button [ref=e43] [cursor=pointer]
+      - main [ref=e14]:
+        - generic [ref=e15]:
+          - heading [level=1] [ref=e44]: 배정된 이사를 연결해 주세요
+          - button [ref=e45] [cursor=pointer]:
+            - generic [ref=e18]:
+              - strong [ref=e19]: 초대 코드로 오늘 작업 연결하기
+              - generic [ref=e20]: 배정된 이사와 현장 정보를 한 번에 불러와요.
+              - generic [ref=e21]: 초대 코드 입력하기
+          - heading [level=2] [ref=e47]: 연결된 작업이 없어요
+      - navigation [ref=e48]:
+        - button [ref=e49] [cursor=pointer]:
+          - generic [ref=e33]: 홈
+        - button [ref=e50] [cursor=pointer]:
+          - generic [ref=e37]: 내 작업
+        - button [ref=e51] [cursor=pointer]:
+          - generic [ref=e41]: 더보기
+  - dialog [ref=e55]:
+    - generic [ref=e56]:
+      - heading "초대 코드 입력" [level=2] [ref=e57]
+      - paragraph [ref=e58]: 업체가 전달한 초대 코드를 입력하면 배정된 이사와 연결돼요.
+    - textbox "초대 코드" [active] [ref=e60]:
+      - /placeholder: 초대 코드 붙여넣기
+      - text: seqret_mock_worker_000000000000000000000000000000
+    - button "내 작업에 연결" [ref=e62] [cursor=pointer]
+    - button "닫기" [ref=e63] [cursor=pointer]

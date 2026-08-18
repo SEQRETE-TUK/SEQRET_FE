@@ -262,6 +262,14 @@ p {
   letter-spacing: var(--tracking-none);
 }
 
+.text-ui-button,
+.ui-button-text {
+  font-size: var(--text-control);
+  font-weight: var(--weight-button);
+  line-height: var(--line-control);
+  letter-spacing: var(--tracking-none);
+}
+
 .text-ui-support {
   font-size: var(--text-support);
   font-weight: var(--weight-support);
@@ -543,6 +551,29 @@ body:has(.demo-sheet-backdrop-nested[data-open]) .demo-sheet-backdrop:not(.demo-
 .demo-sheet-popup[data-ending-style] {
   opacity: 0;
   transform: translateY(28px) scale(0.985);
+}
+
+.demo-dialog-backdrop {
+  transition: opacity var(--dur-short) var(--ease-out);
+}
+
+.demo-dialog-backdrop[data-starting-style],
+.demo-dialog-backdrop[data-ending-style] {
+  opacity: 0;
+}
+
+.demo-dialog-popup {
+  transform-origin: center;
+  box-shadow: var(--shadow-raised);
+  transition:
+    transform var(--dur-short) var(--ease-out),
+    opacity var(--dur-short) var(--ease-out);
+}
+
+.demo-dialog-popup[data-starting-style],
+.demo-dialog-popup[data-ending-style] {
+  opacity: 0;
+  transform: translateY(8px) scale(0.98);
 }
 
 @media (min-width: 768px) {

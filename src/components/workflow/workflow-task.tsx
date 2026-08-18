@@ -51,7 +51,7 @@ export function ProgressSteps({
             >
               {done ? <Check aria-hidden="true" className="size-3.5" /> : index + 1}
             </span>
-            <span className={cn("mt-2 block truncate text-ui-micro !font-bold", active ? "text-ink-900" : "text-ink-400")}>{item}</span>
+            <span className={`${cn("mt-2 block truncate !font-bold", active ? "text-ink-900" : "text-ink-400")} text-ui-micro`}>{item}</span>
           </li>
         );
       })}

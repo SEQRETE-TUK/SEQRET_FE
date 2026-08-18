@@ -105,13 +105,14 @@ const colorGroups = [
 ] as const;
 
 const typeScale = [
-  { name: "페이지 제목", className: "text-ui-title-lg", sample: "SEQRET 디자인 시스템", sizeToken: "--text-title-lg", lineToken: "--line-screen", weightToken: "--display-weight", trackingToken: "--tracking-display" },
+  { name: "페이지 제목", className: "text-ui-title-lg", sample: "짐확정 디자인 시스템", sizeToken: "--text-title-lg", lineToken: "--line-screen", weightToken: "--display-weight", trackingToken: "--tracking-display" },
   { name: "단계 제목", className: "text-ui-step-title", sample: "업체와 함께 확인할 차례예요", sizeToken: "--text-step-title", lineToken: "--line-screen", weightToken: "--display-weight", trackingToken: "--tracking-display" },
   { name: "섹션 제목", className: "text-ui-section", sample: "확인할 내용", sizeToken: "--text-xl", lineToken: "--line-section", weightToken: "--weight-strong", trackingToken: "--tracking-none" },
   { name: "컴포넌트 제목", className: "text-ui-component", sample: "작업 범위와 금액", sizeToken: "--text-component", lineToken: "--line-component", weightToken: "--weight-component", trackingToken: "--tracking-none" },
   { name: "목록 제목", className: "text-ui-list-title", sample: "범위와 견적", sizeToken: "--text-list-title", lineToken: "--line-list-title", weightToken: "--weight-list-title", trackingToken: "--tracking-none" },
   { name: "본문", className: "text-ui-body", sample: "현재 상태와 다음 작업을 설명합니다.", sizeToken: "--text-md", lineToken: "--line-body", weightToken: "--weight-body", trackingToken: "--tracking-none" },
   { name: "보조 정보", className: "text-ui-support text-ink-600", sample: "1월 15일 화요일 · 오전 10:00", sizeToken: "--text-support", lineToken: "--line-support", weightToken: "--weight-support", trackingToken: "--tracking-none" },
+  { name: "버튼", className: "text-ui-button", sample: "다음 단계", sizeToken: "--text-control", lineToken: "--line-control", weightToken: "--weight-button", trackingToken: "--tracking-none" },
   { name: "컨트롤", className: "text-ui-control", sample: "변경 내용 확인", sizeToken: "--text-control", lineToken: "--line-control", weightToken: "--weight-control", trackingToken: "--tracking-none" },
   { name: "목록 설명", className: "text-ui-list-detail text-ink-600", sample: "고객 확인 대기", sizeToken: "--text-list-detail", lineToken: "--line-list-detail", weightToken: "--weight-list-detail", trackingToken: "--tracking-none" },
   { name: "데이터", className: "text-ui-data tabular-nums", sample: "v1.0 · 480,000원", sizeToken: "--text-data", lineToken: "--line-data", weightToken: "--weight-data", trackingToken: "--tracking-none" },
@@ -201,7 +202,7 @@ export function DesignSystemPage() {
         <div className="min-w-0 px-5 pb-24 lg:px-0">
           <section className="border-b border-line pt-10 pb-14 md:pt-12 md:pb-16">
             <h1 className="min-w-0 max-w-[760px] break-keep text-ui-title-lg font-extrabold tracking-[var(--tracking-brand)] [overflow-wrap:anywhere]">
-              SEQRET 디자인 시스템
+              짐확정 디자인 시스템
             </h1>
             <p className="mt-4 max-w-[720px] text-ui-support text-ink-600">
               고객·이사업체·현장기사가 같은 이사 정보를 서로 다른 역할로 확인할 때, 상태와 다음 행동을 일관되게 전달하기 위한 기준입니다.
@@ -291,10 +292,6 @@ export function DesignSystemPage() {
                 ))}
               </TokenTileList>
 
-              <Subsection id="token-inventory" title="전체 토큰">
-                <p className="mb-3 max-w-[680px] text-sm leading-6 text-ink-600">tokens.css에서 현재 계산된 모든 토큰을 표시합니다. 새 토큰이 추가돼도 이 목록에서 이름과 값을 확인할 수 있어요.</p>
-                <TokenInventory />
-              </Subsection>
             </Subsection>
           </DocSection>
 
@@ -330,9 +327,6 @@ export function DesignSystemPage() {
                   example={<Camera aria-label="촬영" className="text-primary-700" size="var(--icon-category)" weight="duotone" />}
                 />
               </div>
-              <p className="mt-4 max-w-[680px] text-sm leading-6 text-ink-600">
-                시스템 아이콘은 Phosphor 한 세트만 사용합니다. 텍스트만으로 충분한 곳에는 아이콘을 추가하지 않고, 아이콘만으로 의미를 전달하지 않습니다.
-              </p>
             </ComponentSpecimen>
 
             <ComponentSpecimen
@@ -354,7 +348,6 @@ export function DesignSystemPage() {
                   <Button size="cta">주요 CTA 44</Button>
                 </div>
               </div>
-              <p className="mt-4 max-w-[680px] text-sm leading-6 text-ink-600">기본 버튼은 <code>--control-touch</code> · <code>--text-control</code> · <code>--control-padding-x</code> · <code>--control-gap</code>을 사용합니다. 조밀 버튼은 <code>--control-compact</code> · <code>--control-compact-padding-x</code> · <code>--control-compact-gap</code>으로 제한하고, 주요 CTA의 위계는 높이가 아니라 색과 너비로 구분합니다.</p>
             </ComponentSpecimen>
 
             <ComponentSpecimen id="filter-chip-standard" title="필터 칩">
@@ -363,7 +356,6 @@ export function DesignSystemPage() {
                 <FilterChip onClick={() => undefined}>거실 5</FilterChip>
                 <FilterChip onClick={() => undefined}>침실 3</FilterChip>
               </div>
-              <p className="mt-4 max-w-[560px] text-sm leading-6 text-ink-600">필터 칩은 <code>--filter-padding-x</code>와 <code>--weight-control</code>을 사용해 목록보다 가볍게 보이도록 합니다.</p>
             </ComponentSpecimen>
 
             <ComponentSpecimen id="selection-standard" title="선택과 상태">
@@ -380,7 +372,6 @@ export function DesignSystemPage() {
                   </div>
                 </div>
               </div>
-              <p className="mt-4 text-sm leading-6 text-ink-600">한 질문에서 하나만 고르는 값은 탭처럼 묶인 segmented radio로 표시합니다. 내부 선택 버튼은 그룹 배경과 1px 여백만 두어 거의 같은 높이로 맞춥니다. 화면 구역을 전환하는 Tabs나 독립적으로 켜고 끄는 Toggle에는 사용하지 않습니다.</p>
             </ComponentSpecimen>
 
             <ComponentSpecimen
@@ -390,7 +381,6 @@ export function DesignSystemPage() {
               <div className="max-w-[440px]">
                 <Label htmlFor="design-system-address">출발지 표시명</Label>
                 <Input className="mt-2" id="design-system-address" placeholder="예: 성수동 아파트" />
-                <p className="mt-2 text-sm text-ink-600">입력 목적이 분명한 라벨과 실제 형식에 가까운 예시를 제공합니다.</p>
               </div>
             </ComponentSpecimen>
 
@@ -408,7 +398,6 @@ export function DesignSystemPage() {
                   >완료 기록</ListRow>
                 </ListGroup>
               </div>
-              <p className="mt-4 max-w-[560px] text-sm leading-6 text-ink-600">목록은 left·contents·right 영역으로 구성합니다. 사진이 판단 근거일 때만 왼쪽 썸네일을 쓰고, 설정·기록 목록은 바깥 카드 없이 화면 구분선으로 묶습니다.</p>
             </ComponentSpecimen>
 
           </DocSection>
@@ -515,23 +504,6 @@ function TokenTileList({ children, ...props }: { children: ReactNode } & Compone
 function TokenValue({ token }: { token: string }) {
   const value = window.getComputedStyle(document.documentElement).getPropertyValue(token).trim();
   return <code className="text-xs text-ink-600">{value || token}</code>;
-}
-
-function TokenInventory() {
-  const computed = window.getComputedStyle(document.documentElement);
-  const tokens = Array.from({ length: computed.length }, (_, index) => computed.item(index))
-    .filter((token) => token.startsWith("--"))
-    .sort();
-  return (
-    <TokenTileList aria-label="전체 CSS 토큰">
-      {tokens.map((token) => (
-        <li className="min-w-0 bg-surface p-3" key={token}>
-          <code className="block break-all text-xs text-ink-400">{token}</code>
-          <span className="mt-1 block break-all"><TokenValue token={token} /></span>
-        </li>
-      ))}
-    </TokenTileList>
-  );
 }
 
 function IconRule({

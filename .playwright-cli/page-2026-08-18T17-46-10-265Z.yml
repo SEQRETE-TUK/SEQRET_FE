@@ -1,0 +1,45 @@
+- generic [ref=e2]:
+  - link "본문으로 건너뛰기" [ref=e67] [cursor=pointer]:
+    - /url: "#main-content"
+  - generic [ref=e69]:
+    - banner:
+      - button "알림 확인" [ref=e70] [cursor=pointer]
+    - main [ref=e74]:
+      - generic [ref=e75]:
+        - heading "김민수 기사님, 오늘 작업을 준비해요" [level=1] [ref=e76]: 김민수 기사님,오늘 작업을 준비해요
+        - button "초대 코드로 오늘 작업 연결하기 배정된 이사와 현장 정보를 한 번에 불러와요. 초대 코드 입력하기 휴대폰으로 이삿짐을 확인하는 모습" [ref=e77] [cursor=pointer]:
+          - generic [ref=e78]:
+            - strong [ref=e79]: 초대 코드로오늘 작업 연결하기
+            - generic [ref=e80]: 배정된 이사와 현장 정보를 한 번에 불러와요.
+            - generic [ref=e81]: 초대 코드 입력하기
+          - img "휴대폰으로 이삿짐을 확인하는 모습" [ref=e84]
+        - generic [ref=e85]:
+          - heading "진행 중인 이사 1건" [level=2] [ref=e86]
+          - generic [ref=e87]:
+            - button "성수동 원룸 → 자양동 오피스텔 8월 26일 (수) · 02:45" [ref=e88] [cursor=pointer]:
+              - generic [ref=e92]:
+                - strong [ref=e93]: 성수동 원룸 → 자양동 오피스텔
+                - generic [ref=e94]: 8월 26일 (수) · 02:45
+            - list [ref=e97]:
+              - listitem [ref=e98]:
+                - generic [ref=e102]: 촬영과 짐 검수
+              - listitem [ref=e103]:
+                - generic [ref=e105]: "2"
+                - generic [ref=e106]: 업체 제안
+              - listitem [ref=e107]:
+                - generic [ref=e109]: "3"
+                - generic [ref=e110]: 내 확인
+              - listitem [ref=e111]:
+                - generic [ref=e113]: "4"
+                - generic [ref=e114]: 공동확인 완료
+            - generic [ref=e115]:
+              - paragraph [ref=e116]:
+                - strong [ref=e117]: 작업범위 확인
+                - generic [ref=e118]: 최신 승인본과 현장 조건을 확인해요
+              - button "지금 확인" [ref=e119] [cursor=pointer]
+        - complementary [ref=e120]:
+          - paragraph [ref=e123]: 현장이 승인본과 다르면 추가 금액을 요구하지 말고 먼저 보고해 주세요. 현재 보고 1건이 처리 중이에요.
+    - navigation "주요 메뉴" [ref=e124]:
+      - button "홈" [ref=e125] [cursor=pointer]
+      - button "내 작업" [ref=e129] [cursor=pointer]
+      - button "더보기" [ref=e133] [cursor=pointer]

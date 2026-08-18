@@ -4,7 +4,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const badgeVariants = cva(
-  "inline-flex h-[var(--status-height)] w-fit items-center justify-center rounded-full border border-transparent px-3 text-ui-status whitespace-nowrap",
+    "inline-flex h-[var(--status-height)] w-fit items-center justify-center rounded-full border border-transparent px-3 whitespace-nowrap",
   {
     variants: {
       variant: {
@@ -24,7 +24,8 @@ function Badge({
   variant,
   ...props
 }: ComponentProps<"span"> & VariantProps<typeof badgeVariants>) {
-  return <span className={cn(badgeVariants({ variant }), className)} {...props} />;
+  const classes = [cn(badgeVariants({ variant }), className), "text-ui-status"].filter(Boolean).join(" ");
+  return <span className={classes} {...props} />;
 }
 
 export { Badge };

@@ -20,6 +20,15 @@ const movingItemAssets = {
   washingMachine: "/moving-items/washing-machine.png",
 } as const;
 
+export type MovingItemCategory = "가구" | "가전" | "기타";
+
+export function movingItemCategoryForName(name: string): MovingItemCategory {
+  const normalized = name.toLocaleLowerCase("ko-KR");
+  if (["침대", "매트리스", "소파", "옷장", "서랍", "책장", "책상", "테이블", "식탁", "의자", "스탠드", "조명"].some((item) => normalized.includes(item))) return "가구";
+  if (["tv", "텔레비전", "세탁기", "전자레인지", "선풍기", "냉장고", "주방 가전"].some((item) => normalized.includes(item))) return "가전";
+  return "기타";
+}
+
 export function movingItemAssetForName(name: string) {
   const normalized = name.toLocaleLowerCase("ko-KR");
 

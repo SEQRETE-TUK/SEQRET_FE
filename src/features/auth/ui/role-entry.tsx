@@ -42,7 +42,7 @@ export function RoleEntry() {
     <div className="mobile-stage">
       <MobileFrame className="flex min-h-dvh flex-col bg-canvas">
         <header className="app-safe-header flex min-h-16 items-center justify-between gap-3 px-[var(--content-gutter)]">
-          <strong className="text-xl font-black tracking-[var(--tracking-brand)] text-primary-800">SEQRET</strong>
+          <strong className="text-xl font-black tracking-[var(--tracking-brand)] text-primary-800">짐확정</strong>
           <span className="inline-flex min-h-8 items-center gap-1.5 rounded-[var(--radius-pill)] border border-line bg-surface px-3 text-ui-data text-ink-600">
             {mockApiEnabled ? "Mock 모드" : "보안 연결"}
           </span>

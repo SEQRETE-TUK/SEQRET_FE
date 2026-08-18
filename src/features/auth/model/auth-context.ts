@@ -15,6 +15,7 @@ export interface AuthContextValue {
   session: AuthSession | null;
   clearSession: () => void;
   connect: (secret: string, expectedRole?: ParticipantRole) => Promise<AuthSession>;
+  switchSession: (next: AuthSession) => void;
   onboard: (input: CustomerOnboardingInput) => Promise<AuthSession>;
   refreshActor: () => Promise<ActorSelf | null>;
 }
