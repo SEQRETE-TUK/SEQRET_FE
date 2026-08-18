@@ -60,42 +60,70 @@ export function ProgressSteps({
 }
 
 export function WorkflowTask({
+  blockedReason,
   children,
   defaultOpen = false,
   description,
   detailTitle,
+  index,
   leading,
+  onOpen,
   status,
   title,
   tone = "neutral",
 }: {
+  blockedReason?: string | null;
   children: ReactNode;
   defaultOpen?: boolean;
   description: string;
   detailTitle?: string;
   index?: number;
   leading?: ReactNode;
+  onOpen?: () => void;
   status: string;
   title: string;
   tone?: TaskTone;
 }) {
+  const row = (
+    <>
+      {index ? <span aria-hidden="true" className="absolute top-0 bottom-0 left-[calc(1.25rem+13px)] w-px bg-line group-first:top-1/2 group-last:bottom-1/2" /> : null}
+      {index ? (
+        <span
+          aria-hidden="true"
+          className={cn(
+            "relative z-10 grid size-[26px] shrink-0 place-items-center rounded-full text-xs font-extrabold tabular-nums ring-4 ring-surface",
+            tone === "success" && "bg-success text-white",
+            (tone === "primary" || tone === "warning" || tone === "danger") && "bg-primary-600 text-white",
+            tone === "neutral" && "border border-line bg-surface text-ink-400",
+          )}
+        >
+          {tone === "success" ? <Check aria-hidden="true" className="size-3.5" weight="bold" /> : index}
+        </span>
+      ) : null}
+      {leading ? <span className="shrink-0 text-primary-700">{leading}</span> : null}
+      <span className="min-w-0 flex-1">
+        <strong className={cn("block min-w-0 truncate text-ui-support leading-6", (tone === "neutral" || blockedReason) && "text-ink-600")}>{title}</strong>
+        <span className="mt-1 block truncate text-sm leading-5 text-ink-600">{blockedReason ?? description}</span>
+      </span>
+      {blockedReason
+        ? <Badge className="max-w-28 shrink-0" variant="neutral">잠김</Badge>
+        : <Badge className="max-w-28 shrink-0" variant={tone}>{status}</Badge>}
+      {blockedReason ? null : <ChevronRight aria-hidden="true" className="size-5 shrink-0 text-ink-400" />}
+    </>
+  );
+  const rowClass = "interactive-row group relative flex min-h-[84px] w-full items-center gap-4 border-b border-line px-5 py-4 text-left last:border-b-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus-ring";
+
+  // 앞 단계가 끝나지 않아 열 수 없는 단계는 이유를 보여주고 잠근다.
+  if (blockedReason) {
+    return <div aria-disabled="true" className={cn(rowClass, "cursor-not-allowed bg-surface-muted/60")}>{row}</div>;
+  }
+  // 이미 전용 화면이 있는 단계는 시트를 열지 않고 그 화면으로 보낸다.
+  if (onOpen) {
+    return <button className={cn(rowClass, "hover:bg-surface-muted")} onClick={onOpen} type="button">{row}</button>;
+  }
   return (
     <Sheet defaultOpen={defaultOpen}>
-      <SheetTrigger
-        className={cn(
-          "interactive-row flex min-h-[76px] w-full items-center gap-3 border-b border-line px-4 py-3 text-left last:border-b-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus-ring",
-          tone === "primary" && "bg-primary-50/60",
-          tone === "warning" && "bg-warning-bg/55",
-        )}
-      >
-        {leading ? <span className="shrink-0 text-primary-700">{leading}</span> : null}
-        <span className="min-w-0 flex-1">
-          <strong className="block min-w-0 truncate text-ui-support leading-6">{title}</strong>
-          <span className="mt-1 block truncate text-sm leading-5 text-ink-600">{description}</span>
-        </span>
-        <Badge className="max-w-24 shrink-0" variant={tone}>{status}</Badge>
-        <ChevronRight aria-hidden="true" className="size-5 shrink-0 text-ink-400" />
-      </SheetTrigger>
+      <SheetTrigger className={cn(rowClass, "hover:bg-surface-muted")}>{row}</SheetTrigger>
       <SheetContent presentation="page">
         <SheetHeader className="app-safe-header sticky top-0 z-10 border-b border-line bg-surface/98 px-16 py-4 text-center backdrop-blur">
           <SheetTitle>{detailTitle ?? title}</SheetTitle>

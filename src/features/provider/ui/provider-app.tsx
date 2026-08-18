@@ -8,6 +8,7 @@ import {
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { ConnectedProfile } from "@/components/layout/connected-profile";
+import { scopeVersionLabel } from "@/lib/scope-version";
 import { ActivityTimeline, HandoffStatus, InfoCallout, ListGroup, ListRow, PageIntro, PriorityFacts, SectionHeader, StatusTag, WorkContext } from "@/components/layout/app-primitives";
 import { MobileAppShell, type MobileNavItem } from "@/components/layout/mobile-app-shell";
 import { Button } from "@/components/ui/button";
@@ -131,7 +132,7 @@ function ProviderHome({ completion, dispatch, issueCount, onDashboard, onWork, s
       <HandoffStatus action={priority.title} actor={priority.actor}>{priority.body}</HandoffStatus>
       <div className="mt-5 border-y border-line py-4">
         <PriorityFacts items={[
-          { label: "현재 범위", value: scope?.scope.version_label ?? "확인 중" },
+          { label: "고객과 합의한 범위", value: scope ? scopeVersionLabel(scope.scope.version_label) : "확인 중" },
           { label: "작업", value: `${scope?.scope.item_count ?? "–"}개` },
           { label: "기준 금액", value: scope?.quote ? `${moneyFormatter.format(scope.quote.total_amount_krw)}원` : "미정" },
         ]} />
@@ -141,7 +142,7 @@ function ProviderHome({ completion, dispatch, issueCount, onDashboard, onWork, s
       <section className="mt-8" aria-labelledby="provider-status-title">
         <SectionHeader aside="담당 순서"><span id="provider-status-title">운영 큐</span></SectionHeader>
         <ListGroup variant="plain">
-          <ListRow description={confirmed ? `${scope?.scope.version_label} 공동확인 완료` : "업체 제안 또는 고객 응답 대기"} end={confirmed ? "완료" : "확인"} leading={<span className="tabular-nums text-sm font-black text-primary-700">01</span>} onClick={onWork} selected={!confirmed}>범위와 견적</ListRow>
+          <ListRow description={confirmed ? `${scopeVersionLabel(scope?.scope.version_label)} 공동확인 완료` : "업체 제안 또는 고객 응답 대기"} end={confirmed ? "완료" : "확인"} leading={<span className="tabular-nums text-sm font-black text-primary-700">01</span>} onClick={onWork} selected={!confirmed}>범위와 견적</ListRow>
           <ListRow description={dispatch?.status === "confirmed" ? "차량·대표 기사·작업 인원 확정" : "범위에 맞는 후보 비교 필요"} end={dispatch?.status === "confirmed" ? "완료" : "처리"} leading={<span className="tabular-nums text-sm font-black text-primary-700">02</span>} onClick={onWork} selected={confirmed && dispatch?.status !== "confirmed"}>배차</ListRow>
           <ListRow description={issueCount > 0 ? "현장 근거를 작업·금액 변경안으로 전환" : "새 현장 보고 없음"} end={`${issueCount}건`} leading={<span className="tabular-nums text-sm font-black text-primary-700">03</span>} onClick={onWork} selected={issueCount > 0}>현장 변경</ListRow>
           <ListRow description={completion?.completion_submission_id ? "현장 제출 검토 후 고객에게 확인 요청" : "현장기사 제출 대기"} end={completion?.completion_submission_id ? "검토" : "대기"} leading={<span className="tabular-nums text-sm font-black text-primary-700">04</span>} onClick={onWork} selected={Boolean(completion?.completion_submission_id && !completion.completion_request)}>완료와 문서</ListRow>
@@ -160,8 +161,8 @@ function ProviderRecords({ completion, dispatch, issues, scope }: {
   scope: Awaited<ReturnType<typeof getScopeReview>> | undefined;
 }) {
   const activity = [
-    scope?.company_confirmed_at ? { actor: "업체", detail: `${scope.scope.item_count}개 작업 · ${scope.quote ? `${moneyFormatter.format(scope.quote.total_amount_krw)}원` : "금액 미정"}`, time: scope.company_confirmed_at, title: `${scope.scope.version_label} 범위·금액 제안` } : null,
-    scope?.customer_confirmed_at ? { actor: "고객", detail: "업체 제안과 같은 버전을 확인했습니다.", time: scope.customer_confirmed_at, title: `${scope.scope.version_label} 공동확인 완료` } : null,
+    scope?.company_confirmed_at ? { actor: "업체", detail: `${scope.scope.item_count}개 작업 · ${scope.quote ? `${moneyFormatter.format(scope.quote.total_amount_krw)}원` : "금액 미정"}`, time: scope.company_confirmed_at, title: `${scopeVersionLabel(scope.scope.version_label)} 범위·금액 제안` } : null,
+    scope?.customer_confirmed_at ? { actor: "고객", detail: "업체 제안과 같은 버전을 확인했습니다.", time: scope.customer_confirmed_at, title: `${scopeVersionLabel(scope.scope.version_label)} 공동확인 완료` } : null,
     dispatch?.confirmed_at ? { actor: "업체", detail: `${dispatch.vehicle_options.find(({ id }) => id === dispatch.selected_vehicle_id)?.display_name ?? "차량"} · 작업자 ${dispatch.selected_worker_ids.length}명`, time: dispatch.confirmed_at, title: "배차 확정" } : null,
     ...issues.map((issue) => ({ actor: "현장기사", detail: `${issueStatusLabel(issue.status)} · 증빙 ${issue.evidence_media_asset_ids.length}건`, time: issue.reported_at, title: issue.title })),
     completion?.completed_at ? { actor: "현장기사", detail: `체크리스트 ${completion.checklist.completed_count}/${completion.checklist.total_count} · ${completion.duration_minutes ?? 0}분`, time: completion.completed_at, title: "완료 기록 제출" } : null,

@@ -1,6 +1,7 @@
 import { CaretRightIcon as ChevronRight, CheckIcon as Check } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
 
+import { scopeVersionLabel } from "@/lib/scope-version";
 import { cn } from "@/lib/utils";
 
 const compactDateTimeFormatter = new Intl.DateTimeFormat("ko-KR", {
@@ -9,6 +10,25 @@ const compactDateTimeFormatter = new Intl.DateTimeFormat("ko-KR", {
   hour: "2-digit",
   minute: "2-digit",
 });
+
+// 일정은 연도까지 드러내 "년/월/일 시간"으로 읽히게 한다.
+const scheduleParts = new Intl.DateTimeFormat("ko-KR", {
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+});
+
+function formatSchedule(value: string): string {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return "일정 확인 중";
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    scheduleParts.formatToParts(parsed).find((item) => item.type === type)?.value ?? "";
+  return `${part("year")}/${part("month")}/${part("day")} ${part("hour")}:${part("minute")}`;
+}
+
 
 const moneyFormatter = new Intl.NumberFormat("ko-KR");
 
@@ -27,23 +47,28 @@ export function WorkContext({
   title: ReactNode;
   version?: string | null;
 }) {
-  const schedule = scheduledAt ? compactDateTimeFormatter.format(new Date(scheduledAt)) : "일정 확인 중";
+  const schedule = scheduledAt ? formatSchedule(scheduledAt) : "일정 확인 중";
   return (
     <section aria-label="현재 작업 맥락" className="mt-6 border-y border-line py-4">
       <div className="flex min-w-0 items-center justify-between gap-3">
-        <p className="min-w-0 truncate text-xs font-bold text-ink-600">{code ? `작업 ${code}` : "현재 이사"}</p>
+        {code
+          ? <span className="inline-flex min-w-0 items-center gap-2 rounded-lg border border-line bg-surface px-2.5 py-1.5">
+              <span className="text-xs font-semibold text-ink-600">작업번호</span>
+              <span className="min-w-0 truncate font-mono text-sm font-extrabold tracking-[0.06em] text-ink-900 tabular-nums">{code}</span>
+            </span>
+          : <p className="min-w-0 truncate text-xs font-bold text-ink-600">현재 이사</p>}
         {status}
       </div>
-      <strong className="mt-2 block min-w-0 break-words text-ui-component leading-6">{title}</strong>
-      {route ? <p className="mt-1 min-w-0 break-words text-sm leading-5 text-ink-600">{route}</p> : null}
-      <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">
-        <div>
-          <dt className="text-xs font-semibold text-ink-400">이사 일정</dt>
+      <strong className="mt-3 block min-w-0 break-words text-ui-section leading-7">{title}</strong>
+      {route ? <p className="mt-2 min-w-0 break-words text-ui-support leading-6 font-extrabold text-ink-900">{route}</p> : null}
+      <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
+        <div className="rounded-xl bg-surface-muted px-3 py-2">
+          <dt className="text-xs font-semibold text-ink-600">이사 일정</dt>
           <dd className="mt-1 font-bold tabular-nums">{schedule}</dd>
         </div>
-        <div>
-          <dt className="text-xs font-semibold text-ink-400">현재 범위</dt>
-          <dd className="mt-1 font-bold">{version ?? "준비 중"}</dd>
+        <div className="rounded-xl bg-surface-muted px-3 py-2">
+          <dt className="text-xs font-semibold text-ink-600">고객과 합의한 범위</dt>
+          <dd className="mt-1 font-bold">{scopeVersionLabel(version)}</dd>
         </div>
       </dl>
     </section>
