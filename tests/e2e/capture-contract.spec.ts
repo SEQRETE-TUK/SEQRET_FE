@@ -3,6 +3,7 @@ import { expect, test } from "@playwright/test";
 import { analysisReviewCompletePayload, captureSessionCreatePayload, scopeProposalPayload } from "../../src/api/contract-payloads";
 
 const customerAccessSecret = "seqret_mock_customer_0000000000000000000000000000";
+const fieldWorkerAccessSecret = "seqret_mock_worker_000000000000000000000000000000";
 
 test("keeps the access secret out of browser storage", async ({ page }) => {
   await page.goto("/consumer", { waitUntil: "domcontentloaded" });
@@ -12,15 +13,14 @@ test("keeps the access secret out of browser storage", async ({ page }) => {
 
 });
 
-test("starts a new mock customer without the seeded move", async ({ page }) => {
+test("starts new customer onboarding without a guest app", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "고객으로 시작" }).click();
   await page.getByRole("button", { name: "새 이사" }).click();
   await page.getByRole("textbox", { name: "이름" }).fill("새 고객");
   await page.getByRole("button", { name: "시작" }).click();
 
-  await expect(page.getByRole("heading", { name: /새 고객님/ })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "진행 중인 이사가 없어요" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "서비스 희망일" })).toBeVisible();
 });
 
 test("lists only the move created by a new mock customer", async ({ page }) => {
@@ -29,8 +29,6 @@ test("lists only the move created by a new mock customer", async ({ page }) => {
   await page.getByRole("button", { name: "새 이사" }).click();
   await page.getByRole("textbox", { name: "이름" }).fill("목록 고객");
   await page.getByRole("button", { name: "시작" }).click();
-  await page.getByRole("button", { name: /새 이사 시작하기/ }).click();
-  await page.getByRole("dialog").getByRole("button", { name: /^새 이사 시작/ }).click();
   await page.getByRole("button", { name: "다음", exact: true }).click();
   await page.getByRole("button", { name: "다음", exact: true }).click();
   await page.getByRole("button", { name: "이사 초안 만들기" }).click();
@@ -39,6 +37,19 @@ test("lists only the move created by a new mock customer", async ({ page }) => {
   await expect(page.getByRole("tab", { name: "진행 중 1" })).toBeVisible();
   await expect(page.getByRole("tab", { name: "기록 0" })).toBeVisible();
   await expect(page.getByText("서울 성동구 성수동 1가 → 서울 광진구 자양동 오피스텔")).toBeVisible();
+});
+
+test("connects a field worker before entering the crew app", async ({ page }) => {
+  await page.goto("/");
+  await page.getByText("현장기사", { exact: true }).click();
+  await page.getByRole("button", { name: "현장기사로 시작" }).click();
+
+  await expect(page.getByRole("heading", { name: "초대 코드로 연결할게요" })).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "초대 코드" })).toHaveValue(fieldWorkerAccessSecret);
+  await page.getByRole("button", { name: "연결하기" }).click();
+
+  await expect(page).toHaveURL(/\/crew$/);
+  await expect(page.getByRole("heading", { name: /오늘 작업을 준비해요/ })).toBeVisible();
 });
 
 test("lets a connected customer choose a new move or invite code", async ({ page }) => {

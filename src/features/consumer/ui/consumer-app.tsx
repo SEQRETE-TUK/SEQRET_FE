@@ -171,29 +171,6 @@ const tabs: MobileNavItem<ConsumerTab>[] = [
 const validTabs = new Set<ConsumerTab>([...tabs.map(({ id }) => id), "notifications"]);
 const validMoveViews = new Set<ConsumerMoveView>(["list", "info", "items", "agreement"]);
 
-export function ConsumerGuestApp() {
-  const { connect } = useAuth();
-  const navigate = useNavigate();
-  const [params, setParams] = useSearchParams();
-  const [onboardingOpen, setOnboardingOpen] = useState(false);
-  const [moveStartOpen, setMoveStartOpen] = useState(false);
-  const customerName = window.sessionStorage.getItem(customerDisplayNameStorageKey)?.trim() || "고객";
-  const requested = params.get("tab") as ConsumerTab | null;
-  const tab = requested && validTabs.has(requested) ? requested : "home";
-  const setTab = (next: ConsumerTab) => setParams(next === "home" ? {} : { tab: next, ...(next === "move" ? { view: "list" } : {}) }, { replace: true });
-  const header = tab === "home" ? <HomeHeader customerName={customerName} onBell={() => setTab("notifications")} /> : tab === "move" ? <MoveListSafeArea /> : tab === "notifications" ? <NotificationsHeader onBack={() => setTab("home")} /> : tab === "more" ? false : undefined;
-  return <>
-    <MobileAppShell current={tab} eyebrow="고객" header={header} items={tabs} onChange={setTab} onProfile={() => setTab("more")} title={tab === "home" ? "홈" : tab === "move" ? "내 이사" : "더보기"}>
-      {tab === "home" ? <GuestHome onStart={() => setMoveStartOpen(true)} /> : null}
-      {tab === "move" ? <EmptyMoveList onNewMove={() => setMoveStartOpen(true)} /> : null}
-      {tab === "notifications" ? <CustomerNotifications /> : null}
-      {tab === "more" ? <div className="mobile-screen"><h1 className="text-ui-section font-black">더보기</h1><p className="mt-3 text-sm leading-6 text-ink-600">새 이사를 만들면 이사 기록과 연결 정보가 여기에 표시됩니다.</p><Button className="mt-6 w-full" onClick={() => navigate("/")} variant="outline">역할 선택으로 돌아가기</Button></div> : null}
-    </MobileAppShell>
-    <CustomerMoveStartSheet connect={connect} onConnected={() => navigate("/consumer?tab=move&view=list", { replace: true })} onNewMove={() => { setMoveStartOpen(false); setOnboardingOpen(true); }} onOpenChange={setMoveStartOpen} open={moveStartOpen} />
-    <CustomerOnboardingSheet onOpenChange={setOnboardingOpen} open={onboardingOpen} />
-  </>;
-}
-
 export function ConsumerApp() {
   const { session, clearSession, connect } = useAuth();
   const navigate = useNavigate();
@@ -376,16 +353,8 @@ function PreventionSection() {
   return <section className="mt-4 px-[var(--content-gutter)] py-5"><h2 className="text-ui-component">추가금이 생기는 순간</h2><p className="mt-1 text-sm text-ink-600">미리 확인하면 당일 변경을 줄일 수 있어요</p><div className="no-scrollbar -mx-[var(--content-gutter)] mt-4 flex snap-x scroll-px-[var(--content-gutter)] gap-3 overflow-x-auto px-[var(--content-gutter)] pb-1"><PreventionCard iconSrc="/prevention-elevator.png" label="작업조건 차이" title="엘리베이터·계단 조건이 달랐어요" /><PreventionCard iconSrc="/prevention-package-box.png" label="짐 목록 차이" title="촬영 후 큰 짐이 추가됐어요" /><PreventionCard iconSrc="/prevention-toolbox.png" label="추가 작업" title="분해·설치 작업이 빠졌어요" /></div></section>;
 }
 
-function GuestHome({ onStart }: { onStart: () => void }) {
-  return <div className="pb-[var(--bottom-rail-height)]"><section className="px-[var(--content-gutter)]"><NewMoveHero onStart={onStart} /></section><section className="mx-[var(--content-gutter)] mt-4 ui-card p-5 shadow-[var(--shadow-card)]"><h2 className="text-ui-component font-black">진행 중인 이사가 없어요</h2><p className="mt-2 text-sm leading-6 text-ink-600">새 이사를 만들면 촬영부터 공동확인까지 한곳에서 이어집니다.</p></section><PreventionSection /></div>;
-}
-
 function PreventionCard({ iconSrc, label, title }: { iconSrc: string; label: string; title: string }) {
   return <article className="flex min-h-[160px] w-[156px] shrink-0 snap-start flex-col items-center ui-card p-3 text-center shadow-[var(--shadow-card)]"><span className="grid size-14 place-items-center"><img alt="" aria-hidden="true" className="size-14 object-contain" height="56" loading="lazy" src={iconSrc} width="56" /></span><div className="mt-auto pt-3"><p className="text-xs font-extrabold text-primary-700">{label}</p><h3 className="mt-1.5 text-ui-support leading-5 font-extrabold">{title}</h3></div></article>;
-}
-
-function EmptyMoveList({ onNewMove }: { onNewMove: () => void }) {
-  return <div className="pb-28"><div className="bg-surface px-[var(--content-gutter)] pt-5"><div className="flex items-center justify-between gap-3"><h1 className="text-ui-section">내 이사</h1><button className="min-h-11 whitespace-nowrap px-2 text-ui-control text-primary-700" onClick={onNewMove} type="button">+ 새 이사</button></div><div className="mt-6 grid grid-cols-2 border-b border-line" role="tablist" aria-label="이사 목록"><button aria-selected="true" className="relative min-h-11 text-ui-control text-primary-700 after:absolute after:inset-x-6 after:bottom-0 after:h-0.5 after:bg-primary-600" role="tab" type="button">진행 중 0</button><button aria-selected="false" className="min-h-11 text-ui-control text-ink-600" role="tab" type="button">기록 0</button></div></div><div className="px-[var(--content-gutter)]"><section className="mt-8 ui-card px-5 py-8 text-center shadow-[var(--shadow-card)]"><Archive aria-hidden="true" className="mx-auto text-ink-400" size="var(--icon-category)" /><h2 className="mt-4 text-ui-component">아직 이사 기록이 없어요</h2><p className="mt-2 text-ui-support text-ink-600">새 이사를 만들면 진행 상황과 최종 기록을 확인할 수 있어요.</p><Button className="mt-5 w-full" onClick={onNewMove}>새 이사 시작</Button></section></div></div>;
 }
 
 function ConsumerMoveList({ completion, moveJobs, onNewMove, onOpen, scope, showMockHistory }: { completion: CompletionSummary | undefined; moveJobs: MockMoveSummary[] | undefined; onNewMove: () => void; onOpen: (jobId: string) => void; scope: ScopeReview | undefined; showMockHistory: boolean }) {

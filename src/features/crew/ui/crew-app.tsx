@@ -21,7 +21,7 @@ import {
   WrenchIcon as Wrench,
 } from "@phosphor-icons/react";
 import { useEffect, useMemo, useState, type ChangeEvent } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 
 import { mockAccessSecrets, mockApiEnabled } from "@/api/mock-api";
 import { AgreementOverview } from "@/components/layout/agreement-overview";
@@ -79,7 +79,7 @@ const crewHistoryRecords: CrewHistoryRecord[] = [
 
 export function CrewApp() {
   const { session } = useAuth();
-  return session?.actor.role === "field_worker" ? <ConnectedCrewApp session={session} /> : <CrewGuestApp />;
+  return session?.actor.role === "field_worker" ? <ConnectedCrewApp session={session} /> : <Navigate replace to="/" />;
 }
 
 function ConnectedCrewApp({ session }: { session: AuthSession }) {
@@ -118,28 +118,6 @@ function ConnectedCrewApp({ session }: { session: AuthSession }) {
     <CrewInviteSheet connect={connect} onOpenChange={setInviteOpen} open={inviteOpen} />
     </>
   );
-}
-
-function CrewGuestApp() {
-  const { connect } = useAuth();
-  const [params, setParams] = useSearchParams();
-  const [inviteOpen, setInviteOpen] = useState(false);
-  const requested = params.get("tab") as CrewTab | null;
-  const tab = requested && validTabs.has(requested) ? requested : "home";
-  const changeTab = (next: CrewTab) => setParams(next === "home" ? {} : next === "work" ? { tab: "work", view: "list" } : { tab: next }, { replace: true });
-  return <>
-    <MobileAppShell current={tab} eyebrow="현장기사" header={tab === "notifications" ? <CrewNotificationsHeader onBack={() => changeTab("home")} /> : tab === "home" ? <CrewHomeHeader onBell={() => changeTab("notifications")} /> : <CrewSafeArea />} items={items} onChange={changeTab} onProfile={() => changeTab("more")} root={tab === "home"} title={titles[tab]}>
-      {tab === "home" ? <CrewGuestHome onInvite={() => setInviteOpen(true)} /> : null}
-      {tab === "work" ? <CrewWorkList brief={undefined} onOpen={() => undefined} /> : null}
-      {tab === "notifications" ? <CrewNotifications onAction={() => setInviteOpen(true)} /> : null}
-      {tab === "more" ? <section className="px-[var(--content-gutter)] pb-28 pt-6"><h1 className="text-ui-section font-black tracking-[var(--tracking-display)]">더보기</h1><p className="mt-6 border-y border-line py-5 text-sm text-ink-600">초대 코드를 입력하면 기사 정보와 배정된 이사를 확인할 수 있어요.</p></section> : null}
-    </MobileAppShell>
-    <CrewInviteSheet connect={connect} onOpenChange={setInviteOpen} open={inviteOpen} />
-  </>;
-}
-
-function CrewGuestHome({ onInvite }: { onInvite: () => void }) {
-  return <div className="px-[var(--content-gutter)] pb-28 pt-4"><h1 className="text-ui-section leading-9 font-black tracking-[var(--tracking-display)]">배정된 이사를<br />연결해 주세요</h1><CrewInviteHero onInvite={onInvite} /><section className="mt-4 ui-card px-5 py-8 text-center"><Archive aria-hidden="true" className="mx-auto text-ink-400" size="var(--icon-category)" /><h2 className="mt-3 text-ui-component">연결된 작업이 없어요</h2></section></div>;
 }
 
 function CrewInviteHero({ onInvite }: { onInvite: () => void }) {
