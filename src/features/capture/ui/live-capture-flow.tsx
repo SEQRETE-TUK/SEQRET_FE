@@ -230,6 +230,30 @@ function VideoCaptureStage({
   );
 }
 
+const videoProcessingSteps = [
+  { title: "촬영 영상을 업로드하고 있어요", description: "영상이 안전하게 전송되고 있어요." },
+  { title: "AI가 짐 목록을 만들고 있어요", description: "영상 속 짐과 구역을 확인하고 있어요." },
+  { title: "검토할 초안을 준비하고 있어요", description: "잠시 후 확인할 수 있어요." },
+] as const;
+
+function VideoProcessingStage({ onBack, step }: { onBack: () => void; step: number }) {
+  const activeStep = Math.min(step, videoProcessingSteps.length - 1);
+  return <div className="flex min-h-dvh flex-col bg-canvas text-ink-900">
+    <MobilePageHeader onBack={onBack} title="AI 분석 중" />
+    <main className="flex flex-1 flex-col justify-center px-6 pb-20">
+      <span className="mx-auto grid size-20 place-items-center rounded-full bg-primary-50 text-primary-700"><LoaderCircle aria-hidden="true" className="demo-spin" size="var(--icon-category)" /></span>
+      <h1 className="mt-7 text-center text-ui-section font-black">촬영 내용을 정리하고 있어요</h1>
+      <p className="mt-2 text-center text-ui-support text-ink-600">화면을 닫아도 업로드된 촬영은 보존돼요.</p>
+      <ol className="mt-8 space-y-3">
+        {videoProcessingSteps.map((item, index) => <li className={`flex items-center gap-3 rounded-2xl border px-4 py-3 ${index < activeStep ? "border-success bg-success-bg" : index === activeStep ? "border-primary-100 bg-primary-50" : "border-line bg-surface"}`} key={item.title}>
+          <span className={`grid size-8 shrink-0 place-items-center rounded-full text-sm font-black ${index < activeStep ? "bg-success text-white" : index === activeStep ? "bg-primary-600 text-white" : "bg-surface-muted text-ink-400"}`}>{index < activeStep ? <Check aria-hidden="true" size="var(--icon-xs)" weight="bold" /> : index + 1}</span>
+          <span><strong className="block text-ui-data">{item.title}</strong><span className="mt-0.5 block text-ui-micro text-ink-600">{item.description}</span></span>
+        </li>)}
+      </ol>
+    </main>
+  </div>;
+}
+
 interface ZoneRowProps {
   assets: MediaAsset[];
   disabled: boolean;
@@ -606,11 +630,13 @@ function ConnectedCapture({
   const [manualDraftItems, setManualDraftItems] = useState<
     AnalysisReviewDraftItem[]
   >([]);
-  const [videoMode, setVideoMode] = useState<"capture" | "review" | null>(
+  const [videoMode, setVideoMode] = useState<"capture" | "loading" | "review" | null>(
     initialVideo ? "capture" : null,
   );
-  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [mockProcessingStep, setMockProcessingStep] = useState(0);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [videoAnalysisSessionId, setVideoAnalysisSessionId] = useState<string | null>(null);
+  const [videoAnalysisRequested, setVideoAnalysisRequested] = useState(false);
   const [recoveringReview, setRecoveringReview] = useState(false);
   const [removedReviewItem, setRemovedReviewItem] =
     useState<RemovedReviewItem | null>(null);
@@ -647,6 +673,9 @@ function ConnectedCapture({
       ),
     );
   const analysis = session?.analysis ?? null;
+  const videoAnalysis = videoAnalysisSessionId
+    ? sessions?.find(({ id }) => id === videoAnalysisSessionId)?.analysis ?? null
+    : null;
   const analysisActive =
     analysis !== null && ACTIVE_ANALYSIS.has(analysis.status);
   const review = workflow.reviewQuery.data;
@@ -722,6 +751,15 @@ function ConnectedCapture({
     workflow.reviewMutation.isPending ||
     workflow.manualScopeMutation.isPending ||
     recoveringReview;
+  const videoProcessingStep = mockApiEnabled
+    ? mockProcessingStep
+    : workflow.createSessionMutation.isPending || workflow.uploadMutation.isPending
+      ? 0
+      : videoAnalysis?.status === "running"
+        ? 2
+        : videoAnalysis || workflow.submitMutation.isPending
+          ? 1
+          : 0;
   const requestError =
     workflow.jobQuery.error ??
     workflow.sessionsQuery.error ??
@@ -747,6 +785,32 @@ function ConnectedCapture({
     },
     [videoUrl],
   );
+
+  useEffect(() => {
+    if (videoMode !== "loading" || !mockApiEnabled) return;
+    const timers = videoProcessingSteps.slice(1).map((_, index) => window.setTimeout(() => setMockProcessingStep(index + 1), (index + 1) * 1_000));
+    const completeTimer = window.setTimeout(() => setVideoMode("review"), videoProcessingSteps.length * 1_000);
+    return () => {
+      timers.forEach((timer) => window.clearTimeout(timer));
+      window.clearTimeout(completeTimer);
+    };
+  }, [videoMode]);
+
+  useEffect(() => {
+    if (videoMode !== "loading" || mockApiEnabled) return;
+    if (!videoAnalysisRequested || !videoAnalysis) return;
+    if (videoAnalysis.status === "completed" || videoAnalysis.status === "failed") {
+      const completionTimer = window.setTimeout(() => {
+        setVideoAnalysisRequested(false);
+        setVideoAnalysisSessionId(null);
+        setVideoMode(null);
+        if (videoAnalysis.status === "completed") {
+          setLocalNotice("촬영 영상을 분석해 검토할 초안을 만들었어요.");
+        }
+      }, 0);
+      return () => window.clearTimeout(completionTimer);
+    }
+  }, [videoAnalysis, videoAnalysisRequested, videoMode]);
 
   if (workflow.jobQuery.isPending || workflow.sessionsQuery.isPending) {
     return (
@@ -1008,6 +1072,40 @@ function ConnectedCapture({
     );
   };
 
+  const startVideoUpload = (file: File) => {
+    const roomZoneId = zones[0]?.id;
+    if (!roomZoneId || (!session && !workflow.consentPolicyQuery.data)) {
+      setLocalError("촬영 준비가 끝나지 않았어요. 잠시 후 다시 시도해 주세요.");
+      setVideoMode(null);
+      return;
+    }
+    setVideoAnalysisRequested(true);
+    const fail = () => {
+      setVideoAnalysisRequested(false);
+      setVideoAnalysisSessionId(null);
+      setVideoMode(null);
+    };
+    const uploadAndAnalyze = (captureSessionId: string) => workflow.uploadMutation.mutate(
+      { captureSessionId, file, roomZoneId },
+      {
+        onSuccess: () => workflow.submitMutation.mutate(captureSessionId, { onError: fail }),
+        onError: fail,
+      },
+    );
+    if (!session || analysis) {
+      workflow.createSessionMutation.mutate(undefined, {
+        onSuccess: (created) => {
+          setVideoAnalysisSessionId(created.id);
+          uploadAndAnalyze(created.id);
+        },
+        onError: fail,
+      });
+    } else {
+      setVideoAnalysisSessionId(session.id);
+      uploadAndAnalyze(session.id);
+    }
+  };
+
   const prepareVideo = (file: File) => {
     const error = captureFileError(file);
     if (error) {
@@ -1015,50 +1113,41 @@ function ConnectedCapture({
       return;
     }
     if (videoUrl && videoUrl !== "mock") URL.revokeObjectURL(videoUrl);
-    setVideoFile(file);
-    setVideoUrl(URL.createObjectURL(file));
-    setVideoMode("review");
+    setLocalError(null);
+    if (mockApiEnabled) {
+      setVideoAnalysisRequested(false);
+      setVideoAnalysisSessionId(null);
+      setMockProcessingStep(0);
+      setVideoUrl(URL.createObjectURL(file));
+      setVideoMode("loading");
+      return;
+    }
+    setVideoAnalysisSessionId(null);
+    setVideoUrl(null);
+    setVideoMode("loading");
+    startVideoUpload(file);
   };
 
   const applyVideo = (detectedItems: { key: string; name: string; quantity: number }[]) => {
-    if (!videoFile) {
-      if (!review || reviewCompleted || workflow.reviewMutation.isPending) return;
-      const roomZoneId = review.zones[0]?.room_zone_id;
-      if (!roomZoneId) return;
-      workflow.reviewMutation.mutate(
-        {
-          sourceScopeVersionId: review.source_scope_version_id,
-          scopeSchemaVersion: review.scope_schema_version,
-          locationConditions: review.location_conditions,
-          items: review.scope_schema_version === 2
-            ? detectedItems.map((item) => ({ item_key: `mock-${item.key}`, room_zone_id: roomZoneId, name: item.name, quantity: item.quantity, unit: "개", work_note: null }))
-            : detectedItems.map((item) => ({ item_key: `mock-${item.key}`, room_zone_id: roomZoneId, description: item.quantity > 1 ? `${item.name} ${item.quantity}개` : item.name })),
-        },
-        { onSuccess: onComplete },
-      );
-      return;
-    }
-    const roomZoneId = zones[0]?.id;
+    if (!review || reviewCompleted || workflow.reviewMutation.isPending) return;
+    const roomZoneId = review.zones[0]?.room_zone_id;
     if (!roomZoneId) return;
-    const uploadAndAnalyze = (captureSessionId: string) =>
-      workflow.uploadMutation.mutate(
-        { captureSessionId, file: videoFile, roomZoneId },
-        {
-          onSuccess: () =>
-            workflow.submitMutation.mutate(captureSessionId, {
-              onSuccess: () => {
-                setVideoMode(null);
-                setLocalNotice("촬영 영상을 분석해 검수 목록을 만들었어요.");
-              },
-            }),
-        },
-      );
-    if (!session || analysis)
-      workflow.createSessionMutation.mutate(undefined, {
-        onSuccess: (created) => uploadAndAnalyze(created.id),
-      });
-    else uploadAndAnalyze(session.id);
+    workflow.reviewMutation.mutate(
+      {
+        sourceScopeVersionId: review.source_scope_version_id,
+        scopeSchemaVersion: review.scope_schema_version,
+        locationConditions: review.location_conditions,
+        items: review.scope_schema_version === 2
+          ? detectedItems.map((item) => ({ item_key: `mock-${item.key}`, room_zone_id: roomZoneId, name: item.name, quantity: item.quantity, unit: "개", work_note: null }))
+          : detectedItems.map((item) => ({ item_key: `mock-${item.key}`, room_zone_id: roomZoneId, description: item.quantity > 1 ? `${item.name} ${item.quantity}개` : item.name })),
+      },
+      { onSuccess: onComplete },
+    );
   };
+
+  if (videoMode === "loading") {
+    return <VideoProcessingStage onBack={onDisconnect} step={videoProcessingStep} />;
+  }
 
   if (videoMode)
     return (
@@ -1068,16 +1157,19 @@ function ConnectedCapture({
           if (videoMode === "capture") onDisconnect();
           else {
             if (videoUrl && videoUrl !== "mock") URL.revokeObjectURL(videoUrl);
-            setVideoFile(null);
+            setVideoAnalysisRequested(false);
+            setVideoAnalysisSessionId(null);
             setVideoUrl(null);
             setVideoMode("capture");
           }
         }}
         onFile={prepareVideo}
         onMockCapture={() => {
-          setVideoFile(null);
+          setVideoAnalysisRequested(false);
+          setVideoAnalysisSessionId(null);
+          setMockProcessingStep(0);
           setVideoUrl("mock");
-          setVideoMode("review");
+          setVideoMode("loading");
         }}
         onSubmit={applyVideo}
         pending={busy || workflow.reviewQuery.isPending || !review}

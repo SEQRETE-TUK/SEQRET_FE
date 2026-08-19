@@ -1,8 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   CheckIcon as Check,
-  DownloadSimpleIcon as Download,
-  CircleNotchIcon as LoaderCircle,
   PaperPlaneTiltIcon as Send,
   TruckIcon as Truck,
   UsersIcon as Users,
@@ -18,7 +16,6 @@ import { WorkflowTask } from "@/components/workflow/workflow-task";
 import { useAuth } from "@/features/auth/model/auth-context";
 import {
   createCompletionRequest,
-  downloadCompletionArchive,
   getCompletionSummary,
   getDispatch,
   getScopeReview,
@@ -51,7 +48,6 @@ export function LiveProviderWorkflow({ embedded = false, wide = false }: { embed
   const [workerNote, setWorkerNote] = useState("");
   const [selectedVehicleId, setSelectedVehicleId] = useState("");
   const [selectedWorkerIds, setSelectedWorkerIds] = useState<string[]>([]);
-  const [downloadError, setDownloadError] = useState<unknown>(null);
   const connection: Connection | null = session ? { accessToken: session.accessToken, jobId: session.actor.job_id } : null;
   const invitationPending = session?.actor.invitation?.status === "pending";
 
@@ -126,21 +122,7 @@ export function LiveProviderWorkflow({ embedded = false, wide = false }: { embed
     onError: async (error) => { if (shouldRecoverState(error)) await invalidate(workflowKeys.completion(session!.actor.job_id)); },
     onSuccess: async () => { await invalidate(workflowKeys.completion(session!.actor.job_id)); },
   });
-  const archiveMutation = useMutation({
-    mutationFn: () => downloadCompletionArchive(connection!),
-    onSuccess: ({ blob, filename }) => {
-      setDownloadError(null);
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.download = filename;
-      anchor.click();
-      window.setTimeout(() => URL.revokeObjectURL(url), 0);
-    },
-    onError: setDownloadError,
-  });
-
-  const mutationError = setupMutation.error ?? dispatchMutation.error ?? completionRequestMutation.error ?? downloadError;
+  const mutationError = setupMutation.error ?? dispatchMutation.error ?? completionRequestMutation.error;
   const retryAfter = useRetryAfter(mutationError);
   useAuthFailure(scopeQuery.error, invitationQuery.error, dispatchQuery.error, completionQuery.error, mutationError);
   if (!connection || session?.actor.role !== "company_manager") return null;
@@ -150,7 +132,6 @@ export function LiveProviderWorkflow({ embedded = false, wide = false }: { embed
   return (
     <WorkflowShell
       context={scopeQuery.data ? <WorkContext
-        code={scopeQuery.data.job.job_code}
         route={`${scopeQuery.data.job.origin_summary ?? "출발지 미정"} → ${scopeQuery.data.job.destination_summary ?? "도착지 미정"}`}
         scheduledAt={scopeQuery.data.job.scheduled_at}
         status={<StatusTag tone={scopeQuery.data.scope.status === "confirmed" ? "success" : "warning"}>{scopeQuery.data.scope.status === "confirmed" ? "공동확인 완료" : scopeQuery.data.scope.status === "customer_review" ? "고객 확인 대기" : "업체 처리 중"}</StatusTag>}
@@ -166,10 +147,11 @@ export function LiveProviderWorkflow({ embedded = false, wide = false }: { embed
       wide={wide}
     >
       <div className="workflow-task-list overflow-hidden rounded-[var(--radius-input)] border border-line bg-surface">
-        <InvitationPanel />
+        <InvitationPanel presentation="dialog" />
         <WorkflowTask
           description={`수락 기사 ${acceptedWorkerCount}명 · 차량과 작업시간을 배정해요`}
           index={1}
+          presentation="dialog"
           status={dispatchQuery.data?.status === "confirmed" ? "확정" : dispatchQuery.data?.status === "ready" ? "확정 필요" : "준비"}
           title="배차"
           tone={dispatchQuery.data?.status === "confirmed" ? "success" : dispatchQuery.data?.status === "ready" ? "primary" : "neutral"}
@@ -184,14 +166,15 @@ export function LiveProviderWorkflow({ embedded = false, wide = false }: { embed
         <WorkflowTask
           description={completionQuery.data?.completion_submission_id ? "고객 확인 요청과 완료 문서를 처리해요" : "현장기사의 완료 제출을 기다려요"}
           index={2}
+          presentation="dialog"
           status={completionQuery.data?.archive_ready ? "문서 준비" : completionQuery.data?.completion_submission_id ? "확인 요청" : "대기"}
           title="완료와 문서"
           tone={completionQuery.data?.archive_ready ? "success" : "neutral"}
         >
           <ApiNotice error={completionQuery.error} title="완료 기록이 아직 준비되지 않았어요" />
           {completionQuery.data ? <CompletionReview summary={completionQuery.data} /> : <EmptyState>현장기사의 완료 제출을 기다리고 있습니다.</EmptyState>}
-          {completionQuery.data ? <><Button className="mt-4 w-full" disabled={!completionQuery.data.completion_submission_id || ["requested", "confirmed", "issue_reported"].includes(completionQuery.data.completion_request?.status ?? "") || completionRequestMutation.isPending} onClick={() => completionRequestMutation.mutate()}><Send aria-hidden="true" /> 고객 완료 확인 요청</Button><Button className="mt-2 w-full" disabled={!completionQuery.data.archive_ready || archiveMutation.isPending} onClick={() => archiveMutation.mutate()} variant="outline">{archiveMutation.isPending ? <LoaderCircle aria-hidden="true" className="animate-spin" /> : <Download aria-hidden="true" />} 문서 ZIP 다운로드</Button></> : null}
-          <ApiNotice error={completionRequestMutation.error ?? downloadError} title="완료 요청 또는 문서를 처리하지 못했어요" />
+          {completionQuery.data ? <Button className="mt-4 w-full" disabled={!completionQuery.data.completion_submission_id || ["requested", "confirmed", "issue_reported"].includes(completionQuery.data.completion_request?.status ?? "") || completionRequestMutation.isPending} onClick={() => completionRequestMutation.mutate()}><Send aria-hidden="true" /> 고객 완료 확인 요청</Button> : null}
+          <ApiNotice error={completionRequestMutation.error} title="완료 요청을 처리하지 못했어요" />
         </WorkflowTask>
       </div>
     </WorkflowShell>

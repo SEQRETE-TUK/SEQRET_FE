@@ -3,10 +3,17 @@ import {
   CheckIcon as Check,
   CaretRightIcon as ChevronRight,
 } from "@phosphor-icons/react";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 
 import { MobileHeaderButton, MobilePageHeader } from "@/components/layout/mobile-app-shell";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Sheet,
   SheetClose,
@@ -65,6 +72,7 @@ export function WorkflowTask({
   description,
   detailTitle,
   leading,
+  presentation = "page",
   status,
   title,
   tone = "neutral",
@@ -75,27 +83,45 @@ export function WorkflowTask({
   detailTitle?: string;
   index?: number;
   leading?: ReactNode;
+  presentation?: "page" | "dialog";
   status: string;
   title: string;
   tone?: TaskTone;
 }) {
+  const [dialogOpen, setDialogOpen] = useState(defaultOpen);
+  const triggerClassName = cn(
+    "interactive-row flex min-h-[76px] w-full items-center gap-3 border-b border-line px-4 py-3 text-left last:border-b-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus-ring",
+    tone === "primary" && "bg-primary-50/60",
+    tone === "warning" && "bg-warning-bg/55",
+  );
+  const triggerContent = <>
+    {leading ? <span className="shrink-0 text-primary-700">{leading}</span> : null}
+    <span className="min-w-0 flex-1">
+      <strong className="block min-w-0 truncate text-ui-support leading-6">{title}</strong>
+      <span className="mt-1 block truncate text-sm leading-5 text-ink-600">{description}</span>
+    </span>
+    <Badge className="max-w-24 shrink-0" variant={tone}>{status}</Badge>
+    <ChevronRight aria-hidden="true" className="size-5 shrink-0 text-ink-400" />
+  </>;
+
+  if (presentation === "dialog") {
+    return <>
+      <button className={triggerClassName} onClick={() => setDialogOpen(true)} type="button">{triggerContent}</button>
+      <Dialog onOpenChange={setDialogOpen} open={dialogOpen}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>{detailTitle ?? title}</DialogTitle>
+            <DialogDescription>{description}</DialogDescription>
+          </DialogHeader>
+          <div className="mt-6">{children}</div>
+        </DialogContent>
+      </Dialog>
+    </>;
+  }
+
   return (
     <Sheet defaultOpen={defaultOpen}>
-      <SheetTrigger
-        className={cn(
-          "interactive-row flex min-h-[76px] w-full items-center gap-3 border-b border-line px-4 py-3 text-left last:border-b-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus-ring",
-          tone === "primary" && "bg-primary-50/60",
-          tone === "warning" && "bg-warning-bg/55",
-        )}
-      >
-        {leading ? <span className="shrink-0 text-primary-700">{leading}</span> : null}
-        <span className="min-w-0 flex-1">
-          <strong className="block min-w-0 truncate text-ui-support leading-6">{title}</strong>
-          <span className="mt-1 block truncate text-sm leading-5 text-ink-600">{description}</span>
-        </span>
-        <Badge className="max-w-24 shrink-0" variant={tone}>{status}</Badge>
-        <ChevronRight aria-hidden="true" className="size-5 shrink-0 text-ink-400" />
-      </SheetTrigger>
+      <SheetTrigger className={triggerClassName}>{triggerContent}</SheetTrigger>
       <SheetContent presentation="page" showClose={false}>
         <MobilePageHeader description={description} left={<SheetClose render={<MobileHeaderButton ariaLabel="뒤로가기" />}><ArrowLeft aria-hidden="true" size="var(--icon-sm)" /></SheetClose>} title={detailTitle ?? title} />
         <div className="px-5 pb-2">{children}</div>

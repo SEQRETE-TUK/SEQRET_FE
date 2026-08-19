@@ -253,7 +253,7 @@ export function ConsumerApp() {
     <>
     <MobileAppShell current={tab} eyebrow={`고객 · ${activeCustomerName}`} header={header} items={tabs} onChange={setTab} onProfile={() => setTab("more")} showNav={tab !== "move" || moveView === "list"} title={tab === "home" ? "홈" : tab === "move" ? "내 이사" : "더보기"}>
       {tab === "home" ? <HomeTab completion={completionQuery.data} onOpenAgreement={openAgreement} onOpenMove={() => openMove()} onStartMove={() => setOnboardingOpen(true)} scope={scopeQuery.data} /> : null}
-      {tab === "move" ? <ConsumerMoveTab completion={completionQuery.data} connection={connection} editor={moveInfoEditor} issues={issuesQuery.data} moveJobs={moveListQuery.data?.moves} onCapture={() => navigate("/consumer/capture?mode=video")} onEditorChange={setMoveInfoEditor} onManualAdd={() => navigate("/consumer/capture?mode=manual")} onNewMove={() => setOnboardingOpen(true)} onOpen={(jobId) => openMove(jobId)} onViewChange={setMoveView} scope={scopeQuery.data} view={moveView} /> : null}
+      {tab === "move" ? <ConsumerMoveTab completion={completionQuery.data} connection={connection} editor={moveInfoEditor} issues={issuesQuery.data} moveJobs={moveListQuery.data?.moves} onCapture={() => navigate(`/consumer/capture?mode=video&job=${encodeURIComponent(selectedJobId)}`)} onEditorChange={setMoveInfoEditor} onManualAdd={() => navigate(`/consumer/capture?mode=manual&job=${encodeURIComponent(selectedJobId)}`)} onNewMove={() => setOnboardingOpen(true)} onOpen={(jobId) => openMove(jobId)} onOpenCompletion={() => navigate(`/consumer/completion?job=${encodeURIComponent(selectedJobId)}`)} onOpenQuote={() => navigate(`/consumer/quote?job=${encodeURIComponent(selectedJobId)}`)} onViewChange={setMoveView} scope={scopeQuery.data} view={moveView} /> : null}
       {tab === "notifications" ? <CustomerNotifications issues={issuesQuery.data} scope={scopeQuery.data} /> : null}
       {tab === "more" ? <ConnectedProfile displayName={activeCustomerName} expiresAt={session!.actor.expires_at} onDisconnect={disconnect} permissions={session!.actor.permissions} roleLabel="고객" /> : null}
     </MobileAppShell>
@@ -412,13 +412,13 @@ function storedMoveInfoOverrides(): MoveInfoOverrides {
   }
 }
 
-function ConsumerMoveTab({ completion, connection, editor, issues, moveJobs, onCapture, onEditorChange, onManualAdd, onNewMove, onOpen, onViewChange, scope, view }: { completion: CompletionSummary | undefined; connection: Connection; editor: MoveInfoEditor | null; issues: FieldIssue[] | undefined; moveJobs: MockMoveSummary[] | undefined; onCapture: () => void; onEditorChange: (editor: MoveInfoEditor | null) => void; onManualAdd: () => void; onNewMove: () => void; onOpen: (jobId: string) => void; onViewChange: (view: ConsumerMoveView) => void; scope: ScopeReview | undefined; view: ConsumerMoveView }) {
+function ConsumerMoveTab({ completion, connection, editor, issues, moveJobs, onCapture, onEditorChange, onManualAdd, onNewMove, onOpen, onOpenCompletion, onOpenQuote, onViewChange, scope, view }: { completion: CompletionSummary | undefined; connection: Connection; editor: MoveInfoEditor | null; issues: FieldIssue[] | undefined; moveJobs: MockMoveSummary[] | undefined; onCapture: () => void; onEditorChange: (editor: MoveInfoEditor | null) => void; onManualAdd: () => void; onNewMove: () => void; onOpen: (jobId: string) => void; onOpenCompletion: () => void; onOpenQuote: () => void; onViewChange: (view: ConsumerMoveView) => void; scope: ScopeReview | undefined; view: ConsumerMoveView }) {
   const [infoOverrides, setInfoOverrides] = useState<MoveInfoOverrides>(storedMoveInfoOverrides);
   const changeInfoOverrides = (next: MoveInfoOverrides) => { setInfoOverrides(next); window.sessionStorage.setItem(moveDraftStorageKey, JSON.stringify(next)); };
   const fallbackLocationConditions = (["origin", "destination"] as const).map((kind) => moveStopLocationConditions(kind, infoOverrides.stops[kind] ?? defaultMoveStop(kind, scope)));
   if (view === "list") return <ConsumerMoveList completion={completion} moveJobs={moveJobs} onNewMove={onNewMove} onOpen={onOpen} scope={scope} />;
   if (view === "info" && editor) return <MoveInfo editor={editor} key={editor} onChange={changeInfoOverrides} onEditorChange={onEditorChange} scope={scope} value={infoOverrides} />;
-  return <><MoveTabs current={view} onChange={onViewChange} />{view === "info" ? <MoveInfo editor={null} onChange={changeInfoOverrides} onEditorChange={onEditorChange} scope={scope} value={infoOverrides} /> : null}{view === "items" ? <ConsumerInventory onCapture={onCapture} onManualAdd={onManualAdd} scope={scope} /> : null}{view === "agreement" ? <ConsumerAgreement completion={completion} connection={connection} fallbackLocationConditions={fallbackLocationConditions} issues={issues} key={connection.jobId} scope={scope} /> : null}</>;
+  return <><MoveTabs current={view} onChange={onViewChange} />{view === "info" ? <MoveInfo editor={null} onChange={changeInfoOverrides} onEditorChange={onEditorChange} scope={scope} value={infoOverrides} /> : null}{view === "items" ? <ConsumerInventory onCapture={onCapture} onManualAdd={onManualAdd} scope={scope} /> : null}{view === "agreement" ? <ConsumerAgreement completion={completion} connection={connection} fallbackLocationConditions={fallbackLocationConditions} issues={issues} key={connection.jobId} onOpenCompletion={onOpenCompletion} onOpenQuote={onOpenQuote} scope={scope} /> : null}</>;
 }
 
 function MoveTabs({ current, onChange }: { current: ConsumerMoveView; onChange: (view: ConsumerMoveView) => void }) {
@@ -548,12 +548,10 @@ function InventoryItemIcon({ name }: { name: string }) {
   return <MovingItemIcon name={name} />;
 }
 
-function ConsumerAgreement({ completion, connection, fallbackLocationConditions, issues, scope }: { completion: CompletionSummary | undefined; connection: Connection; fallbackLocationConditions: ScopeLocationConditions[]; issues: FieldIssue[] | undefined; scope: ScopeReview | undefined }) {
+function ConsumerAgreement({ completion, connection, fallbackLocationConditions, issues, onOpenCompletion, onOpenQuote, scope }: { completion: CompletionSummary | undefined; connection: Connection; fallbackLocationConditions: ScopeLocationConditions[]; issues: FieldIssue[] | undefined; onOpenCompletion: () => void; onOpenQuote: () => void; scope: ScopeReview | undefined }) {
   const queryClient = useQueryClient();
   const [issueOpen, setIssueOpen] = useState(false);
-  const [completionOpen, setCompletionOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
-  const [quoteDetailOpen, setQuoteDetailOpen] = useState(false);
   const refresh = () => Promise.all([queryClient.invalidateQueries({ queryKey: workflowKeys.root(connection.jobId) }), queryClient.invalidateQueries({ queryKey: workflowKeys.moves(connection.accessToken) })]);
   const issue = issues?.find((item) => item.status === "customer_review" && item.change_proposal_id);
   const resolvedIssue = issues?.find((item) => item.status === "approved" || item.status === "rejected");
@@ -574,14 +572,10 @@ function ConsumerAgreement({ completion, connection, fallbackLocationConditions,
 
   return (
     <div className="space-y-2.5 px-[var(--content-gutter)] pb-28 pt-3">
-      {quoteNeedsReview && !quoteDetailOpen ? <QuoteArrivalCard companyName={scope.job.company_display_name} onOpen={() => setQuoteDetailOpen(true)} scope={scope} /> : <>
-        {quoteNeedsReview ? <ScopeDecisionCard connection={connection} onResolved={refresh} scope={scope} /> : null}
-        <AgreementOverview fallbackLocationConditions={fallbackLocationConditions} onOpenHistory={() => setHistoryOpen(true)} scope={scope} showCurrentStatus={false}>
-          {completion?.completion_request ? <CompletionReportCard completion={completion} onOpen={() => setCompletionOpen(true)} /> : null}
-          {displayIssue ? <FieldReportCard companyName={scope.job.company_display_name} issue={displayIssue} onOpen={() => setIssueOpen(true)} /> : null}
-        </AgreementOverview>
-      </>}
-      {completion?.completion_request ? <CompletionDecisionCard completion={completion} connection={connection} onOpenChange={setCompletionOpen} onResolved={refresh} open={completionOpen} /> : null}
+      {quoteNeedsReview ? <QuoteArrivalCard companyName={scope.job.company_display_name} onOpen={onOpenQuote} scope={scope} /> : <AgreementOverview fallbackLocationConditions={fallbackLocationConditions} onOpenHistory={() => setHistoryOpen(true)} scope={scope} showCurrentStatus={false}>
+        {completion?.completion_request ? <CompletionReportCard completion={completion} onOpen={onOpenCompletion} /> : null}
+        {displayIssue ? <FieldReportCard companyName={scope.job.company_display_name} issue={displayIssue} onOpen={() => setIssueOpen(true)} /> : null}
+      </AgreementOverview>}
       {displayIssue ? <FieldChangeSheet error={decisionMutation.error} issue={displayIssue} loading={proposalQuery.isLoading} onDecision={(decision, note) => decisionMutation.mutate({ decision, note })} onOpenChange={setIssueOpen} open={issueOpen} pending={decisionMutation.isPending} proposal={proposalQuery.data} readOnly={!issue} /> : null}
       <AgreementHistorySheet fallbackLocationConditions={fallbackLocationConditions} issue={resolvedIssue} onOpenChange={setHistoryOpen} open={historyOpen} scope={scope} />
     </div>
@@ -641,6 +635,7 @@ function CompanyInvitationEmpty({ connection, itemCount }: { connection: Connect
   const [issued, setIssued] = useState<InvitationIssued | null>(null);
   const [inviteError, setInviteError] = useState<unknown>(null);
   const [issuing, setIssuing] = useState(true);
+  const [copied, setCopied] = useState(false);
   const invitationRequest = useRef<{ key: string; promise: Promise<InvitationIssued> } | null>(null);
   const { accessToken, jobId } = connection;
   useEffect(() => {
@@ -659,7 +654,13 @@ function CompanyInvitationEmpty({ connection, itemCount }: { connection: Connect
   const inviteText = issued ? `짐확정 이사 확인 초대 코드\n${issued.access_link.secret}` : "";
   const copyInvite = async () => {
     if (!issued) return;
-    await navigator.clipboard.writeText(inviteText);
+    try {
+      await navigator.clipboard.writeText(inviteText);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // Clipboard permissions are handled by the browser.
+    }
   };
   const shareInvite = async () => {
     if (!issued) return;
@@ -673,7 +674,7 @@ function CompanyInvitationEmpty({ connection, itemCount }: { connection: Connect
     }
     await copyInvite();
   };
-  const sharingDisabled = !issued || issuing || itemCount === 0;
+  const sharingDisabled = !issued || itemCount === 0;
   return <main className="px-[var(--content-gutter)] pb-28 pt-8">
     <h1 className="whitespace-nowrap text-ui-component font-black tracking-[var(--tracking-display)]">업체와 함께 확인할 차례예요</h1>
     <p className="mt-4 max-w-[340px] text-sm leading-6 text-ink-600">이사업체를 초대해 검수 결과를 함께 확인하고 정확한 견적을 받아보세요.</p>
@@ -689,7 +690,7 @@ function CompanyInvitationEmpty({ connection, itemCount }: { connection: Connect
     {inviteError ? <p className="mt-3 text-sm font-bold text-danger-ink" role="alert">{apiErrorMessage(inviteError)}</p> : null}
     <div className="mt-6 space-y-2.5">
       <Button className="w-full" disabled={sharingDisabled} onClick={() => void shareInvite()} size="cta"><ShareNetwork aria-hidden="true" />{issuing && !mockApiEnabled ? "공유 준비 중" : "공유"}</Button>
-      <Button className="w-full" disabled={sharingDisabled} onClick={() => void copyInvite()} size="cta" variant="outline"><Copy aria-hidden="true" />링크 복사</Button>
+      <Button className="w-full" disabled={sharingDisabled} onClick={() => void copyInvite()} size="cta" variant="outline">{copied ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}링크 복사</Button>
     </div>
     <div className="mt-7 flex items-start gap-3 rounded-[var(--radius-control)] bg-primary-50 px-4 py-4 text-sm leading-5 text-ink-600"><ShieldCheck aria-hidden="true" className="mt-0.5 shrink-0 text-success-ink" size="var(--icon-sm)" /><p><strong className="block text-ink-900">안전하게 공유돼요</strong><span className="mt-1 block">초대 코드는 담당자만 사용할 수 있으며, 업체가 참여하기 전에는 확인서가 만들어지지 않아요.</span></p></div>
   </main>;
@@ -703,28 +704,27 @@ function CompletionReportCard({ completion, onOpen }: { completion: CompletionSu
   return <section className="ui-card p-3"><span className={`inline-flex rounded-full border px-2.5 py-0.5 text-ui-status ${resolved ? "border-success text-success" : "border-warning text-warning-ink"}`}>{statusLabel}</span><h2 className="mt-1.5 text-lg font-black">작업 완료 내용이 도착했어요</h2><p className="mt-0.5 text-ui-data text-ink-600">기사 제출 내용을 확인해 주세요</p><div className="mt-2 flex items-center justify-between gap-3 text-ui-micro text-ink-400"><span className="min-w-0 truncate">작업 완료 · 현장기사 기록</span><span className={`shrink-0 font-bold ${resolved ? "text-success" : "text-warning-ink"}`}>{responseLabel}</span></div><button className="mt-2 flex min-h-11 w-full items-center justify-between rounded-[var(--radius-control)] border border-line px-4 text-ui-data hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring" onClick={onOpen} type="button">완료 내용 확인 <CaretRight aria-hidden="true" size="var(--icon-sm)" /></button></section>;
 }
 
-function ScopeDecisionCard({ connection, onResolved, scope }: { connection: Connection; onResolved: () => Promise<unknown>; scope: ScopeReview }) {
+export function QuoteDecisionPage({ connection, fallbackLocationConditions, onBack, onResolved, scope }: { connection: Connection; fallbackLocationConditions: ScopeLocationConditions[]; onBack: () => void; onResolved: () => void | Promise<void>; scope: ScopeReview }) {
   const [revisionOpen, setRevisionOpen] = useState(false);
   const [reason, setReason] = useState("");
   const mutation = useMutation({
     mutationFn: (input: { action: "confirm" } | { action: "revise"; reason: string }) => input.action === "confirm" ? confirmScopeReview(connection, scope.scope.id) : requestScopeRevision(connection, scope.scope.id, input.reason),
-    onSuccess: async () => { setRevisionOpen(false); await onResolved(); },
+    onSuccess: async () => { setRevisionOpen(false); await onResolved(); onBack(); },
   });
-  return <section className="ui-card border border-primary-300 p-4"><p className="text-xs font-extrabold text-primary-700">업체 제안 도착</p><h2 className="mt-1 text-lg font-black">이 범위와 금액으로 진행할까요?</h2><p className="mt-2 text-sm leading-6 text-ink-600">항목 {scope.scope.item_count}개 · 포함 작업 {scope.scope.included_works.length}건 · {money(scope.quote?.total_amount_krw)}</p>{mutation.error ? <p className="mt-3 text-sm font-bold text-danger-ink" role="alert">{apiErrorMessage(mutation.error)}</p> : null}<div className="mt-4 grid grid-cols-2 gap-2"><Button disabled={mutation.isPending} onClick={() => mutation.mutate({ action: "confirm" })}><Check aria-hidden="true" /> 이대로 확인</Button><Button disabled={mutation.isPending} onClick={() => setRevisionOpen(true)} variant="outline">수정 요청</Button></div><Sheet onOpenChange={setRevisionOpen} open={revisionOpen}><SheetContent><SheetHeader><SheetTitle>업체에 수정을 요청할까요?</SheetTitle><SheetDescription>바뀌어야 할 항목, 작업 또는 금액을 구체적으로 알려주세요.</SheetDescription></SheetHeader><div className="px-5"><Label htmlFor="scope-revision-reason">수정 요청 내용</Label><Textarea className="mt-2 min-h-32" id="scope-revision-reason" maxLength={2000} onChange={(event) => setReason(event.target.value)} placeholder="예: 냉장고 수량을 2대로 바꾸고 작업 인원을 다시 확인해 주세요." value={reason} /></div><SheetFooter><Button className="w-full" disabled={!reason.trim() || mutation.isPending} onClick={() => mutation.mutate({ action: "revise", reason: reason.trim() })} size="cta">수정 요청 보내기</Button></SheetFooter></SheetContent></Sheet></section>;
+  return <div className="min-h-dvh bg-canvas"><MobilePageHeader onBack={onBack} title={`${scope.scope.version_label} 확인서`} /><div className="space-y-3 px-[var(--content-gutter)] pb-28 pt-3"><AgreementOverview fallbackLocationConditions={fallbackLocationConditions} scope={scope} showCurrentStatus={false} showVersionHeader={false} />{mutation.error ? <p className="text-sm font-bold text-danger-ink" role="alert">{apiErrorMessage(mutation.error)}</p> : null}</div><SheetFooter className="grid gap-1"><Button className="w-full" disabled={mutation.isPending} onClick={() => mutation.mutate({ action: "confirm" })} size="cta"><Check aria-hidden="true" /> 이대로 확인</Button><Button className="mx-auto min-h-9 px-3 text-sm" disabled={mutation.isPending} onClick={() => setRevisionOpen(true)} variant="ghost">수정 요청</Button></SheetFooter><Sheet onOpenChange={setRevisionOpen} open={revisionOpen}><SheetContent><SheetHeader><SheetTitle>업체에 수정을 요청할까요?</SheetTitle><SheetDescription>바뀌어야 할 항목, 작업 또는 금액을 구체적으로 알려주세요.</SheetDescription></SheetHeader><div className="px-5"><Label htmlFor="scope-revision-reason">수정 요청 내용</Label><Textarea className="mt-2 min-h-32" id="scope-revision-reason" maxLength={2000} onChange={(event) => setReason(event.target.value)} placeholder="예: 냉장고 수량을 2대로 바꾸고 작업 인원을 다시 확인해 주세요." value={reason} /></div><SheetFooter><Button className="w-full" disabled={!reason.trim() || mutation.isPending} onClick={() => mutation.mutate({ action: "revise", reason: reason.trim() })} size="cta">수정 요청 보내기</Button></SheetFooter></SheetContent></Sheet></div>;
 }
 
-function CompletionDecisionCard({ completion, connection, onOpenChange, onResolved, open }: { completion: CompletionSummary; connection: Connection; onOpenChange: (open: boolean) => void; onResolved: () => Promise<unknown>; open: boolean }) {
+export function CompletionDecisionPage({ completion, connection, onBack, onResolved }: { completion: CompletionSummary; connection: Connection; onBack: () => void; onResolved: () => void | Promise<void> }) {
   const [reportOpen, setReportOpen] = useState(false);
   const [problemType, setProblemType] = useState<"missing_work" | "damage" | "amount" | "other">("missing_work");
   const [description, setDescription] = useState("");
   const [unrecordedExtraCharge, setUnrecordedExtraCharge] = useState(false);
   const request = completion.completion_request!;
-  const mutation = useMutation({ mutationFn: (input: Parameters<typeof decideCompletionRequest>[2]) => decideCompletionRequest(connection, request.completion_request_id, input), onSuccess: async () => { setReportOpen(false); onOpenChange(false); await onResolved(); } });
+  const mutation = useMutation({ mutationFn: (input: Parameters<typeof decideCompletionRequest>[2]) => decideCompletionRequest(connection, request.completion_request_id, input), onSuccess: async () => { setReportOpen(false); await onResolved(); onBack(); } });
   const requested = request.status === "requested";
   const heroAsset = completion.completion_media[0];
   const checklistItems = completion.checklist.items ?? [];
-  return <Sheet onOpenChange={onOpenChange} open={open}><SheetContent className="!transition-none [&>button]:top-[max(10px,env(safe-area-inset-top))] [&>button]:bg-ink-900/70 [&>button]:text-white [&>button]:hover:bg-ink-900/80" presentation="page">
-    <SheetTitle className="sr-only">작업 완료 내용 확인</SheetTitle><SheetDescription className="sr-only">기사 제출 내용과 완료 사진을 확인합니다.</SheetDescription>
+  return <div className="min-h-dvh bg-canvas"><MobilePageHeader onBack={onBack} title="작업 완료 확인" />
     <figure className="relative h-[320px] bg-ink-900">
       {heroAsset?.content_type.startsWith("image/") ? <img alt="작업 완료 사진" className="h-full w-full object-cover" height="420" src={heroAsset.read_url} width="480" /> : heroAsset ? <video className="h-full w-full object-cover" controls src={heroAsset.read_url} /> : <div className="grid h-full place-items-center text-sm text-white/80">완료 사진이 없습니다.</div>}
       {completion.completion_media.length ? <span className="absolute right-4 bottom-12 rounded-full bg-ink-900/70 px-2.5 py-1 text-ui-control text-white">1 / {completion.completion_media.length}</span> : null}
@@ -740,5 +740,5 @@ function CompletionDecisionCard({ completion, connection, onOpenChange, onResolv
     </div>
     {requested ? <SheetFooter className="grid gap-2 border-t-0"><Button className="w-full whitespace-nowrap" disabled={mutation.isPending} onClick={() => mutation.mutate({ decision: "confirm", unrecorded_extra_charge: false })} size="cta"><Check aria-hidden="true" /> 완료 확인</Button><Button className="w-full whitespace-nowrap" disabled={mutation.isPending} onClick={() => setReportOpen(true)} variant="ghost"><WarningCircle aria-hidden="true" /> 문제 신고</Button></SheetFooter> : null}
     <Sheet onOpenChange={setReportOpen} open={reportOpen}><SheetContent nested><SheetHeader><SheetTitle>완료 내용에 문제가 있나요?</SheetTitle><SheetDescription>업체가 확인할 수 있도록 문제 유형과 사실을 남겨주세요.</SheetDescription></SheetHeader><div className="space-y-4 px-5"><label className="block text-sm font-extrabold">문제 유형<Select className="mt-2" onChange={(event) => setProblemType(event.target.value as typeof problemType)} value={problemType}><option value="missing_work">누락 작업</option><option value="damage">파손</option><option value="amount">금액</option><option value="other">기타</option></Select></label><label className="block text-sm font-extrabold">문제 설명<Textarea className="mt-2 min-h-32" maxLength={2000} onChange={(event) => setDescription(event.target.value)} placeholder="확인이 필요한 사실을 구체적으로 적어주세요." value={description} /></label><label className="flex min-h-12 items-center gap-3 rounded-xl border border-line px-4 text-sm font-bold"><input checked={unrecordedExtraCharge} onChange={(event) => setUnrecordedExtraCharge(event.target.checked)} type="checkbox" />확인서에 없는 추가금이 있었어요</label></div><SheetFooter><Button className="w-full" disabled={!description.trim() || mutation.isPending} onClick={() => mutation.mutate({ decision: "report_issue", problem_type: problemType, problem_description: description.trim(), unrecorded_extra_charge: unrecordedExtraCharge })} size="cta" variant="destructive">문제 신고 보내기</Button></SheetFooter></SheetContent></Sheet>
-  </SheetContent></Sheet>;
+  </div>;
 }

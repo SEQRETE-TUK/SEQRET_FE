@@ -33,6 +33,7 @@ export const mockAccessSecrets: Record<ParticipantRole, string> = {
 };
 export const mockProviderDraftAccessSecret = "seqret_mock_provider_draft_000000000000000000000000000";
 export const mockProviderRevisionAccessSecret = "seqret_mock_provider_revision_00000000000000000000000000";
+export const mockProviderCompletedAccessSecret = "seqret_mock_provider_completed_000000000000000000000000";
 
 export const mockJobId = "11111111-1111-4111-8111-111111111111";
 const JOB_ID = mockJobId;
@@ -407,6 +408,36 @@ function createRevisionState(jobId: string, customerAccessToken: string) {
   return revision;
 }
 
+function createCompletedState(jobId: string, customerAccessToken: string) {
+  const completed = createState(jobId, customerAccessToken, true);
+  const customerName = "정다은";
+  const completedAt = now();
+  const completedJobHeader = { ...completed.scope.job, customer_display_name: customerName, destination_summary: "서울 용산구 한남동", job_code: "MOCK-2026-004", origin_summary: "서울 서초구 반포동", title: "한남동 아파트 이사" };
+  const completedJob = { ...completed.job, title: completedJobHeader.title, status: "completed" as const, completed_at: completedAt, participants: completed.job.participants.map((participant) => participant.role === "customer" ? { ...participant, display_name: customerName } : participant), locations: completed.job.locations.map((location, index) => ({ ...location, label: index === 0 ? completedJobHeader.origin_summary : completedJobHeader.destination_summary })) };
+  completed.scope = {
+    ...completed.scope,
+    job: completedJobHeader,
+    scope: { ...completed.scope.scope, status: "confirmed", version_label: "v3" },
+    collaboration_status: "confirmed",
+    agreement_notice: "고객과 업체가 함께 확인한 최종 작업 범위입니다.",
+    customer_confirmed_at: completedAt,
+  };
+  completed.job = completedJob;
+  completed.completion = {
+    ...completed.completion,
+    job: completedJobHeader,
+    job_status: "completed",
+    completed_at: completedAt,
+    completion_request: completed.completion.completion_request ? { ...completed.completion.completion_request, status: "confirmed", decided_at: completedAt } : null,
+  };
+  completed.dispatch = { ...completed.dispatch, job: { ...completedJobHeader, viewer_role: "company_manager" } };
+  completed.fieldBrief = { ...completed.fieldBrief, job: { ...completedJobHeader, viewer_role: "field_worker" } };
+  Object.values(completed.actors).filter((actor) => actor.role === "customer").forEach((actor) => { actor.display_name = customerName; });
+  const providerInvitation = completed.invitations.find((invitation) => invitation.role === "company_manager");
+  completed.actors[mockProviderCompletedAccessSecret] = { ...actor("company_manager", PROVIDER_ID, "안심이사 매니저", jobId), invitation: providerInvitation ?? null };
+  return completed;
+}
+
 function scopeItemsFromInput(items: AnalysisReviewItemInput) {
   const isV2 = "name" in items;
   const description = isV2 ? items.name : items.description;
@@ -444,6 +475,7 @@ const mockStates = new Map<string, MockState>([
   [JOB_ID, createState(JOB_ID)],
   [MOCK_DRAFT_JOB_ID, createDraftState(MOCK_DRAFT_JOB_ID, "seqret_mock_customer_draft_000000000000000000000000")],
   [MOCK_REVISION_JOB_ID, createRevisionState(MOCK_REVISION_JOB_ID, "seqret_mock_customer_revision_000000000000000000000000")],
+  ["bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", createCompletedState("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", "seqret_mock_customer_completed_000000000000000")],
 ]);
 
 function result<T>(value: T): Promise<T> {
@@ -676,6 +708,16 @@ export async function mockApiRequest<T>(path: string, init: RequestInit, accessT
     request.status = input.decision === "confirm" ? "confirmed" : "issue_reported";
     request.decided_at = now();
     request.unrecorded_extra_charge = input.unrecorded_extra_charge;
+    if (input.decision === "confirm") {
+      const completedAt = request.decided_at;
+      state.job = { ...state.job, status: "completed", completed_at: completedAt };
+      state.scope.scope.status = "confirmed";
+      state.scope.collaboration_status = "confirmed";
+      state.scope.customer_confirmed_at = completedAt;
+      state.completion.job_status = "completed";
+      state.completion.completed_at = completedAt;
+      state.completion.archive_ready = true;
+    }
     if (input.decision === "report_issue") {
       request.problem_report = { problem_report_id: crypto.randomUUID(), problem_type: (input.problem_type ?? "other") as "missing_work" | "damage" | "amount" | "other", description: input.problem_description ?? "", reported_at: now() };
       state.completion.problem_report_count += 1;

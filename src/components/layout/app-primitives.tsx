@@ -29,10 +29,10 @@ export function WorkContext({
   const schedule = scheduledAt ? compactDateTimeFormatter.format(new Date(scheduledAt)) : "일정 확인 중";
   return (
     <section aria-label="현재 작업 맥락" className="mt-6 border-y border-line py-4">
-      <div className="flex min-w-0 items-center justify-between gap-3">
-        <p className="min-w-0 truncate text-ui-control text-ink-600">{code ? `작업 ${code}` : "현재 이사"}</p>
+      {code || status ? <div className={cn("flex min-w-0 items-center justify-between gap-3", !code && "justify-end")}>
+        {code ? <p className="min-w-0 truncate text-ui-control text-ink-600">작업 {code}</p> : null}
         {status}
-      </div>
+      </div> : null}
       <strong className="mt-2 block min-w-0 break-words text-ui-component leading-6">{title}</strong>
       {route ? <p className="mt-1 min-w-0 break-words text-sm leading-5 text-ink-600">{route}</p> : null}
       <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">

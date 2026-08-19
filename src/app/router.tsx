@@ -29,6 +29,22 @@ export const router = createBrowserRouter([
   },
   {
     HydrateFallback: RouteLoading,
+    path: "/consumer/quote",
+    lazy: async () => {
+      const { ConsumerQuotePage } = await import("@/pages/consumer/consumer-detail-page");
+      return { Component: ConsumerQuotePage };
+    },
+  },
+  {
+    HydrateFallback: RouteLoading,
+    path: "/consumer/completion",
+    lazy: async () => {
+      const { ConsumerCompletionPage } = await import("@/pages/consumer/consumer-detail-page");
+      return { Component: ConsumerCompletionPage };
+    },
+  },
+  {
+    HydrateFallback: RouteLoading,
     path: "/provider",
     lazy: async () => {
       const { ProviderPage } = await import("@/pages/provider/provider-page");

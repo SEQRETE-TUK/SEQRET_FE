@@ -5,11 +5,12 @@ import {
   SignOutIcon as LogOut,
   ArrowClockwiseIcon as RefreshCw,
   PaperPlaneTiltIcon as Send,
+  ShareNetworkIcon as ShareNetwork,
   UserPlusIcon as UserPlus,
   XIcon as X,
 } from "@phosphor-icons/react";
 import { InfoStatusIcon as Info } from "@/components/icons";
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
@@ -119,12 +120,13 @@ export function EmptyState({ children }: { children: ReactNode }) {
   return <p className="mt-4 flex items-start gap-2 rounded-xl bg-canvas p-4 text-sm leading-5 text-ink-600"><Info aria-hidden="true" className="mt-0.5 size-4 shrink-0" />{children}</p>;
 }
 
-export function InvitationPanel() {
+export function InvitationPanel({ presentation = "page" }: { presentation?: "page" | "dialog" }) {
   const { session, refreshActor } = useAuth();
   const queryClient = useQueryClient();
   const [displayName, setDisplayName] = useState("");
   const [issued, setIssued] = useState<InvitationIssued | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const issuingLink = useRef<Promise<InvitationIssued> | null>(null);
   const connection: Connection | null = session ? { accessToken: session.accessToken, jobId: session.actor.job_id } : null;
   const canIssue = session?.actor.role === "customer" || session?.actor.role === "company_manager";
   const invitationQuery = useQuery({
@@ -149,6 +151,11 @@ export function InvitationPanel() {
     onError: refreshOnConflict,
     onSuccess: async (result) => { setIssued(result); setDisplayName(""); await refresh(); },
   });
+  const linkMutation = useMutation({
+    mutationFn: () => createInvitation(connection!, session!.actor.role === "customer" ? "company_manager" : "field_worker"),
+    onError: refreshOnConflict,
+    onSuccess: async (result) => { setIssued(result); await refresh(); },
+  });
   const responseMutation = useMutation({
     mutationFn: (action: "accept" | "decline") => respondToInvitation(connection!, session!.actor.invitation!.id, action),
     onError: refreshOnConflict,
@@ -163,7 +170,7 @@ export function InvitationPanel() {
     },
   });
 
-  const error = invitationQuery.error ?? inviteMutation.error ?? responseMutation.error ?? manageMutation.error;
+  const error = invitationQuery.error ?? inviteMutation.error ?? linkMutation.error ?? responseMutation.error ?? manageMutation.error;
   const retryAfter = useRetryAfter(error);
   useAuthFailure(error);
   if (!session || !connection) return null;
@@ -186,26 +193,73 @@ export function InvitationPanel() {
   if (!canIssue) return null;
   const targetRole = session.actor.role === "customer" ? "업체" : "현장기사";
   const pendingInvitationCount = invitationQuery.data?.invitations.filter((invitation) => invitation.status === "pending").length ?? 0;
+  const ensureIssued = () => {
+    if (issued) return Promise.resolve(issued);
+    if (!issuingLink.current) issuingLink.current = linkMutation.mutateAsync().finally(() => { issuingLink.current = null; });
+    return issuingLink.current;
+  };
+  const copyText = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // Clipboard permissions are handled by the browser.
+    }
+  };
+  const shareInvite = async () => {
+    try {
+      const result = await ensureIssued();
+      const text = `짐확정 현장기사 초대 링크\n${result.access_link.secret}`;
+      if (navigator.share) {
+        try {
+          await navigator.share({ text, title: "짐확정 현장기사 초대" });
+          return;
+        } catch (caught) {
+          if (caught instanceof DOMException && caught.name === "AbortError") return;
+        }
+      }
+      await copyText(text);
+    } catch {
+      // The mutation error is rendered below.
+    }
+  };
+  const copyInvite = async () => {
+    try {
+      const result = await ensureIssued();
+      await copyText(`짐확정 현장기사 초대 링크\n${result.access_link.secret}`);
+    } catch {
+      // The mutation error is rendered below.
+    }
+  };
   return (
     <fieldset className="contents" disabled={retryAfter > 0}><WorkflowTask
       description="일회성 초대 코드는 저장하지 않고 필요한 상대에게만 전달해요"
       leading={<UserPlus aria-hidden="true" className="size-4" />}
+      presentation={presentation}
       status={issued ? "전달 필요" : pendingInvitationCount > 0 ? `${pendingInvitationCount}명 대기` : "초대하기"}
       title={`${targetRole} 초대`}
       tone={issued ? "warning" : pendingInvitationCount > 0 ? "primary" : "neutral"}
     >
       <ApiNotice error={error} title="초대 상태를 처리하지 못했어요" />
+      {presentation === "dialog" ? <>
+        <p className="mt-4 rounded-xl bg-primary-50 p-4 text-sm leading-5 text-ink-600">현장기사에게 전달할 일회성 초대 링크를 만들어 공유하세요.</p>
+        <div className="mt-4 grid gap-2">
+          <Button disabled={retryAfter > 0} onClick={() => void shareInvite()} size="cta"><ShareNetwork /> 현장기사 초대 링크 공유</Button>
+          <Button disabled={retryAfter > 0} onClick={() => void copyInvite()} size="cta" variant="outline">{copied ? <Check /> : <Copy />} 링크 복사</Button>
+        </div>
+      </> : null}
+      {presentation === "page" ? <>
       {issued ? (
         <div className="mt-4 rounded-xl bg-primary-50 p-4">
           <div className="flex items-center justify-between gap-2">
             <p className="font-bold text-primary-800">지금 전달할 초대 코드</p>
-            <Button onClick={() => { void navigator.clipboard.writeText(issued.access_link.secret).then(() => setNotice("클립보드에 복사했어요.")).catch(() => setNotice("복사하지 못했어요. 브라우저 권한을 확인해 주세요.")); }} size="chip" variant="outline"><Copy /> 복사</Button>
+            <Button onClick={() => void copyText(issued.access_link.secret)} size="chip" variant="outline">{copied ? <Check /> : <Copy />} 복사</Button>
           </div>
           <p className="mt-3 rounded-lg bg-surface p-3 text-sm text-ink-600">초대 코드는 화면·URL·로그에 표시하지 않고 복사 동작에만 사용합니다.</p>
           <Button className="mt-3 w-full" onClick={() => setIssued(null)} variant="ghost">표시 닫기</Button>
         </div>
       ) : null}
-      {notice ? <p aria-live="polite" className="mt-2 text-sm font-bold text-success-ink">{notice}</p> : null}
       <form className="mt-4 flex gap-2" onSubmit={(event) => { event.preventDefault(); if (displayName.trim()) inviteMutation.mutate(); }}>
         <div className="min-w-0 flex-1">
           <Label className="sr-only" htmlFor="invite-name">초대 대상 이름</Label>
@@ -225,6 +279,7 @@ export function InvitationPanel() {
           </div>
         ))}
       </div>
+      </> : null}
     </WorkflowTask></fieldset>
   );
 }

@@ -13,7 +13,7 @@ import {
 import { useMemo, useState, type ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
 
-import { mockAccessSecrets, mockApiEnabled, mockProviderDraftAccessSecret, mockProviderRevisionAccessSecret } from "@/api/mock-api";
+import { mockAccessSecrets, mockApiEnabled, mockProviderCompletedAccessSecret, mockProviderDraftAccessSecret, mockProviderRevisionAccessSecret } from "@/api/mock-api";
 import { AgreementHistorySheet } from "@/components/layout/agreement-history-sheet";
 import { FilterChip, MoveJourneyProgress, StatusTag } from "@/components/layout/app-primitives";
 import { Button } from "@/components/ui/button";
@@ -24,10 +24,12 @@ import { useAuth } from "@/features/auth/model/auth-context";
 import type { AuthSession } from "@/features/auth/model/auth-context";
 import {
   apiErrorMessage,
+  getCompletionSummary,
   getScopeReview,
   listFieldIssues,
   workflowKeys,
   type Connection,
+  type CompletionSummary,
   type FieldIssue,
   type ScopeReview,
 } from "@/features/workflow/api/workflow-api";
@@ -39,6 +41,7 @@ import { InvitationPanel } from "@/features/workflow/ui/workflow-shell";
 type ProviderView = "jobs" | "issues" | "invite";
 type JobMode = "detail" | "quote";
 type JobFilter = "all" | "action" | "customer" | "confirmed";
+type ProviderLinkedJob = { session: AuthSession; scope: ScopeReview | undefined; completion: CompletionSummary | undefined };
 const moneyFormatter = new Intl.NumberFormat("ko-KR");
 const money = (amount: number | null | undefined) => amount == null ? "–" : `${moneyFormatter.format(amount)}원`;
 const day = new Intl.DateTimeFormat("ko-KR", { month: "numeric", day: "numeric", weekday: "short" });
@@ -80,7 +83,8 @@ function ProviderWebConsole({ connections, onConnect, onDisconnect, onSelect, se
   const scopeQuery = useQuery({ enabled: canReadJob, queryKey: workflowKeys.scope(connection?.jobId ?? "unconnected"), queryFn: () => getScopeReview(connection!), refetchInterval: mockApiEnabled ? 2_000 : false });
   const issueQuery = useQuery({ enabled: canReadJob, queryKey: workflowKeys.fieldIssues(connection?.jobId ?? "unconnected"), queryFn: () => listFieldIssues(connection!), refetchInterval: mockApiEnabled ? 2_000 : false });
   const linkedScopeQueries = useQueries({ queries: connections.map((item) => ({ enabled: item.actor.invitation?.status !== "pending", queryKey: workflowKeys.scope(item.actor.job_id), queryFn: () => getScopeReview({ accessToken: item.accessToken, jobId: item.actor.job_id }) })) });
-  const linkedJobs = connections.map((item, index) => ({ session: item, scope: linkedScopeQueries[index]?.data }));
+  const linkedCompletionQueries = useQueries({ queries: connections.map((item) => ({ enabled: item.actor.invitation?.status !== "pending", queryKey: workflowKeys.completion(item.actor.job_id), queryFn: () => getCompletionSummary({ accessToken: item.accessToken, jobId: item.actor.job_id }), refetchInterval: mockApiEnabled ? 2_000 : false })) });
+  const linkedJobs: ProviderLinkedJob[] = connections.map((item, index) => ({ session: item, scope: linkedScopeQueries[index]?.data, completion: linkedCompletionQueries[index]?.data }));
   const scope = scopeQuery.data;
   const issues = issueQuery.data ?? [];
   const openIssues = issues.filter((issue) => issue.status === "open" || issue.status === "clarification_requested");
@@ -103,7 +107,7 @@ function ProviderWebConsole({ connections, onConnect, onDisconnect, onSelect, se
     ? `연결 ${connections.length}건`
     : scope ? scope.job.customer_display_name ?? "고객" : "선택 작업 없음";
   const nextMockProviderSecret = mockApiEnabled
-    ? [mockAccessSecrets.company_manager, mockProviderDraftAccessSecret, mockProviderRevisionAccessSecret][Math.min(connections.length, 2)]
+    ? [mockAccessSecrets.company_manager, mockProviderDraftAccessSecret, mockProviderRevisionAccessSecret, mockProviderCompletedAccessSecret][Math.min(connections.length, 3)]
     : "";
 
   if (session && invitationPending) {
@@ -154,47 +158,59 @@ function ProviderWebConsole({ connections, onConnect, onDisconnect, onSelect, se
   );
 }
 
-function JobDashboard({ issues, jobs: linkedJobs, onConnect, onIssue, onQuote, onSearchChange, onSelect, scope, search, selectedJobId }: { issues: FieldIssue[]; jobs: Array<{ session: AuthSession; scope: ScopeReview | undefined }>; onConnect: () => void; onIssue: () => void; onQuote: () => void; onSearchChange: (value: string) => void; onSelect: (session: AuthSession) => void; scope: ScopeReview | undefined; search: string; selectedJobId: string | null }) {
+function JobDashboard({ issues, jobs: linkedJobs, onConnect, onIssue, onQuote, onSearchChange, onSelect, scope, search, selectedJobId }: { issues: FieldIssue[]; jobs: ProviderLinkedJob[]; onConnect: () => void; onIssue: () => void; onQuote: () => void; onSearchChange: (value: string) => void; onSelect: (session: AuthSession) => void; scope: ScopeReview | undefined; search: string; selectedJobId: string | null }) {
   const [filter, setFilter] = useState<JobFilter>("all");
+  const [listTab, setListTab] = useState<"active" | "history" | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const allJobs = useMemo(() => {
     const rows = linkedJobs.map((item) => ({
       date: item.scope?.job.scheduled_at ?? null,
       customer: item.scope?.job.customer_display_name ?? "고객",
       route: (item.scope?.job.origin_summary ?? "출발지") + " → " + (item.scope?.job.destination_summary ?? "도착지"),
-      status: item.scope?.scope.status ?? "company_review",
+      status: item.completion?.job_status === "completed" || item.completion?.completion_request?.status === "confirmed" ? "completed" : item.scope?.scope.status ?? "company_review",
+      completion: item.completion,
       current: item.session.actor.job_id === selectedJobId,
       session: item.session,
     }));
     const query = search.trim();
     return query ? rows.filter((job) => (job.customer + " " + job.route).includes(query)) : rows;
   }, [linkedJobs, search, selectedJobId]);
+  const activeJobs = allJobs.filter((job) => job.status !== "completed");
+  const historyJobs = allJobs.filter((job) => job.status === "completed");
+  const selectedJob = allJobs.find((job) => job.current);
+  const currentTab = listTab ?? (selectedJob?.status === "completed" ? "history" : "active");
   const actionableIssues = issues.filter((issue) => issue.status === "open" || issue.status === "clarification_requested");
   const statusCounts = {
-    action: allJobs.filter((job) => job.status === "company_review" || job.status === "revision_requested").length,
-    customer: allJobs.filter((job) => job.status === "customer_review").length,
-    confirmed: allJobs.filter((job) => job.status === "confirmed").length,
+    action: activeJobs.filter((job) => job.status === "company_review" || job.status === "revision_requested").length,
+    customer: activeJobs.filter((job) => job.status === "customer_review").length,
+    confirmed: activeJobs.filter((job) => job.status === "confirmed").length,
   };
-  const jobs = allJobs.filter((job) => filter === "all"
+  const jobs = currentTab === "history" ? historyJobs : activeJobs.filter((job) => filter === "all"
     || (filter === "action" && (job.status === "company_review" || job.status === "revision_requested"))
     || (filter === "customer" && job.status === "customer_review")
     || (filter === "confirmed" && job.status === "confirmed"));
-  const queueGroups = [
+  const queueGroups = currentTab === "history" ? [{ key: "history", label: "완료 기록", jobs: historyJobs }] : [
     { key: "action", label: "검토 필요", jobs: jobs.filter((job) => job.status === "company_review" || job.status === "revision_requested") },
     { key: "customer", label: "고객 확인 중", jobs: jobs.filter((job) => job.status === "customer_review") },
     { key: "confirmed", label: "공동확정", jobs: jobs.filter((job) => job.status === "confirmed") },
   ].filter((group) => group.jobs.length > 0 && (filter === "all" || filter === group.key));
-  const priority = scope?.scope.status === "revision_requested"
+  const priority = selectedJob?.status === "completed" ? null : scope?.scope.status === "revision_requested"
     ? { title: "고객 수정 요청이 도착했어요", description: scope.revision_request?.reason ?? "요청 내용을 반영해 새 버전으로 다시 제안해 주세요.", action: "수정해서 다시 제안", onClick: onQuote }
     : scope?.scope.status === "company_review"
       ? { title: "범위와 견적 검토가 필요해요", description: "고객이 등록한 항목과 현장 조건을 확인한 뒤 제안하세요.", action: "범위·견적 작성", onClick: onQuote }
       : actionableIssues[0]
         ? { title: "현장 보고에 응답해 주세요", description: actionableIssues[0].title, action: "현장 이슈 열기", onClick: onIssue }
         : null;
-  const statusLabel = (status: string) => status === "confirmed" ? "공동확정" : status === "customer_review" ? "고객 확인 중" : status === "revision_requested" ? "수정 요청" : "검토 필요";
-  const statusTone = (status: string): "primary" | "success" | "warning" => status === "confirmed" ? "success" : status === "company_review" ? "primary" : "warning";
-  const progress = scope?.scope.status === "confirmed" ? 4 : scope?.scope.status === "customer_review" ? 3 : scope?.scope.status === "revision_requested" ? 2 : 1;
+  const statusLabel = (status: string) => status === "completed" ? "완료" : status === "confirmed" ? "공동확정" : status === "customer_review" ? "고객 확인 중" : status === "revision_requested" ? "수정 요청" : "검토 필요";
+  const statusTone = (status: string): "primary" | "success" | "warning" => status === "completed" || status === "confirmed" ? "success" : status === "company_review" ? "primary" : "warning";
+  const progress = selectedJob?.status === "completed" || scope?.scope.status === "confirmed" ? 4 : scope?.scope.status === "customer_review" ? 3 : scope?.scope.status === "revision_requested" ? 2 : 1;
   const needsQuoteAction = scope?.scope.status === "company_review" || scope?.scope.status === "revision_requested";
+  const changeListTab = (next: "active" | "history") => {
+    setListTab(next);
+    setFilter("all");
+    const nextJob = (next === "history" ? historyJobs : activeJobs)[0];
+    if (nextJob && nextJob.session.actor.job_id !== selectedJobId) onSelect(nextJob.session);
+  };
 
   return (
     <div>
@@ -203,15 +219,19 @@ function JobDashboard({ issues, jobs: linkedJobs, onConnect, onIssue, onQuote, o
       {linkedJobs.length === 0 ? <section className="ui-card ui-card-outlined mt-4 px-5 lg:mt-0"><ProviderConnectionEmpty onConnect={onConnect} /></section> : <section className="ui-card ui-card-outlined mt-4 overflow-hidden lg:mt-0 xl:grid xl:grid-cols-[minmax(22rem,0.92fr)_minmax(0,1.08fr)]">
         <section aria-labelledby="provider-job-list-title" className="min-w-0 border-b border-line xl:border-b-0 xl:border-r">
           <div className="flex items-center justify-between gap-3 px-4 py-4">
-            <div className="flex min-w-0 items-baseline gap-2"><h2 className="text-ui-component" id="provider-job-list-title">작업 큐</h2><span className="text-ui-data tabular-nums text-ink-600">{allJobs.length}</span></div>
+            <div className="flex min-w-0 items-baseline gap-2"><h2 className="text-ui-component" id="provider-job-list-title">작업 큐</h2><span className="text-ui-data tabular-nums text-ink-600">{currentTab === "active" ? activeJobs.length : historyJobs.length}</span></div>
             {actionableIssues.length > 0 ? <button className="min-h-11 shrink-0 whitespace-nowrap text-ui-data text-ink-600 hover:text-primary-700" onClick={onIssue} type="button">현장 이슈 <span className="tabular-nums">{actionableIssues.length}</span></button> : null}
           </div>
-          <div aria-label="작업 상태 필터" className="no-scrollbar flex gap-2 overflow-x-auto border-t border-line px-4 py-3">
-            <FilterChip active={filter === "all"} onClick={() => setFilter("all")}>전체 {allJobs.length}</FilterChip>
+          <div aria-label="업체 작업 목록" className="grid grid-cols-2 border-t border-line" role="tablist">
+            <button aria-selected={currentTab === "active"} className={`relative min-h-11 text-ui-control ${currentTab === "active" ? "text-primary-700 after:absolute after:inset-x-6 after:bottom-0 after:h-0.5 after:bg-primary-600" : "text-ink-600"}`} onClick={() => changeListTab("active")} role="tab" type="button">진행 중 {activeJobs.length}</button>
+            <button aria-selected={currentTab === "history"} className={`relative min-h-11 text-ui-control ${currentTab === "history" ? "text-primary-700 after:absolute after:inset-x-6 after:bottom-0 after:h-0.5 after:bg-primary-600" : "text-ink-600"}`} onClick={() => changeListTab("history")} role="tab" type="button">기록 {historyJobs.length}</button>
+          </div>
+          {currentTab === "active" ? <div aria-label="작업 상태 필터" className="no-scrollbar flex gap-2 overflow-x-auto border-t border-line px-4 py-3">
+            <FilterChip active={filter === "all"} onClick={() => setFilter("all")}>전체 {activeJobs.length}</FilterChip>
             <FilterChip active={filter === "action"} onClick={() => setFilter("action")}>검토 필요 {statusCounts.action}</FilterChip>
             <FilterChip active={filter === "customer"} onClick={() => setFilter("customer")}>고객 확인 중 {statusCounts.customer}</FilterChip>
             <FilterChip active={filter === "confirmed"} onClick={() => setFilter("confirmed")}>공동확정 {statusCounts.confirmed}</FilterChip>
-          </div>
+          </div> : null}
           <div aria-label="작업 목록" className="border-t border-line">
             {queueGroups.length ? queueGroups.map((group) => <section aria-labelledby={`provider-job-group-${group.key}`} key={group.key}>
               <div className="flex items-center justify-between bg-surface-muted px-4 py-2.5"><h3 className="text-ui-data text-ink-600" id={`provider-job-group-${group.key}`}>{group.label}</h3><span className="text-ui-micro tabular-nums text-ink-500">{group.jobs.length}</span></div>
@@ -220,17 +240,27 @@ function JobDashboard({ issues, jobs: linkedJobs, onConnect, onIssue, onQuote, o
                 <span className="min-w-0"><strong className="block truncate text-ui-list-title">{job.customer}</strong><span className="mt-0.5 block truncate text-ui-list-detail text-ink-600">{job.route}</span></span>
                 <span className="col-start-2 justify-self-start sm:col-start-3 sm:row-start-1 sm:justify-self-end"><StatusTag tone={statusTone(job.status)}>{statusLabel(job.status)}</StatusTag></span>
               </button>)}
-            </section>) : <p className="px-5 py-10 text-center text-ui-support text-ink-600">이 조건에 맞는 작업이 없습니다.</p>}
+            </section>) : <p className="px-5 py-10 text-center text-ui-support text-ink-600">{currentTab === "history" ? "완료된 작업이 없습니다." : "이 조건에 맞는 작업이 없습니다."}</p>}
           </div>
         </section>
 
         <article aria-label="선택 작업 상세" className="min-w-0 p-5 sm:p-6">
           {scope ? <>
             <header className="min-w-0 border-b border-line pb-4">
-              <div className="flex min-w-0 items-start justify-between gap-3"><h3 className="truncate text-ui-section">{scope.job.customer_display_name ?? "고객"}</h3><StatusTag tone={statusTone(scope.scope.status)}>{statusLabel(scope.scope.status)}</StatusTag></div>
+              <div className="flex min-w-0 items-start justify-between gap-3"><h3 className="truncate text-ui-section">{scope.job.customer_display_name ?? "고객"}</h3><StatusTag tone={statusTone(selectedJob?.status ?? scope.scope.status)}>{statusLabel(selectedJob?.status ?? scope.scope.status)}</StatusTag></div>
               <p className="mt-1 break-words text-ui-support text-ink-600">{scope.job.origin_summary ?? "출발지"} → {scope.job.destination_summary ?? "도착지"}</p>
               <div className="mt-3 flex flex-wrap items-center justify-between gap-2"><time className="text-ui-data text-ink-600">{scope.job.scheduled_at ? schedule.format(new Date(scope.job.scheduled_at)) : "일정 확인 중"}</time><div className="flex flex-wrap justify-end gap-1"><Button onClick={() => setHistoryOpen(true)} size="chip" variant="ghost"><History aria-hidden="true" /> 이력</Button>{!needsQuoteAction ? <Button onClick={onQuote} size="chip" variant="outline">범위·견적</Button> : null}</div></div>
             </header>
+
+            {selectedJob?.status === "completed" && selectedJob.completion ? <section className="mt-5 rounded-[var(--radius-card)] bg-success-bg p-4 text-success-ink">
+              <div className="flex items-center justify-between gap-3"><h4 className="text-ui-component">완료 기록</h4><StatusTag tone="success">고객 확인 완료</StatusTag></div>
+              <p className="mt-1 text-ui-support">{selectedJob.completion.completed_at ? `${schedule.format(new Date(selectedJob.completion.completed_at))} 완료` : "완료 시각 확인 중"}</p>
+              <dl className="mt-4 grid grid-cols-3 divide-x divide-success/30 border-t border-success/30 pt-3 text-center">
+                <div className="px-2"><dt className="text-ui-micro">최종 금액</dt><dd className="mt-1 text-ui-control tabular-nums">{money(selectedJob.completion.final_amount_krw)}</dd></div>
+                <div className="px-2"><dt className="text-ui-micro">완료 사진</dt><dd className="mt-1 text-ui-control tabular-nums">{selectedJob.completion.completion_media_count}건</dd></div>
+                <div className="px-2"><dt className="text-ui-micro">확인서</dt><dd className="mt-1 text-ui-control">{selectedJob.completion.approved_scope_version_label ?? scope.scope.version_label}</dd></div>
+              </dl>
+            </section> : null}
 
             {priority ? <section className="mt-5 flex flex-col gap-4 border-y border-line py-4 sm:flex-row sm:items-center">
               <div className="min-w-0 flex-1"><h4 className="text-ui-component">{priority.title}</h4><p className="mt-1 break-words text-ui-support text-ink-600">{priority.description}</p></div>
@@ -252,7 +282,7 @@ function JobDashboard({ issues, jobs: linkedJobs, onConnect, onIssue, onQuote, o
               <MoveJourneyProgress current={progress} steps={["범위 검토", "업체 제안", "고객 확인", "공동확정"]} />
             </section>
 
-            {!needsQuoteAction ? <p className={"mt-5 flex items-start gap-2 border-t border-line pt-4 text-ui-support " + (scope.scope.status === "confirmed" ? "text-success-ink" : "text-primary-800")}><CheckCircle aria-hidden="true" className="mt-0.5 shrink-0" />{scope.scope.status === "customer_review" ? "고객이 현재 제안을 확인하고 있습니다." : "고객과 업체가 같은 범위와 금액을 확인했습니다."}</p> : null}
+            {!needsQuoteAction ? <p className={"mt-5 flex items-start gap-2 border-t border-line pt-4 text-ui-support " + (selectedJob?.status === "completed" || scope.scope.status === "confirmed" ? "text-success-ink" : "text-primary-800")}><CheckCircle aria-hidden="true" className="mt-0.5 shrink-0" />{selectedJob?.status === "completed" ? "고객의 완료 확인이 기록되었습니다." : scope.scope.status === "customer_review" ? "고객이 현재 제안을 확인하고 있습니다." : "고객과 업체가 같은 범위와 금액을 확인했습니다."}</p> : null}
           </> : <ProviderConnectionEmpty onConnect={onConnect} />}
         </article>
       </section>}

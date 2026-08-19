@@ -10,24 +10,25 @@ export function CapturePage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [params] = useSearchParams();
-  const inventoryHref = "/consumer?tab=move&view=items";
+  if (session?.actor.role !== "customer") return <Navigate replace to="/consumer" />;
+  const captureJobId = params.get("job") ?? session.actor.job_id;
+  const inventoryHref = `/consumer?tab=move&view=items&job=${encodeURIComponent(captureJobId)}`;
   const back = () => {
     if ((window.history.state?.idx ?? 0) > 0) navigate(-1);
     else navigate(inventoryHref, { replace: true });
   };
-  if (session?.actor.role !== "customer") return <Navigate replace to="/consumer" />;
   return (
     <div className="mobile-stage" id="main-content">
       <LiveCaptureFlow
         initialConnection={{
           accessToken: session.accessToken,
-          cacheScope: `${session.actor.job_id}:customer`,
-          jobId: session.actor.job_id,
+          cacheScope: `${captureJobId}:customer`,
+          jobId: captureJobId,
         }}
         initialManual={params.get("mode") === "manual"}
         initialVideo={params.get("mode") === "video"}
         onComplete={async () => {
-          await queryClient.invalidateQueries({ queryKey: workflowKeys.scope(session.actor.job_id) });
+          await queryClient.invalidateQueries({ queryKey: workflowKeys.scope(captureJobId) });
           navigate(inventoryHref, { replace: true });
         }}
         onExit={back}
