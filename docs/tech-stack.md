@@ -21,15 +21,16 @@
 | Language | TypeScript | 5.x | 사용 중 | 역할별 상태와 API 계약을 정적으로 검증한다. |
 | UI runtime | React | 19.2.4 | 사용 중 | 역할별 화면과 재사용 가능한 UI를 component로 구성한다. |
 | Build | Vite | 8.2.1 | 사용 중 | 빠른 개발 서버와 정적 build를 제공한다. |
-| Routing | React Router | 7.18.2 | 사용 중 | 소비자, 업체 mobile·web, 현장기사 route를 lazy loading한다. |
-| Server state | TanStack Query | 5.101.4 | 기반만 있음 | API cache, retry, stale 정책과 mutation 상태를 관리한다. |
+| Routing | React Router | 7.18.2 | 사용 중 | 역할 선택, 소비자, 촬영, 업체 web, 현장기사와 design system route를 lazy loading한다. `/provider`는 `/provider/web`으로 이동한다. |
+| Server state | TanStack Query | 5.101.4 | 사용 중 | 세 역할의 API query·mutation, polling, retry, invalidation과 충돌 후 재조회를 관리한다. |
 | Styling | Tailwind CSS | 4.3.3 | 사용 중 | token 기반 utility styling과 responsive layout을 구성한다. |
 | Headless UI | Base UI | 1.7.0 | 사용 중 | 접근 가능한 Button·Dialog 기반 primitive를 제공한다. |
 | Variant | CVA | 0.7.1 | 사용 중 | Button과 Badge variant를 타입 안전하게 관리한다. |
 | Icon | Phosphor React | 2.1.10 | 사용 중 | 같은 glyph의 regular·fill·bold·duotone weight로 탐색, 상태와 카테고리를 일관되게 구분한다. |
 | Font | Pretendard | 5.2.5 | 사용 중 | 한국어 UI 가독성을 제공한다. |
-| PWA | vite-plugin-pwa, Workbox | 1.3.0, 7.4.1 | 기반만 있음 | 설치형 shell과 service worker 갱신을 지원한다. 서버 상태·비밀값은 cache하지 않는다. |
-| Hosting | Vercel | 별도 배포 설정 | 목표 | preview와 정적 frontend 배포를 제공한다. canonical HTTPS origin 확정이 필요하다. |
+| PWA | vite-plugin-pwa, Workbox | 1.3.0, 7.4.1 | 사용 중 | production build에서 `generateSW`·`autoUpdate` service worker를 등록한다. API runtime cache와 별도 offline UX는 없다. |
+| Test | Playwright | 1.62.1 | 사용 중 | capability secret 비저장과 주요 요청 payload 계약을 Chromium에서 검증한다. 현재 CI는 lint·build만 실행한다. |
+| Hosting | Vercel | `vercel.json` | 기반만 있음 | SPA rewrite 설정은 있으나 canonical HTTPS origin과 상시 배포 검증은 남아 있다. |
 
 ### Frontend 기준 파일
 
@@ -41,11 +42,13 @@
 | `src/app/providers.tsx` | TanStack Query 공통 정책 |
 | `src/api/client.ts` | HTTP 요청 공통 기반 |
 | `src/app/styles.css` | 디자인 token과 global behavior |
+| `tests/e2e/capture-contract.spec.ts` | browser 보안·요청 계약 회귀 검사 |
+| `.github/workflows/ci.yml` | pnpm install, lint와 production build 검증 |
 | `vercel.json` | SPA hosting rewrite |
 
 ## Backend
 
-백엔드 상세 버전과 구현 상태의 단일 원본은 `SEQRETE-TUK/SEQRET_BE`의 `pyproject.toml`, lockfile, 최신 `main` 코드와 OpenAPI다.
+백엔드 상세 버전과 구현 상태의 단일 원본은 `SEQRETE-TUK/SEQRET_BE`의 `pyproject.toml`, lockfile, 최신 `main` 코드와 OpenAPI다. 이 문서의 확인 기준은 backend `8cb1386c3f10a650236281690ecd3569de3b7416`이다.
 
 | 영역 | 기술 | 상태 | 역할·선정 이유 |
 | --- | --- | --- | --- |
@@ -82,6 +85,8 @@
 | CI/CD | GitHub Actions | 사용 중 | test, migration, Terraform, canary와 promotion을 자동화한다. |
 | Logging·Metric | Cloud Logging, Cloud Monitoring | 사용 중 | runtime log, metric과 alert를 수집한다. |
 | Telemetry | OpenTelemetry | 사용 중 | application 계측을 provider 중립적으로 유지한다. |
+
+배포 환경에서는 frontend canonical HTTPS origin을 기준으로 API CORS와 GCS bucket CORS를 함께 설정하고 browser signed PUT을 검증한다.
 
 ## 선택 원칙
 

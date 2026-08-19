@@ -26,38 +26,58 @@ typography:
   font-sans:
     fontFamily: "'Pretendard', Inter, ui-sans-serif, system-ui, sans-serif"
     description: "본문과 UI 전체에 사용한다."
+  title-lg:
+    fontSize: "--text-title-lg"
+    fontWeight: "--display-weight"
+    lineHeight: "--line-screen"
+  step-title:
+    fontSize: "--text-step-title"
+    fontWeight: "--display-weight"
+    lineHeight: "--line-screen"
   section-title:
     fontSize: "--text-xl"
     fontWeight: "--weight-strong"
-    lineHeight: "28px"
+    lineHeight: "--line-section"
   card-title:
     fontSize: "--text-component"
     fontWeight: "--weight-component"
-    lineHeight: "24px"
+    lineHeight: "--line-component"
+  list-title:
+    fontSize: "--text-list-title"
+    fontWeight: "--weight-list-title"
+    lineHeight: "--line-list-title"
   body:
     fontSize: "--text-md"
     fontWeight: "--weight-body"
-    lineHeight: "24px"
+    lineHeight: "--line-body"
   control:
     fontSize: "--text-control"
     fontWeight: "--weight-control"
-    lineHeight: "20px"
+    lineHeight: "--line-control"
   button:
     fontSize: "--text-control"
     fontWeight: "--weight-button"
-    lineHeight: "20px"
+    lineHeight: "--line-control"
   supporting:
     fontSize: "--text-support"
     fontWeight: "--weight-support"
-    lineHeight: "20px"
+    lineHeight: "--line-support"
+  list-detail:
+    fontSize: "--text-list-detail"
+    fontWeight: "--weight-list-detail"
+    lineHeight: "--line-list-detail"
   data:
     fontSize: "--text-data"
     fontWeight: "--weight-data"
-    lineHeight: "20px"
+    lineHeight: "--line-data"
   label:
     fontSize: "--text-xs"
-    fontWeight: "--weight-strong"
-    lineHeight: "16px"
+    fontWeight: "--weight-status"
+    lineHeight: "--line-label"
+  micro:
+    fontSize: "--text-micro"
+    fontWeight: "--weight-micro"
+    lineHeight: "--line-label"
 
 rounded:
   small: "--radius-small"
@@ -71,22 +91,22 @@ spacing:
   base: "--space-3xs"
   screen-x: "--content-gutter"
   card-padding: "--space-sm ~ --space-md"
-  control-gap: "--space-2xs ~ --space-xs"
+  control-gap: "--control-compact-gap ~ --control-gap"
   section-gap: "--space-md ~ --space-lg"
 
 icons:
   family: "@phosphor-icons/react"
-  system: "regular 20px ~ 24px"
+  system: "regular 16px ~ 24px"
   navigation: "regular/fill 24px"
-  status: "bold 18px ~ 20px"
-  category: "duotone 28px ~ 36px"
+  status: "bold 16px ~ 20px"
+  category: "duotone 32px"
 
 utilities:
   mobile-stage:
     description: "집중 업무 열을 데스크톱 중앙에 배치하는 배경"
     className: "mobile-stage"
   mobile-frame:
-    description: "고객·업체·현장기사의 최대 432px 집중 업무 열"
+    description: "고객·현장기사의 최대 432px 집중 업무 열"
     className: "mobile-frame"
   focus-ring:
     description: "키보드 포커스 표시"
@@ -113,11 +133,14 @@ components:
     base: "ChoiceGroup"
     usage: "한 질문에서 하나의 짧은 값을 고르는 2~3열 segmented radio. 화면 전환 Tabs와 독립 Toggle에는 사용하지 않는다."
   card:
-    base: "Card + CardHeader + CardContent + CardFooter"
+    base: "Card variant=plain|outlined"
     usage: "작업범위, 금액, 증거와 상태의 한 단위"
   sheet:
     base: "Sheet + SheetHeader + SheetFooter"
-    usage: "현재 흐름을 유지한 짧은 입력과 확인"
+    usage: "현재 흐름을 유지한 입력·확인과 전체 높이 순차 업무"
+  dialog:
+    base: "Dialog + DialogHeader + DialogFooter"
+    usage: "업체 console의 중앙 확인·편집과 이력 열람"
 ---
 
 # SEQRET 디자인 시스템
@@ -151,7 +174,8 @@ SEQRET은 거래 상태를 오해 없이 전달하는 것을 시각적 장식보
 - 밝은 중립 canvas와 흰 surface를 사용하는 라이트 모드
 - Indigo 기반의 primary action과 version 강조
 - 성공·대기·위험을 구분하는 semantic color
-- 320–432px 집중 업무 열과 4개 하단 메뉴를 기준으로 한 역할별 흐름
+- 고객·현장기사의 320–432px 집중 업무 열과 3개 하단 메뉴
+- 업체의 mobile 3개 하단 메뉴 → desktop 좌측 rail로 이어지는 반응형 console
 - surface와 spacing을 중심으로 한 낮은 elevation
 - Pretendard 기반의 한국어 우선 typography
 
@@ -209,10 +233,12 @@ semantic color는 장식용으로 사용하지 않는다. 금액 증가와 오�
 
 ### Hierarchy
 
-SEED의 `regular 400 / medium 500 / bold 700` 구조를 기준으로 한다. 다만 Pretendard에서 700이 과하게 보이는 컴포넌트 제목은 제품 보정값 600을 사용하고, 데이터와 상태는 medium 500으로 통일한다. 별도 화면·페이지 제목 역할은 만들지 않고 일반 화면에서는 section-title을 최고 위계로 사용한다.
+SEED의 `regular 400 / medium 500 / bold 700` 구조를 기준으로 한다. Pretendard에서 700이 과하게 보이는 컴포넌트 제목은 제품 보정값 600을 사용하고, 데이터는 500, 상태 label은 400으로 구분한다. 일반 제품 화면은 section-title을 최고 위계로 사용하고, `title-lg`와 `step-title`은 디자인 시스템 문서 제목과 onboarding·단계 전환처럼 제한된 표면에만 사용한다.
 
 | Role | Size / Line height | Weight | Tracking | Use |
 | --- | --- | ---: | --- | --- |
+| title-lg | 30 / 36px | 800 | 0 | 디자인 시스템 문서와 넓은 표면의 단일 제목 |
+| step-title | 25 / 36px | 800 | 0 | onboarding과 단계 전환의 핵심 문장 |
 | section-title | 20 / 28px | 700 | 0 | 화면과 서로 다른 판단 단위의 제목 |
 | component-title | 17 / 24px | 600 | 0 | 카드와 목록 묶음 제목 |
 | list-title | 16 / 22px | 500 | 0 | 목록 행의 판단 대상 |
@@ -221,7 +247,8 @@ SEED의 `regular 400 / medium 500 / bold 700` 구조를 기준으로 한다. 다
 | supporting | 14 / 20px | 400 | 0 | 시간, metadata와 보조 설명 |
 | list-detail | 13 / 18px | 400 | 0 | 목록 행의 상태와 보조 설명 |
 | data | 13 / 18px | 500 | 0 | 버전, 금액과 조밀한 실측값 |
-| status-label | 12 / 16px | 500 | 0 | 상태, 버전과 짧은 label |
+| status-label | 12 / 16px | 400 | 0 | Badge의 상태와 짧은 label |
+| micro | 12 / 16px | 600 | 0 | 진행 단계, 보조 ID와 매우 짧은 metadata |
 
 ### Principles
 
@@ -279,16 +306,18 @@ SEQRET의 버튼 높이는 `32px → 44px` 두 단계로 제한한다. 32px는 �
 ### Mobile Frame
 
 - 최소 지원 너비는 320px이다.
-- 고객, 업체 mobile과 현장기사 화면은 최대 432px을 기준으로 한다.
+- 고객과 현장기사 화면은 최대 432px을 기준으로 한다.
 - 실제 mobile에서는 viewport 전체를 사용한다.
 - 768px 이상에서도 가짜 휴대폰 테두리 없이 실제 웹의 집중 업무 열로 보여준다.
 - 하단 CTA는 safe area를 고려한 sticky 영역에 둔다.
 
 ### Provider Desktop
 
-- 다건 관리, 견적 검토와 운영처럼 넓은 정보가 필요한 업체 화면에만 사용한다.
+- `/provider`는 `/provider/web`으로 이동하며 업체 업무는 하나의 반응형 console에서 처리한다.
+- 768px 미만은 `작업 / 현장 이슈 / 기사·배차` 3개 하단 메뉴, 768px 이상은 같은 메뉴의 좌측 rail을 사용한다.
+- 1280px 이상 작업 화면은 작업 queue와 선택 작업 inspector를 두 열로 배치한다.
 - 핵심 상태와 CTA는 첫 viewport 안에 둔다.
-- 좁은 viewport에서는 table을 숨기지 않고 가로 scroll 또는 card로 전환한다.
+- 좁은 viewport에서는 검색과 작업 목록을 한 열로 쌓고, 표 형태의 조밀한 정보는 가로 scroll 또는 card로 전환한다.
 
 ## Elevation & Depth
 
@@ -302,6 +331,8 @@ SEQRET의 버튼 높이는 `32px → 44px` 두 단계로 제한한다. 32px는 �
 
 과도한 shadow와 glassmorphism을 사용하지 않는다. 깊이는 surface와 spacing으로 표현한다.
 
+동작은 `--dur-micro` 120ms, `--dur-short` 220ms, `--dur-long` 420ms와 세 easing token을 사용한다. row·button은 짧은 hover·press feedback만 제공하고, sheet·dialog는 opacity와 transform으로 진입한다. `prefers-reduced-motion: reduce`에서는 animation과 transition을 사실상 제거한다.
+
 ## Shapes
 
 | Token | Value | Use |
@@ -311,7 +342,7 @@ SEQRET의 버튼 높이는 `32px → 44px` 두 단계로 제한한다. 32px는 �
 | `--radius-card` | 10px | 목록과 구분해야 하는 일반 Card |
 | `--radius-feature` | 12px | Hero, 현재 작업처럼 상위 surface |
 | `--radius-sheet` | 상단 16px | Sheet |
-| `rounded-full` | 9999px | Badge, icon button, 진행 표시 |
+| `--radius-pill` | 9999px | Badge, icon button, 진행 표시 |
 
 일반 card에는 shadow를 사용하지 않는다. 고정 navigation, 떠 있는 action bar와 sheet처럼 실제로 다른 층에 놓인 surface에만 raised shadow를 사용한다.
 
@@ -323,6 +354,7 @@ SEQRET의 버튼 높이는 `32px → 44px` 두 단계로 제한한다. 32px는 �
 | --- | --- | --- | --- |
 | 하단 내비게이션 비활성 | `regular` | `--icon-md` · 24px | 현재 위치가 아닌 메뉴 |
 | 하단 내비게이션 활성 | 같은 아이콘의 `fill` | `--icon-md` · 24px | 모양은 유지하고 상태만 강조 |
+| Button 내부 | glyph 기본 weight | `--icon-xs` · 16px | label을 보조하며 아이콘만으로 행동을 설명하지 않음 |
 | 뒤로가기·닫기·더보기 | `regular` | `--icon-sm`~`--icon-md` · 20~24px | 조작 버튼의 이름을 `aria-label`로 제공 |
 | 상태·경고·보안 | `bold` | `--icon-xs`~`--icon-sm` · 16~20px | 색상과 아이콘만 두지 않고 상태 문장을 함께 표시 |
 | 서비스·물품 카테고리 | `duotone` | `--icon-category` · 32px | 실제 사진이나 전용 이미지가 더 적절하지 않을 때만 사용 |
@@ -335,13 +367,13 @@ SEQRET의 버튼 높이는 `32px → 44px` 두 단계로 제한한다. 32px는 �
 
 ## Screen Architecture
 
-모든 역할 화면은 같은 앱 셸·토큰·하단 탐색을 공유한다. 본문 구조는 역할이 실제로 판단하는 순서에 맞춰 다르게 구성한다.
+모든 역할은 같은 token과 상태 문법을 사용한다. 고객·현장기사는 `MobileAppShell`, 업체는 `provider-console`을 사용하며 본문 구조는 역할이 실제로 판단하는 순서에 맞춘다.
 
-1. **Header** — 역할·사용자, 현재 화면명, 필요한 화면에서만 새로고침을 둔다.
-2. **Role home** — 고객은 준비 여정, 업체는 운영 큐, 현장기사는 시각·경로·안전 행동을 우선한다. 같은 hero card 구조를 복제하지 않는다.
-3. **Bottom navigation** — 역할별 `홈 / 핵심업무 / 기록 / 마이` 네 영역을 같은 위치와 높이로 유지한다.
+1. **Header** — 역할·사용자, 현재 화면명, 필요한 화면에서만 알림·새로고침·연결 행동을 둔다.
+2. **Role home** — 고객은 준비 여정, 업체는 작업 queue, 현장기사는 시각·경로·안전 행동을 우선한다. 같은 hero card 구조를 복제하지 않는다.
+3. **Navigation** — 고객은 `홈 / 내 이사 / 더보기`, 현장기사는 `홈 / 내 작업 / 더보기`를 사용한다. 업체는 `작업 / 현장 이슈 / 기사·배차`를 mobile 하단 메뉴와 desktop rail에서 같은 순서로 유지한다.
 4. **Task list** — 제목, 상태, 한 줄 설명을 64px 이상 구분선 행으로 보여준다. 초대도 같은 작업 행으로 제공한다.
-5. **Task detail** — 모바일은 전체 높이 page surface, 768px 이상은 중앙 dialog로 연다. 짧은 수정·선택만 하단 sheet로 분리한다.
+5. **Task detail** — 역할별 tab·console 본문에서 문맥을 유지하고, 순차 업무·이력·현장 보고는 전체 높이 `Sheet presentation="page"`로 연다. 업체의 연결·범위 이력은 `Dialog`를 사용한다.
 6. **Primary action** — 한 상세 화면에는 결과가 분명한 주요 행동 하나만 둔다.
 
 ### Role home composition
@@ -349,14 +381,14 @@ SEQRET의 버튼 높이는 `32px → 44px` 두 단계로 제한한다. 32px는 �
 | 역할 | 첫 판단 | 권장 구조 | 피해야 할 반복 |
 | --- | --- | --- | --- |
 | 고객 | 다음에 무엇을 확인해야 하는가 | 다음 확인 → 이사 경로와 단계 → 촬영 중심 준비 도구 → 사진 근거 | 동일 크기 아이콘 메뉴 3개, 운영 지표 나열 |
-| 업체 | 어디에서 운영이 멈췄는가 | 작업명과 경로 → 우선 처리 → 번호가 있는 운영 큐 → 범위·이슈·견적 기준값 | 고객용 여정 카드 복제, 모든 상태를 badge로 표현 |
+| 업체 | 어디에서 운영이 멈췄는가 | 작업 queue와 선택 작업 맥락 → 범위·견적 → 현장 이슈 → 기사·배차 | 고객용 여정 카드 복제, 모든 상태를 badge로 표현 |
 | 현장기사 | 언제 어디서 무엇부터 해야 하는가 | 시작 시각 → 출발·도착 경로 → 안전 안내 → 체크인·이슈·완료 순서 | 큰 홍보 문구, 견적 정보, 현장과 무관한 바로가기 |
 
 공통성은 색·타이포·터치 영역·상태 문법에서 만든다. 화면마다 같은 `큰 제목 → 보라색 카드 → 요약 카드`를 반복해 통일성을 만들지 않는다.
 
 ### Shared transaction patterns
 
-모든 역할이 같은 기록을 본다는 원칙은 아래 다섯 패턴으로 구현한다. 역할별 홈의 구조는 달라도 이 패턴의 용어와 값은 같아야 한다.
+모든 역할이 같은 기록을 본다는 원칙은 아래 다섯 조합 규칙으로 구현한다. `WorkContext`는 공용 layout component이며 나머지는 역할 화면에서 같은 정보 순서를 유지하기 위한 계약이다.
 
 | 패턴 | 반드시 포함할 정보 | 사용 규칙 |
 | --- | --- | --- |
@@ -376,21 +408,22 @@ SEQRET의 버튼 높이는 `32px → 44px` 두 단계로 제한한다. 32px는 �
 | --- | --- | --- |
 | `/` 역할 선택 | 고객·업체·현장기사의 차이, 메모리 보안 안내, 연결 CTA | 서비스의 단일 진입점 |
 | 고객 연결 sheet | 새 이사/보안코드 tab, 2단계 이사 정보, 오류·로딩 | 고객 세션 생성·복귀 |
-| 업체·기사 연결 sheet | 보안코드 입력과 Mock 안내, 연결 오류 | 초대 기반 역할 연결 |
-| `/consumer` 홈 | 다음 확인, 현재 이사 경로·진행 단계, 촬영 중심 준비 도구, 사진 기록 안내 | 고객의 다음 행동 결정 |
-| `/consumer?tab=work` | 업체 초대, 범위·견적, 현장 변경, 완료 확인 작업 목록 | 고객 업무 처리 |
-| `/consumer?tab=records` | 공동확인·현장 변경·완료 기록 | 거래 기준과 이력 확인 |
-| `/consumer?tab=my` | 연결 주체, 기록·보안 메뉴, 연결 종료 확인 sheet | 접근 정보 관리 |
+| 업체·기사 연결 dialog·sheet | 초대 코드 입력, 대기 초대 확인과 연결 오류 | 초대 기반 역할 연결 |
+| `/consumer` | 다음 확인, 현재 이사 경로·진행 단계, 촬영 중심 준비 도구 | 고객의 다음 행동 결정 |
+| `/consumer?tab=move&view=list` | 연결된 이사와 새 이사 시작 행동 | 고객 작업 선택 |
+| `/consumer?tab=move&view=…` | `info`, `items`, `agreement`에 이사 정보, 짐 목록, 공동확인·현장 변경·완료 확인 표시 | 고객 업무 상세 |
+| `/consumer?tab=notifications` | 고객이 확인할 상태 변화와 관련 업무 이동 | 고객 알림 |
+| `/consumer?tab=more` | 연결 주체, 촬영·개인정보 안내, 도움말, 연결 종료 sheet | 접근 정보 관리 |
 | `/consumer/capture` | 연결된 이사명, 촬영/분석/검토 단계, 구역별 미디어와 AI 초안 | 사진 근거 수집·사용자 검토 |
-| `/provider` 홈 | 현재 이사와 경로, 우선 처리, 번호가 있는 운영 큐, 실제 범위·이슈·견적 | 모바일 업체 운영 판단 |
-| `/provider?tab=work` | 기사 초대, 견적, 현장 변경, 배차, 완료 문서 작업 목록 | 업체의 핵심 운영 |
-| `/provider?tab=records` | 범위·배차·이슈·완료 기록 | 변경 이력 확인 |
-| `/provider?tab=my` | 업체 연결 상태와 연결 종료 확인 sheet | 접근 정보 관리 |
-| `/provider/web` | 같은 업체 운영 작업을 넓은 업무 열로 제공 | 데스크톱 운영 |
-| `/crew` 홈 | 시작 시각, 출발·도착 경로, 안전 안내, 첫 현장 행동과 진행 순서 | 현장 브리핑 |
-| `/crew?tab=work` | 체크인, 사진 근거 이슈 보고, 완료 제출 | 현장 핵심 작업 |
-| `/crew?tab=records` | 실제 체크인·이슈·완료 기록 | 현장 기록 확인 |
-| `/crew?tab=my` | 기사 연결 상태와 연결 종료 확인 sheet | 접근 정보 관리 |
+| `/provider` | `/provider/web`으로 이동 | 업체 route 단일화 |
+| `/provider/web?view=jobs` | `detail`·`quote` mode의 작업 queue, 선택 작업 inspector, 범위·견적 편집과 이력 | 업체 작업 운영 |
+| `/provider/web?view=issues` | 현장 이슈, 변경 제안과 설명 보완 | 업체 현장 변경 처리 |
+| `/provider/web?view=invite` | 기사 초대, 차량·인력 후보와 배차 확정 | 업체 배차 운영 |
+| `/crew` | 시작 시각, 출발·도착 경로, 안전 안내와 다음 현장 행동 | 현장 브리핑 |
+| `/crew?tab=work&view=list` | 배정 작업과 현재 상태 | 현장 작업 선택 |
+| `/crew?tab=work&view=…` | `agreement`, `report`, `completion`에 승인본·체크인, 현장 이슈 보고, 완료 제출 표시 | 현장 업무 상세 |
+| `/crew?tab=notifications` | 현장기사가 확인할 상태 변화와 관련 업무 이동 | 기사 알림 |
+| `/crew?tab=more` | 기사 연결 상태, 촬영·개인정보 안내, 도움말, 연결 종료 sheet | 접근 정보 관리 |
 | `/design-system` | token, component, 상태와 pattern 예시 | 구현·검수 기준 |
 | `*` | 잘못된 주소 안내와 홈 복귀 | 오류 복구 |
 
@@ -399,7 +432,7 @@ SEQRET의 버튼 높이는 `32px → 44px` 두 단계로 제한한다. 32px는 �
 - 짧은 생성·입력·확인은 sheet 하나에서 처리하고, 화면 전체 업무는 하단 navigation의 독립 tab으로 둔다.
 - 연결 종료처럼 세션을 잃는 행동은 반드시 결과를 설명하는 확인 sheet를 거친다.
 - sheet 제목과 닫기 버튼은 항상 보이고, footer의 주요 행동은 safe area 위에 고정한다.
-- 하단 sheet 안에 다른 sheet를 열지 않는다. 전체 높이 task detail에서는 짧은 수정 입력 하나만 하단 sheet로 분리할 수 있다.
+- 전체 높이 page sheet에서는 수정 요청·문제 신고처럼 현재 판단에 종속된 짧은 입력만 `nested` sheet 한 단계로 열 수 있다. 일반 sheet를 연속으로 중첩하지 않는다.
 - tab과 역할별 현재 위치는 URL query에 반영해 새로고침·뒤로가기가 예측 가능해야 한다.
 
 | Density | Use | Rule |
@@ -409,7 +442,7 @@ SEQRET의 버튼 높이는 `32px → 44px` 두 단계로 제한한다. 32px는 �
 | Review | 견적·변경·완료 상세 | 버전·근거·금액·결정 순서 유지 |
 | Capture | 미디어 작업 | 구역·파일 상태를 먼저, 업로드 CTA는 하단에 고정 |
 
-Sheet는 화면을 떠나지 않고 짧게 처리할 수 있는 단일 작업에 사용한다. 전체 앱 흐름을 한 sheet에 넣거나 sheet 안에 다시 card를 중첩하지 않는다. 768px 이상에서는 같은 내용을 중앙 dialog로 전환한다.
+Sheet는 현재 문맥에서 입력·결정하거나 순차 업무를 전체 높이로 처리할 때 사용한다. `presentation="page"`는 onboarding, 이력, 현장 보고와 `WorkflowTask` 상세에 사용하고, 업체 console의 연결·범위 이력은 별도 Dialog를 사용한다. viewport 크기만으로 Sheet와 Dialog를 자동 교체하지 않는다.
 
 ## Components
 
@@ -417,14 +450,14 @@ primitive의 실제 variant와 class는 `src/components/ui`, 업무 구조는 `s
 
 ### Specimen contract
 
-`/design-system`에서 각 컴포넌트는 아래 네 항목을 같은 순서로 전시한다.
+`/design-system`은 `design-system-data.ts`의 목차와 실제 공용 컴포넌트를 사용한다.
 
-1. **이름** — 구현과 같은 컴포넌트 이름을 사용한다.
-2. **목적** — 어떤 정보나 행동을 구분하는지 한 문장으로 설명한다.
-3. **사용 계약** — 사용 조건, 피해야 할 조합과 접근성 조건을 명시한다.
-4. **실제 표본** — 제품에서 import한 실제 primitive 또는 pattern을 렌더링한다.
+1. **기초 실측** — 색상, 타입, 간격과 모서리는 browser computed value를 표시한다.
+2. **이름** — 구현과 같은 컴포넌트·variant 이름을 사용한다.
+3. **상태 비교** — 버튼 위계, 선택 상태, Badge 의미와 입력 형태를 한 표면에서 비교한다.
+4. **실제 표본** — 제품에서 import한 primitive와 list pattern을 그대로 렌더링한다.
 
-variant를 나열하는 것만으로 끝내지 않고 기본, 선택, 대기, 오류, disabled처럼 사용자가 실제로 마주치는 상태를 검수한다. 코드 전시를 위해 제품 컴포넌트를 복제하지 않는다.
+사용 조건과 접근성 계약은 이 문서가 소유하고 전시 페이지는 반복하지 않는다. 표본을 위해 제품 컴포넌트를 복제하거나 별도 전시용 variant를 만들지 않는다.
 
 ### Buttons
 
@@ -446,6 +479,7 @@ variant를 나열하는 것만으로 끝내지 않고 기본, 선택, 대기, �
 모든 기본 조작은 44px 터치 영역을 사용한다. 크기 차이는 label과 좌우 padding, 배치 맥락으로 구분하며 한 화면에 primary CTA를 여러 개 두지 않는다.
 
 `ghost`는 크기를 지정하지 않으면 compact 높이를 사용한다. 하단의 주요 보조 행동처럼 44px이 필요한 경우에만 `size="cta"`를 명시한다.
+Button 안의 아이콘은 기본 16px이며 label을 보조한다. 아이콘 단독 행동은 `size="icon"`과 접근 가능한 이름을 함께 사용한다.
 
 ### Badges
 
@@ -461,12 +495,13 @@ Badge만으로 상태를 설명하지 않는다. 가까운 제목이나 본문�
 
 ### Cards
 
+- 공용 `Card`는 `plain`과 `outlined` variant만 제공하며 header·content·footer 하위 primitive를 별도로 만들지 않는다.
 - 한 card에는 하나의 판단 대상이나 정보 단위만 담는다.
 - 기본 `plain` card는 외곽선 없이 surface와 주변 spacing으로 구분한다.
 - 강조가 필요한 card는 `ui-card-tinted`로 primary soft surface를 사용한다.
 - card와 배경 surface가 같아 경계가 사라지는 경우에만 `variant="outlined"`를 사용한다. border는 내부 구분선, 선택·경고 상태와 form control에도 사용할 수 있다.
 - 주요 행동 hero, 상태 요약, 여러 행을 묶은 contained list도 card 범주에 포함한다.
-- 제목과 설명은 `CardHeader`, 실제 값은 `CardContent`, 행동은 `CardFooter`에 배치한다.
+- 내부 순서는 제목·설명 → 실제 값 → 행동으로 유지하고 semantic element를 화면 맥락에 맞춰 직접 선택한다.
 - card 전체가 눌리는 것처럼 보이면 전체를 실제 interactive element로 만든다.
 - summary 화면에서 같은 모양의 card를 반복하지 않는다. 경계가 필요한 우선 작업 1개와 구분선 목록·수치를 조합한다.
 
@@ -479,6 +514,7 @@ Badge만으로 상태를 설명하지 않는다. 가까운 제목이나 본문�
 ### Form controls
 
 - `Label`, `Input`, `Select`, `Textarea`를 사용해 label, focus, invalid, disabled 상태를 통일한다.
+- 기본 Input·Select 높이는 44px이고 Textarea는 최소 96px이며 세 control 모두 semantic focus·danger ring을 공유한다.
 - 모든 입력에는 고유한 `name`과 목적에 맞는 `type`, `inputMode`, `autoComplete`를 제공한다.
 - placeholder는 label을 대신하지 않는다.
 
@@ -487,12 +523,15 @@ Badge만으로 상태를 설명하지 않는다. 가까운 제목이나 본문�
 - 현재 화면을 떠나지 않고 짧은 입력이나 확인이 필요한 경우 사용한다.
 - 제목, 설명, 본문, 고정 footer 순서를 유지한다.
 - 닫기 button, backdrop과 Esc 동작을 제공한다.
+- `presentation="page"`는 onboarding·이력·현장 보고·`WorkflowTask`처럼 전체 높이가 필요한 순차 업무에 사용하고, 여기서 파생되는 짧은 입력은 `nested` sheet 한 단계로 제한한다.
+- 업체 console의 중앙 확인·이력은 `Dialog`를 사용한다. Dialog action은 좁은 화면에서 세로, 넓은 화면에서 오른쪽 정렬 행으로 배치한다.
 - 금액 승인과 삭제에는 대상과 결과가 드러나는 button 문구를 사용한다.
 
 ### List rows and tabs
 
 - 목록 행은 `left / contents / right` 세 영역으로 구성한다. 왼쪽에는 실제 근거 이미지나 항목 이해에 필요한 아이콘만 둔다.
 - 설정·기록 목록은 `ListGroup`/`ListRow`, 다중 보조 정보 목록은 `InfoList`를 사용한다. 항목은 하나의 surface로 묶고 항목 사이에만 구분선을 두며 위·아래 외곽선은 두지 않는다.
+- 업무 queue는 `WorkflowTask`, 제품 단계는 `ProgressSteps`, 현재 작업 식별은 `WorkContext`를 우선 사용한다.
 - 사진은 완료·현장 증빙처럼 사진 자체가 판단 근거일 때 72px 썸네일로 제공하고 `alt`, `width`, `height`, 지연 로딩을 함께 적용한다.
 - 같은 화면의 동등한 콘텐츠 전환은 44–48px 높이의 underline tab을 사용한다. 선택 상태는 굵기·텍스트 색·2px indicator로 표시한다.
 
@@ -507,6 +546,11 @@ Badge만으로 상태를 설명하지 않는다. 가까운 제목이나 본문�
 | 변경 요청 | warning | 기준 version, 사유, 증감액, 응답 대기 주체 |
 | 변경 승인 | success | 이전·결과 version과 최종 총액 |
 | 변경 거절 | danger 또는 neutral | 기존 승인본과 총액이 유지됨 |
+| 배차 준비·충돌 | warning | 필요한 차량·인원, 충돌 사유와 다음 조정 행동 |
+| 배차 확정·체크인 | success 또는 primary | 배정 snapshot, 대표 기사와 확인 시각 |
+| 완료 제출·고객 확인 대기 | warning | 제출 주체, checklist와 고객이 결정할 내용 |
+| 완료 확인 | success | 최종 금액, 완료 시각과 문서 상태 |
+| 완료 문제 신고 | danger 또는 warning | 문제 유형, 설명과 업체의 다음 처리 |
 | AI 확인 필요 | warning | 사용자가 확인할 질문과 근거 |
 | 실패 | danger | 실패 원인, 보존된 data와 복구 행동 |
 
@@ -533,7 +577,7 @@ Badge만으로 상태를 설명하지 않는다. 가까운 제목이나 본문�
 
 - feature component에 같은 hex 색상을 반복해서 hard-code하지 않는다.
 - AI 결과를 사용자 확인 전 확정 정보처럼 표시하지 않는다.
-- demo 이름과 금액을 실제 data처럼 고정하지 않는다.
+- 표본 이름과 금액을 실제 data처럼 고정하지 않는다.
 - 상태를 색상 또는 icon 하나로만 구분하지 않는다.
 - disabled button만 두고 비활성 이유를 숨기지 않는다.
 
@@ -542,9 +586,9 @@ Badge만으로 상태를 설명하지 않는다. 가까운 제목이나 본문�
 | 구간 | 기준 | Key Changes |
 | --- | --- | --- |
 | Small mobile | 320~389px | 한 열, 고정 CTA, 정보 요약 우선 |
-| Mobile baseline | 432px 이하 | 고객·현장기사·업체 mobile 전체 흐름 |
-| Tablet/Desktop | 768px 이상 | mobile demo frame 또는 업체 업무 layout |
-| Wide desktop | 1280px 이상 | 업체 table과 summary card 다열 배치 |
+| Mobile baseline | 432px 이하 | 고객·현장기사 집중 업무 열, 업체 3개 하단 메뉴 |
+| Tablet/Desktop | 768px 이상 | 고객·기사 최대 432px 열, 업체 좌측 rail |
+| Wide desktop | 1280px 이상 | 업체 작업 queue와 선택 작업 inspector 두 열 |
 
 ## Iteration Guide
 
@@ -565,5 +609,5 @@ Badge만으로 상태를 설명하지 않는다. 가까운 제목이나 본문�
 - [shadcn/ui](https://ui.shadcn.com/docs)는 패키지 전체를 덧붙이는 대신 기존 Base UI primitive와 CVA variant를 조합하는 코드 소유 방식으로 사용한다.
 - [Vercel Web Interface Guidelines](https://github.com/vercel-labs/web-interface-guidelines)의 URL 상태, focus-visible, semantic control, safe area, 이미지 크기, 파괴적 행동 확인 기준을 모바일 공통 규칙으로 사용한다.
 - [Trading Dashboard Design](https://github.com/january2w0/trading-dashboard-design)의 `DESIGN.md → token data → specimen component → design-system page` 분리와 spacing 실측 표본 구조를 참고한다. 글자 크기·두께·간격 전시 방식만 적용하고 dark palette, font family와 dense desktop control 크기는 가져오지 않는다.
-- [Likelion TUK](https://github.com/january2w0/likelion-tuk)의 `buttonVariants` 크기 분리와 조밀한 문서 사이드바를 참고한다. SEQRET은 기존 색과 surface를 유지하면서 32·36·44px control, 6·8·10·12·16px shape 단계로 조정하고 모바일 터치 영역은 44px 이상을 보장한다.
+- [Likelion TUK](https://github.com/january2w0/likelion-tuk)의 `buttonVariants` 크기 분리와 조밀한 문서 사이드바를 참고한다. SEQRET은 기존 색과 surface를 유지하면서 32·44px control, 6·8·10·12·16px shape 단계로 조정하고 모바일 터치 영역은 44px 이상을 보장한다.
 - 외부 디자인 시스템의 시각적 모양이나 브랜드 자산은 복제하지 않는다. 정보 위계, 상태, 접근성, component governance 원칙만 참고한다.

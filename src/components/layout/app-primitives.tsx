@@ -49,27 +49,6 @@ export function WorkContext({
   );
 }
 
-export function HandoffStatus({
-  action,
-  actor,
-  children,
-  updatedAt,
-}: {
-  action: ReactNode;
-  actor: ReactNode;
-  children: ReactNode;
-  updatedAt?: string | null;
-}) {
-  return (
-    <section aria-label="현재 담당자와 다음 행동" className="mt-6 border-l-2 border-primary-600 pl-4">
-      <p className="text-xs font-extrabold text-primary-700">현재 담당 · {actor}</p>
-      <h3 className="mt-1 text-lg leading-6 font-extrabold tracking-[var(--tracking-display)]">{action}</h3>
-      <p className="mt-1 text-sm leading-5 text-ink-600">{children}</p>
-      {updatedAt ? <p className="mt-2 text-xs font-semibold text-ink-400">마지막 변경 {compactDateTimeFormatter.format(new Date(updatedAt))}</p> : null}
-    </section>
-  );
-}
-
 export function PageIntro({
   description,
   eyebrow,

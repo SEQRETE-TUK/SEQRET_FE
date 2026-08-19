@@ -71,4 +71,3 @@ function ChoiceGroup<Value extends string>({
 }
 
 export { ChoiceGroup };
-export type { ChoiceGroupProps };

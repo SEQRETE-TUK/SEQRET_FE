@@ -1,7 +1,7 @@
 import { apiRequest, uploadToSignedUrl } from "@/api/client";
 import { analysisReviewCompletePayload, captureSessionCreatePayload } from "@/api/contract-payloads";
 
-export type MediaAssetStatus =
+type MediaAssetStatus =
   | "pending_upload"
   | "uploaded"
   | "processing"
@@ -9,7 +9,7 @@ export type MediaAssetStatus =
   | "failed"
   | "deleted";
 
-export type CaptureAnalysisStatus =
+type CaptureAnalysisStatus =
   | "pending"
   | "dispatching"
   | "queued"
@@ -23,7 +23,7 @@ export interface RoomZone {
   sort_order: number;
 }
 
-export interface MoveLocation {
+interface MoveLocation {
   id: string;
   kind: "origin" | "destination";
   label: string;
@@ -80,7 +80,7 @@ export interface CaptureSessionCreated {
   media_processing_consent: MediaProcessingConsentSnapshot;
 }
 
-export interface MediaProcessingConsentSnapshot {
+interface MediaProcessingConsentSnapshot {
   policy_version: string | null;
   processing_purposes: MediaConsentPolicy["processing_purposes"];
   privacy_notice_acknowledged: boolean;
@@ -95,7 +95,7 @@ export interface MediaConsentPolicy {
   notice: string;
 }
 
-export interface AnalysisReviewZone {
+interface AnalysisReviewZone {
   room_zone_id: string;
   name: string;
   sort_order: number;
@@ -104,7 +104,7 @@ export interface AnalysisReviewZone {
   failed_media_count: number;
 }
 
-export interface AnalysisReviewItem {
+interface AnalysisReviewItem {
   item_key: string;
   room_zone_id: string;
   description: string;
@@ -135,13 +135,13 @@ export interface AnalysisReview {
   location_condition_suggestions: Array<Record<string, unknown>>;
 }
 
-export interface AnalysisReviewItemInputV1 {
+interface AnalysisReviewItemInputV1 {
   item_key: string;
   room_zone_id: string;
   description: string;
 }
 
-export interface AnalysisReviewItemInputV2 {
+interface AnalysisReviewItemInputV2 {
   item_key: string;
   room_zone_id: string;
   name: string;
@@ -152,7 +152,7 @@ export interface AnalysisReviewItemInputV2 {
 
 export type AnalysisReviewItemInput = AnalysisReviewItemInputV1 | AnalysisReviewItemInputV2;
 
-export interface ScopeLocationConditions {
+interface ScopeLocationConditions {
   location_id: string;
   kind: "origin" | "destination";
   conditions: Record<string, unknown>;

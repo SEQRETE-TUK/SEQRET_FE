@@ -69,4 +69,4 @@ function InfoList<Item>({
 }
 
 export { InfoList };
-export type { InfoListColumn, InfoListProps };
+export type { InfoListColumn };

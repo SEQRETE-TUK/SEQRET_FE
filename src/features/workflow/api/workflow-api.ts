@@ -16,7 +16,7 @@ export interface Invitation {
   resolved_at: string | null;
 }
 
-export interface AccessLink {
+interface AccessLink {
   id: string;
   job_id: string;
   participant_id: string;
@@ -40,12 +40,12 @@ export interface ActorSelf {
   invitation: Invitation | null;
 }
 
-export interface RoomZoneInput {
+interface RoomZoneInput {
   name: string;
   sort_order: number;
 }
 
-export interface LocationInput {
+interface LocationInput {
   kind: "origin" | "destination";
   label: string;
   room_zones: RoomZoneInput[];
@@ -95,13 +95,13 @@ export interface QuoteSnapshot {
   total_amount_krw: number;
 }
 
-export interface ScopeItemV1 {
+interface ScopeItemV1 {
   item_key: string;
   room_zone_id: string;
   description: string;
 }
 
-export interface ScopeItemV2 {
+interface ScopeItemV2 {
   item_key: string;
   room_zone_id: string;
   name: string;
@@ -189,7 +189,7 @@ export interface ScopeReview {
   } | null;
 }
 
-export interface JobHeader {
+interface JobHeader {
   job_id: string;
   job_code: string;
   title: string;

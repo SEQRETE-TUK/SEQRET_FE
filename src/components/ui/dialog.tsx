@@ -5,8 +5,6 @@ import type { ComponentProps } from "react";
 import { cn } from "@/lib/utils";
 
 const Dialog = DialogPrimitive.Root;
-const DialogTrigger = DialogPrimitive.Trigger;
-const DialogClose = DialogPrimitive.Close;
 
 function DialogContent({ className, children, showClose = true, ...props }: DialogPrimitive.Popup.Props & { showClose?: boolean }) {
   return (
@@ -44,4 +42,4 @@ function DialogFooter({ className, ...props }: ComponentProps<"div">) {
   return <div className={cn("mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end", className)} {...props} />;
 }
 
-export { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger };
+export { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle };

@@ -4,7 +4,6 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { createScopeProposal, workflowKeys, type Connection, type ScopeContent, type ScopeLocationConditions, type ScopeReview } from "@/features/workflow/api/workflow-api";
 import { apiErrorMessage } from "@/features/workflow/api/workflow-api";
 
@@ -27,18 +26,17 @@ function draftItemsFromScope(scope: ScopeReview): DraftItem[] {
 
 export function ProviderQuoteEditor({ connection, onBack, scope }: { connection: Connection; onBack: () => void; scope: ScopeReview | undefined }) {
   const queryClient = useQueryClient();
-  const [items, setItems] = useState<DraftItem[]>(() => scope ? draftItemsFromScope(scope) : []);
+  const items = scope ? draftItemsFromScope(scope) : [];
   const [includedWorks, setIncludedWorks] = useState<string[]>(scope?.scope.included_works ?? []);
   const [exclusions, setExclusions] = useState<string[]>(scope?.scope.exclusions ?? []);
   const locationConditions = scope?.scope.location_conditions ?? [];
   const [baseAmount, setBaseAmount] = useState(scope?.quote?.base_amount_krw ?? 0);
   const [adjustments, setAdjustments] = useState<DraftAdjustment[]>(() => (scope?.quote?.adjustments ?? []).map((item) => ({ ...item, id: crypto.randomUUID() })));
-  const [reason, setReason] = useState(scope?.proposal_reason ?? "촬영 결과와 현장 조건을 반영한 견적입니다.");
   const [vehicleCount, setVehicleCount] = useState(scope?.execution_plan?.vehicle_count ?? 1);
   const [vehicleDescription, setVehicleDescription] = useState(scope?.execution_plan?.vehicle_description ?? "5톤 탑차");
   const [workerCount, setWorkerCount] = useState(scope?.execution_plan?.worker_count ?? 2);
   const [duration, setDuration] = useState(scope?.execution_plan?.estimated_duration_minutes ?? 480);
-  const [planNotes, setPlanNotes] = useState(scope?.execution_plan?.notes ?? "");
+  const reason = scope?.proposal_reason ?? "고객 입력 범위와 이사 조건을 기준으로 산정했습니다.";
 
   const locked = scope?.scope.status === "customer_review" || scope?.scope.status === "confirmed";
   const total = baseAmount + adjustments.reduce((sum, item) => sum + item.amount_krw, 0);
@@ -46,7 +44,7 @@ export function ProviderQuoteEditor({ connection, onBack, scope }: { connection:
   const normalizedExclusions = exclusions.map((item) => item.trim()).filter(Boolean);
   const overlap = normalizedIncluded.find((item) => normalizedExclusions.includes(item));
   const adjustmentLabels = adjustments.map((item) => item.label.trim());
-  const invalid = items.length === 0 || items.some((item) => !item.name.trim() || item.quantity < 1 || !item.unit.trim()) || baseAmount < 0 || total < 0 || !reason.trim() || !vehicleDescription.trim() || vehicleCount < 1 || workerCount < 1 || duration < 30 || Boolean(overlap) || adjustmentLabels.some((label) => !label) || new Set(adjustmentLabels).size !== adjustmentLabels.length;
+  const invalid = items.length === 0 || items.some((item) => !item.name.trim() || item.quantity < 1 || !item.unit.trim()) || baseAmount < 0 || total < 0 || !vehicleDescription.trim() || vehicleCount < 1 || workerCount < 1 || duration < 30 || Boolean(overlap) || adjustmentLabels.some((label) => !label) || new Set(adjustmentLabels).size !== adjustmentLabels.length;
   const content: ScopeContent = {
     schema_version: 2,
     items: items.map((item) => ({ item_key: item.item_key, room_zone_id: item.room_zone_id, name: item.name.trim(), quantity: item.quantity, unit: item.unit.trim(), work_note: item.work_note.trim() || null, review_status: "confirmed", source: "company" })),
@@ -57,7 +55,7 @@ export function ProviderQuoteEditor({ connection, onBack, scope }: { connection:
       source_scope_version_id: scope?.scope.id ?? "",
       content,
       quote: { base_amount_krw: baseAmount, adjustments: adjustments.map(({ label, amount_krw }) => ({ label: label.trim(), amount_krw })), total_amount_krw: total },
-      execution_plan: { vehicle_count: vehicleCount, vehicle_description: vehicleDescription.trim(), worker_count: workerCount, estimated_duration_minutes: duration, notes: planNotes.trim() || null },
+      execution_plan: { vehicle_count: vehicleCount, vehicle_description: vehicleDescription.trim(), worker_count: workerCount, estimated_duration_minutes: duration, notes: null },
       included_works: normalizedIncluded,
       exclusions: normalizedExclusions,
       reason: reason.trim(),
@@ -65,9 +63,6 @@ export function ProviderQuoteEditor({ connection, onBack, scope }: { connection:
     onSuccess: async () => { await queryClient.invalidateQueries({ queryKey: workflowKeys.scope(connection.jobId) }); onBack(); },
   });
   if (!scope) return <p className="py-10 text-ui-support text-ink-600">작업을 불러오는 중…</p>;
-  const rooms = scope.scope.room_groups.map((group) => ({ id: group.room_zone_id, label: group.label }));
-  const updateItem = (itemKey: string, patch: Partial<DraftItem>) => setItems((current) => current.map((item) => item.item_key === itemKey ? { ...item, ...patch } : item));
-  const addItem = () => setItems((current) => [...current, { item_key: `company-${crypto.randomUUID()}`, room_zone_id: rooms[0]?.id ?? "", name: "", quantity: 1, unit: "개", work_note: "" }]);
 
   return <div className="mx-auto max-w-[var(--shell-wide)]">
     <button className="mb-4 flex min-h-11 items-center gap-2 text-ui-control text-primary-700 hover:text-primary-800" onClick={onBack} type="button"><ArrowLeft aria-hidden="true" /> 작업 큐</button>
@@ -76,13 +71,12 @@ export function ProviderQuoteEditor({ connection, onBack, scope }: { connection:
       <section className="min-w-0">
         <div className="border-b border-line p-5"><strong>{scope.job.customer_display_name}</strong><span className="ml-2 text-sm text-ink-600">{scope.job.origin_summary} → {scope.job.destination_summary}</span></div>
         <div className="p-4 sm:p-5">
-          <div className="flex flex-wrap items-start justify-between gap-4"><div><h3 className="text-ui-section">고객 짐 목록</h3><p className="mt-1 text-ui-support text-ink-600">{items.length}개 품목</p></div>{locked ? null : <Button onClick={addItem} size="chip" variant="outline"><Plus aria-hidden="true" /> 품목 추가</Button>}</div>
+          <div><h3 className="text-ui-section">고객 짐 목록</h3><p className="mt-1 text-ui-support text-ink-600">{items.length}개 품목</p></div>
           <div className="mt-4 overflow-hidden rounded-[var(--radius-card)] border border-line">
-            <div aria-hidden="true" className={`grid ${locked ? "grid-cols-[minmax(0,1fr)_auto]" : "grid-cols-[minmax(0,1fr)_7rem_2.75rem]"} gap-2 bg-surface-muted px-4 py-2 text-ui-micro text-ink-600`}><span>품목</span><span>수량</span>{locked ? null : <span />}</div>
-            {items.map((item, index) => <div className={`grid ${locked ? "grid-cols-[minmax(0,1fr)_auto]" : "grid-cols-[minmax(0,1fr)_7rem_2.75rem]"} min-h-14 items-center gap-2 border-t border-line px-4 py-2`} key={item.item_key}>
-              {locked ? <strong className="min-w-0 truncate text-ui-control">{item.name}</strong> : <Input aria-label={`품목 ${index + 1}`} maxLength={200} onChange={(event) => updateItem(item.item_key, { name: event.target.value })} value={item.name} />}
-              {locked ? <span className="whitespace-nowrap text-ui-data tabular-nums text-ink-600">{item.quantity}{item.unit}</span> : <Input aria-label={`${item.name || index + 1} 수량`} min="1" onChange={(event) => updateItem(item.item_key, { quantity: Number(event.target.value) })} type="number" value={item.quantity} />}
-              {locked ? null : <Button aria-label={`${item.name || index + 1} 품목 삭제`} disabled={items.length === 1} onClick={() => setItems((current) => current.filter((row) => row.item_key !== item.item_key))} size="icon" variant="ghost"><MinusCircle aria-hidden="true" /></Button>}
+            <div aria-hidden="true" className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 bg-surface-muted px-4 py-2 text-ui-micro text-ink-600"><span>품목</span><span>수량</span></div>
+            {items.map((item) => <div className="grid min-h-14 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-t border-line px-4 py-2" key={item.item_key}>
+              <strong className="min-w-0 truncate text-ui-control">{item.name}</strong>
+              <span className="whitespace-nowrap text-ui-data tabular-nums text-ink-600">{item.quantity}{item.unit}</span>
             </div>)}
           </div>
           <EditableStringList disabled={locked} items={includedWorks} label="포함 작업" onChange={setIncludedWorks} tone="success" />
@@ -98,8 +92,7 @@ export function ProviderQuoteEditor({ connection, onBack, scope }: { connection:
         <div className="mt-4 space-y-2">{adjustments.map((adjustment) => <div className="grid grid-cols-[minmax(0,1fr)_minmax(6rem,7.5rem)_auto] gap-2" key={adjustment.id}><Input aria-label="조정 항목" disabled={locked} onChange={(event) => setAdjustments((current) => current.map((item) => item.id === adjustment.id ? { ...item, label: event.target.value } : item))} placeholder="예: 계단 운반…" value={adjustment.label} /><Input aria-label="조정 금액" className="text-right" disabled={locked} onChange={(event) => setAdjustments((current) => current.map((item) => item.id === adjustment.id ? { ...item, amount_krw: Number(event.target.value) } : item))} type="number" value={adjustment.amount_krw} />{locked ? <span /> : <Button aria-label="조정 항목 삭제" onClick={() => setAdjustments((current) => current.filter((item) => item.id !== adjustment.id))} size="icon" variant="ghost"><MinusCircle aria-hidden="true" /></Button>}</div>)}</div>
         <Button className="mt-2" onClick={() => setAdjustments((current) => [...current, { id: crypto.randomUUID(), label: "", amount_krw: 0 }])} size="chip" variant="outline"><Plus aria-hidden="true" /> 금액 조정 추가</Button>
         <div className="mt-4 flex items-end justify-between border-t border-line pt-4"><span className="font-extrabold">총 제안 금액</span><strong className="text-2xl text-primary-700">{money(total)}</strong></div>
-        <div className="mt-6 border-t border-line pt-5"><h4 className="font-extrabold">실행 계획</h4><div className="mt-3 grid grid-cols-2 gap-3"><NumberField disabled={locked} label="차량 수" min={1} onChange={setVehicleCount} value={vehicleCount} /><NumberField disabled={locked} label="작업 인원" min={1} onChange={setWorkerCount} value={workerCount} /><NumberField disabled={locked} label="예상 시간(분)" min={30} onChange={setDuration} value={duration} /><label className="text-xs font-bold text-ink-600">차량 종류<Input className="mt-1" disabled={locked} onChange={(event) => setVehicleDescription(event.target.value)} value={vehicleDescription} /></label></div><label className="mt-3 block text-xs font-bold text-ink-600">기사 전달 메모<Textarea className="mt-1" disabled={locked} maxLength={1000} onChange={(event) => setPlanNotes(event.target.value)} value={planNotes} /></label></div>
-        <label className="mt-5 block text-sm font-extrabold" htmlFor="proposal-reason">제안 사유</label><Textarea className="mt-2" id="proposal-reason" maxLength={2000} onChange={(event) => setReason(event.target.value)} value={reason} />
+        <div className="mt-6 border-t border-line pt-5"><h4 className="font-extrabold">실행 계획</h4><div className="mt-3 grid grid-cols-2 gap-3"><NumberField disabled={locked} label="차량 수" min={1} onChange={setVehicleCount} value={vehicleCount} /><NumberField disabled={locked} label="작업 인원" min={1} onChange={setWorkerCount} value={workerCount} /><NumberField disabled={locked} label="예상 시간(분)" min={30} onChange={setDuration} value={duration} /><label className="text-xs font-bold text-ink-600">차량 종류<Input className="mt-1" disabled={locked} onChange={(event) => setVehicleDescription(event.target.value)} value={vehicleDescription} /></label></div></div>
         {overlap ? <p className="mt-3 text-ui-support text-danger-ink" role="alert">“{overlap}” 항목이 포함·제외 작업에 동시에 있습니다.</p> : null}
         {mutation.error ? <p className="mt-3 text-ui-support text-danger-ink" role="alert">{apiErrorMessage(mutation.error)}</p> : null}
         <Button className="mt-5 w-full" disabled={invalid || mutation.isPending} onClick={() => mutation.mutate()} size="cta"><Send aria-hidden="true" /> {scope.scope.status === "revision_requested" ? "수정본 고객에게 보내기" : "고객에게 제안 보내기"}</Button>
@@ -119,7 +112,6 @@ function ReadOnlyQuoteSummary({ scope }: { scope: ScopeReview }) {
       <div className="flex items-end justify-between gap-3 py-4"><dt className="font-extrabold">총 제안 금액</dt><dd className="text-2xl font-extrabold tabular-nums text-primary-700">{money(scope.quote?.total_amount_krw ?? 0)}</dd></div>
     </dl>
     <section className="mt-6"><h4 className="font-extrabold">실행 계획</h4>{plan ? <dl className="mt-3 grid grid-cols-2 border-y border-line text-ui-support"><div className="border-b border-r border-line py-3 pr-3"><dt className="text-ui-micro text-ink-600">차량</dt><dd className="mt-1">{plan.vehicle_description} · {plan.vehicle_count}대</dd></div><div className="border-b border-line py-3 pl-3"><dt className="text-ui-micro text-ink-600">작업 인원</dt><dd className="mt-1">{plan.worker_count}명</dd></div><div className="col-span-2 py-3"><dt className="text-ui-micro text-ink-600">예상 시간</dt><dd className="mt-1">{plan.estimated_duration_minutes}분</dd></div></dl> : <p className="mt-3 text-ui-support text-ink-600">등록된 실행 계획이 없습니다.</p>}{plan?.notes ? <p className="mt-3 break-words text-ui-support text-ink-600">{plan.notes}</p> : null}</section>
-    {scope.proposal_reason ? <section className="mt-6 border-t border-line pt-5"><h4 className="font-extrabold">제안 사유</h4><p className="mt-2 break-words text-ui-support text-ink-600">{scope.proposal_reason}</p></section> : null}
   </>;
 }
 

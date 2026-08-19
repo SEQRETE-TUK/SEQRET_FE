@@ -46,7 +46,7 @@ flowchart TB
     end
 
     subgraph Edge["Public Edge"]
-        VER["Vercel Static Hosting"]
+        VER["Vercel Static Hosting\n배포 설정"]
         LB["Cloud Load Balancer\nCloud Armor"]
     end
 
@@ -97,16 +97,16 @@ flowchart TB
 
 ## 책임과 단일 원본
 
-| 데이터 | 단일 원본 | 원칙 |
-| --- | --- | --- |
-| 작업·참여자·역할 | PostgreSQL | browser local state는 표시용이며 권한 원본이 아니다. |
-| 작업범위 버전·금액 | PostgreSQL | 승인본은 append-only 방식으로 보존한다. |
-| 확인·변경·감사 이력 | PostgreSQL | 일반 application 흐름에서 과거 기록을 수정·삭제하지 않는다. |
-| 비공개 사진·영상 | GCS | DB에는 검증된 object key, generation과 metadata만 저장한다. |
-| 비동기 전달 상태 | Outbox와 작업 table | provider queue 자체를 업무 상태 원본으로 사용하지 않는다. |
-| cache·rate limit | Redis | DB 원본을 대체하지 않는 보조 저장소다. |
-| UI server state | TanStack Query memory cache | 영구 원본이 아니며 서버 응답으로 재검증한다. |
-| API schema | 검증된 backend OpenAPI | frontend 문서나 수기 type이 실행 계약을 덮어쓰지 않는다. |
+| 데이터                | 단일 원본                   | 원칙                                                         |
+| --------------------- | --------------------------- | ------------------------------------------------------------ |
+| 작업·참여자·역할    | PostgreSQL                  | browser local state는 표시용이며 권한 원본이 아니다.         |
+| 작업범위 버전·금액   | PostgreSQL                  | 승인본은 append-only 방식으로 보존한다.                      |
+| 확인·변경·감사 이력 | PostgreSQL                  | 일반 application 흐름에서 과거 기록을 수정·삭제하지 않는다. |
+| 비공개 사진·영상     | GCS                         | DB에는 검증된 object key, generation과 metadata만 저장한다.  |
+| 비동기 전달 상태      | Outbox와 작업 table         | provider queue 자체를 업무 상태 원본으로 사용하지 않는다.    |
+| cache·rate limit     | Redis                       | DB 원본을 대체하지 않는 보조 저장소다.                       |
+| UI server state       | TanStack Query memory cache | 영구 원본이 아니며 서버 응답으로 재검증한다.                 |
+| API schema            | 검증된 backend OpenAPI      | frontend 문서나 수기 type이 실행 계약을 덮어쓰지 않는다.     |
 
 ## 핵심 도메인 흐름
 
@@ -120,15 +120,15 @@ sequenceDiagram
     participant API as API
     participant DB as PostgreSQL
 
-    C->>FE: 작업조건·짐 목록 작성
-    FE->>API: 초안 또는 범위 제출
+    C->>FE: 촬영·AI 초안 검수
+    FE->>API: 고객 검토본 제출
     API->>DB: 새 scope version 저장
-    B->>FE: 범위·금액 검토 및 제안
-    FE->>API: 새 version 제안
-    API->>DB: 부모 version을 가진 불변 version 저장
-    C->>API: 같은 version 확인
-    B->>API: 같은 version 확인
-    API->>DB: 양측 확인 기록
+    B->>FE: 범위·금액·실행계획 검토
+    FE->>API: 부모 version 기준 업체 제안
+    API->>DB: 불변 자식 version·업체 확인 저장
+    C->>FE: 현재 업체 제안 검토
+    FE->>API: 같은 version 확인
+    API->>DB: 고객 확인·scope lock 저장
     API-->>FE: 공동확인 완료·승인본
 ```
 
@@ -152,7 +152,8 @@ sequenceDiagram
     participant AI as Vertex AI
     participant DB as PostgreSQL
 
-    U->>FE: 촬영 파일 선택
+    U->>FE: 촬영 동의문 확인·파일 선택
+    FE->>API: 동의 snapshot으로 session 생성
     FE->>API: upload target 요청
     API-->>FE: opaque URL + required headers
     FE->>GCS: signed PUT 원문 그대로 전송
@@ -161,9 +162,15 @@ sequenceDiagram
     API-->>FE: 처리 중
     Q->>W: media validation task
     W->>GCS: generation 고정 metadata·hash 검증
-    W->>AI: 분석 요청
-    W->>DB: READY 또는 FAILED와 수정 가능한 초안 저장
-    FE->>API: 처리 상태·초안 조회
+    W->>DB: media READY 또는 FAILED 저장
+    U->>FE: READY 촬영 제출
+    FE->>API: 분석 요청
+    Q->>W: analysis task
+    W->>AI: 이미지·영상 분석
+    W->>DB: provider-neutral 결과와 수정 가능한 초안 저장
+    FE->>API: 처리 상태·고객 검토 view 조회
+    U->>FE: 수정·누락 보완
+    FE->>API: 고객 검토본 완료
 ```
 
 핵심 불변식:
@@ -178,14 +185,18 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     actor W as 현장기사
+    actor B as 업체
     actor C as 소비자
     participant FE as Frontend
     participant API as API
     participant DB as PostgreSQL
 
-    W->>FE: 현장 차이·증거·예상 증감액 입력
-    FE->>API: 기준 승인본에 대한 변경요청
-    API->>DB: 변경요청·증거 참조 저장
+    W->>FE: 현장 차이·증거 입력
+    FE->>API: 기준 승인본에 대한 무가격 이슈 보고
+    API->>DB: 현장 이슈·증거 참조 저장
+    B->>FE: 이슈와 기존 승인본 검토
+    FE->>API: 변경 작업·사유·금액 제안
+    API->>DB: 변경 제안 snapshot 저장
     C->>FE: 기존 총액과 변경 후 총액 비교
     C->>API: 승인·거절·설명 요청
     alt 승인
@@ -204,19 +215,21 @@ sequenceDiagram
 - server state는 query·mutation으로 관리하고 component local state는 일시적인 UI 상태에만 사용한다.
 - route query parameter와 demo screen 번호를 업무 상태 원본으로 사용하지 않는다.
 - frontend는 provider SDK를 직접 사용하지 않는다. 예외는 backend가 발급한 opaque signed target으로 media를 전송하는 경우뿐이다.
+- frontend는 `/`, `/consumer`, `/consumer/capture`, `/provider/web`, `/crew`, `/design-system`을 lazy route로 구성하며 `/provider`는 web 화면으로 이동한다.
+- capability secret은 browser memory에만 두고 Query cache도 persistence하지 않는다.
 
 ## Backend 경계
 
 Backend는 domain·application과 provider adapter를 분리한다.
 
-| 경계 | 책임 |
-| --- | --- |
-| HTTP/API | 요청 검증, capability 인증, application command·query 호출, 응답 mapping |
-| Application | transaction 단위 use case와 권한·불변식 조정 |
-| Domain | 작업범위 version, 확인, 변경요청과 감사 규칙 |
-| Port | Storage, Task Queue, AI Provider, Event Bus, Cache의 provider-independent 계약 |
-| Adapter | GCS, Cloud Tasks, Vertex AI, Pub/Sub, Redis 구현 |
-| Outbox·Consumer | DB commit 뒤 at-least-once 전달과 consumer 중복 효과 방지 |
+| 경계             | 책임                                                                           |
+| ---------------- | ------------------------------------------------------------------------------ |
+| HTTP/API         | 요청 검증, capability 인증, application command·query 호출, 응답 mapping      |
+| Application      | transaction 단위 use case와 권한·불변식 조정                                  |
+| Domain           | 작업범위 version, 확인, 변경요청과 감사 규칙                                   |
+| Port             | Storage, Task Queue, AI Provider, Event Bus, Cache의 provider-independent 계약 |
+| Adapter          | GCS, Cloud Tasks, Vertex AI, Pub/Sub, Redis 구현                               |
+| Outbox·Consumer | DB commit 뒤 at-least-once 전달과 consumer 중복 효과 방지                      |
 
 Adapter는 다른 track의 ORM을 직접 갱신하지 않는다. 비동기 결과도 application command를 통해 domain 상태에 반영한다.
 

@@ -10,7 +10,9 @@
 | 인증 | `Authorization: Bearer <access-link-secret>` |
 | 역할 | `customer`, `company_manager`, `field_worker` |
 | 실행 계약 | 검증된 backend `main`의 비운영 `/openapi.json` |
-| 확인 revision | `397d6f1b8af51a09617684d37b54024004381b12` (2026-08-16 확인) |
+| 확인 revision | `8cb1386c3f10a650236281690ecd3569de3b7416` (2026-08-19 확인) |
+| Backend 등록 현황 | 업무 operation 58개 + 운영 operation 3개 |
+| Frontend 연동 범위 | 촬영·분석과 세 역할의 초대·범위·변경·배차·완료 실행 계약 |
 
 이 문서는 endpoint를 빠르게 찾고 frontend 연동 규칙을 이해하기 위한 안내다. 실제 field, required 여부, response schema와 권한은 같은 backend revision의 OpenAPI를 우선한다.
 
@@ -53,7 +55,7 @@ access link는 로그인 계정이나 개인 신원 증명이 아니라 한 작�
 
 ## 엔드포인트 목록
 
-아래 목록은 확인 revision의 실제 route를 기능별로 요약한 것이다. 현재 OpenAPI에는 업무 operation 57개와 운영 확인 operation 3개가 있다. 일반 제품 화면은 화면 단위 조회·command를 우선하고, 호환·운영 route는 별도로 구분한다.
+아래 목록은 확인 revision의 실제 route를 기능별로 요약한 것이다. 현재 OpenAPI에는 업무 operation 58개와 운영 확인 operation 3개가 있다. 일반 제품 화면은 화면 단위 조회·command를 우선하고, 호환·운영 route는 별도로 구분한다.
 
 ### 온보딩과 역할 초대
 
@@ -87,6 +89,7 @@ access link는 로그인 계정이나 개인 신원 증명이 아니라 한 작�
 
 | Method | Path | 인증 | 설명 |
 | --- | --- | --- | --- |
+| `GET` | `/api/v1/move-jobs/{job_id}/media-consent-policy` | 모든 참여자 | 현재 동의문 version·처리 목적·완료 후 보관기간 조회 |
 | `POST` | `/api/v1/move-jobs/{job_id}/capture-sessions` | 모든 참여자 | 참여자 소유 촬영 session 생성 |
 | `GET` | `/api/v1/move-jobs/{job_id}/capture-sessions` | 본인 | 본인 촬영 session·미디어·분석 상태 복구 |
 | `POST` | `/api/v1/move-jobs/{job_id}/capture-sessions/{capture_session_id}/media-assets/upload` | 본인 | signed upload target 발급 |
@@ -94,7 +97,7 @@ access link는 로그인 계정이나 개인 신원 증명이 아니라 한 작�
 | `POST` | `/api/v1/move-jobs/{job_id}/capture-sessions/{capture_session_id}/submit` | 본인 | `READY` 촬영을 동결하고 AI 분석 요청 |
 | `GET` | `/api/v1/move-jobs/{job_id}/capture-sessions/{capture_session_id}/analysis` | 본인 | 분석 대기·실행·완료·실패 상태 조회 |
 
-촬영 제출 뒤에는 해당 session의 미디어를 추가하거나 변경할 수 없다. 분석 응답은 provider task ID나 내부 오류 원문을 노출하지 않는다.
+촬영 session은 현재 동의문 version과 개인정보 처리 안내 확인을 snapshot으로 저장한다. 촬영 제출 뒤에는 해당 session의 미디어를 추가하거나 변경할 수 없다. 분석 응답은 provider task ID나 내부 오류 원문을 노출하지 않는다.
 
 ### 고객 AI 초안 검토
 
@@ -112,11 +115,11 @@ AI 초안에는 항목 출처, confidence와 확인 필요 여부가 포함된�
 | Method | Path | 인증 | 설명 |
 | --- | --- | --- | --- |
 | `GET` | `/api/v1/move-jobs/{job_id}/scope-review` | 소비자·업체 | 현재 범위·견적·미디어·수정요청·양측 확인 조회 |
-| `POST` | `/api/v1/move-jobs/{job_id}/scope-proposals` | 업체 | 현재 범위를 기준으로 새 범위·원화 견적 제안 |
+| `POST` | `/api/v1/move-jobs/{job_id}/scope-proposals` | 업체 | 현재 범위를 기준으로 새 범위·원화 견적·실행계획 제안 |
 | `POST` | `/api/v1/move-jobs/{job_id}/scope-review/revision-request` | 소비자 | 현재 업체 제안에 수정 요청 |
 | `POST` | `/api/v1/move-jobs/{job_id}/scope-review/confirm` | 소비자 | 현재 제안 확인과 양측 범위 잠금 |
 
-`scope-review`는 일반 프론트 화면용 실행 계약이다. 제안은 `base_amount_krw + adjustments = total_amount_krw`를 만족해야 하며, 새 제안은 기존 확인을 승계하지 않는다.
+`scope-review`는 일반 프론트 화면용 실행 계약이다. 제안은 `base_amount_krw + adjustments = total_amount_krw`를 만족해야 하며 차량 수·차량 설명·작업자 수·예상 작업시간을 포함한 실행계획을 함께 저장한다. 새 제안은 기존 확인을 승계하지 않는다.
 
 ### 작업범위 호환 route
 
@@ -148,7 +151,7 @@ AI 초안에는 항목 출처, confidence와 확인 필요 여부가 포함된�
 
 | Method | Path | 인증 | 설명 |
 | --- | --- | --- | --- |
-| `POST` | `/api/v1/move-jobs/{job_id}/field-issues` | 현장기사 | 범위 밖 작업·파손 위험·현장 장애와 증거 보고 |
+| `POST` | `/api/v1/move-jobs/{job_id}/field-issues` | 업체·현장기사 | 범위 밖 작업·파손 위험·현장 장애와 증거 보고 |
 | `GET` | `/api/v1/move-jobs/{job_id}/field-issues` | 업체·현장기사 | 이슈와 변경 제안 처리 상태 조회 |
 | `POST` | `/api/v1/move-jobs/{job_id}/change-proposals` | 업체 | 현장 이슈를 변경 범위·원화 견적 제안으로 전환 |
 | `GET` | `/api/v1/move-jobs/{job_id}/change-proposals/{proposal_id}` | 소비자·업체 | 사유·증거·기존 범위·견적·결정 기록 조회 |
@@ -266,15 +269,16 @@ AI 초안에는 항목 출처, confidence와 확인 필요 여부가 포함된�
 
 ### 업로드 흐름
 
-1. capture session을 만들거나 기존 본인 session을 조회해 복구한다.
-2. media upload target을 요청한다.
-3. backend가 `upload_url`과 `upload_headers`를 반환한다.
-4. 받은 URL과 header를 수정하지 않고 object storage에 `PUT`한다.
-5. upload complete endpoint를 호출한다.
-6. backend worker가 object key, MIME type, 크기, generation과 hash를 검증한다.
-7. session 조회에서 미디어가 `READY` 또는 `FAILED`인지 확인한다.
-8. `READY` inventory 촬영을 submit해 분석을 요청한다.
-9. analysis endpoint에서 `pending`, `dispatching`, `queued`, `running`, `completed`, `failed` 상태를 조회한다.
+1. 현재 media consent policy를 조회하고 이용 목적·보관기간을 표시한다.
+2. 동의문 version과 안내 확인을 포함해 capture session을 만들거나 기존 본인 session을 조회해 복구한다.
+3. media upload target을 요청한다.
+4. backend가 `upload_url`과 `upload_headers`를 반환한다.
+5. 받은 URL과 header를 수정하지 않고 object storage에 `PUT`한다.
+6. upload complete endpoint를 호출한다.
+7. backend worker가 object key, MIME type, 크기, generation과 hash를 검증한다.
+8. session 조회에서 미디어가 `READY` 또는 `FAILED`인지 확인한다.
+9. `READY` inventory 촬영을 submit해 분석을 요청한다.
+10. analysis endpoint에서 `pending`, `dispatching`, `queued`, `running`, `completed`, `failed` 상태를 조회한다.
 
 ### Signed Target 규칙
 
@@ -334,6 +338,8 @@ AI 초안에는 항목 출처, confidence와 확인 필요 여부가 포함된�
 - 승인과 변경 직전에는 최신 version을 다시 검증한다.
 - 역할별 첫 진입에서는 `/api/v1/me`의 role, invitation과 permissions를 기준으로 허용 화면을 결정한다.
 
+Frontend는 onboarding, 역할 연결·초대, 촬영·signed PUT·AI 검수, 범위·견적, 현장 변경, 배차·체크인, 완료 제출·요청·결정과 문서 다운로드를 이 계약에 맞춘 TanStack Query query·mutation으로 연결한다.
+
 ### Mutation
 
 - CTA 하나는 하나의 업무 command에 대응한다.
@@ -344,14 +350,11 @@ AI 초안에는 항목 출처, confidence와 확인 필요 여부가 포함된�
 
 ### 공통 Client 필수 기능
 
-- memory에 있는 Bearer secret을 명시적으로 전달
-- `/me` 기반 역할·초대·permission 확인
-- FastAPI `detail` parsing
-- `Retry-After` 처리
-- signed PUT와 민감값 redaction
-- 역할별 query·mutation hook
-- request cancel과 timeout 정책
-- OpenAPI 기반 type 생성 또는 runtime schema 검증
+- memory에 있는 Bearer secret 전달과 `/me` 기반 역할·초대·permission 확인
+- FastAPI `detail`, `x-request-id`, `Retry-After` parsing과 상태별 재시도 제한
+- opaque signed PUT, `credentials: omit`, `cache: no-store`와 production HTTPS origin 검증
+- 역할별 query·mutation, capture polling·취소 signal과 `409` 이후 상태 재조회
+- 공통 request timeout과 OpenAPI 생성 type 또는 runtime response schema 검증
 
 ## 변경 절차
 

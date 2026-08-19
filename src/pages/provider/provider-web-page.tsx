@@ -15,6 +15,7 @@ import { useSearchParams } from "react-router-dom";
 
 import { mockAccessSecrets, mockApiEnabled, mockProviderDraftAccessSecret } from "@/api/mock-api";
 import { FilterChip, MoveJourneyProgress, StatusTag } from "@/components/layout/app-primitives";
+import { AgreementOverview } from "@/components/layout/agreement-overview";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -260,8 +261,44 @@ function JobDashboard({ history, issues, jobs: linkedJobs, onConnect, onIssue, o
   );
 }
 function ProviderHistoryDialog({ history, onOpenChange, open, scope }: { history: ScopeVersionSummary[]; onOpenChange: (open: boolean) => void; open: boolean; scope: ScopeReview }) {
+  const [selectedVersionId, setSelectedVersionId] = useState<string | "list">(scope.scope.id);
   const versions = [...history].sort((a, b) => b.sequence_number - a.sequence_number);
-  return <Dialog onOpenChange={onOpenChange} open={open}><DialogContent className="max-w-xl"><DialogHeader><DialogTitle>범위·합의 이력</DialogTitle><DialogDescription>저장된 확인서 버전과 양쪽의 확인 상태입니다.</DialogDescription></DialogHeader><div className="mt-6 space-y-3">{versions.map((version) => { const current = version.id === scope.scope.id; return <article className={`rounded-[var(--radius-card)] border p-4 ${current ? "border-primary-400 bg-primary-50/50" : "border-line"}`} key={version.id}><div className="flex flex-wrap items-center justify-between gap-2"><strong>{current ? scope.scope.version_label : `v${version.sequence_number}`}{current ? " · 현재" : ""}</strong><time className="text-ui-data text-ink-600">{new Intl.DateTimeFormat("ko-KR", { month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(version.created_at))}</time></div><p className="mt-2 text-ui-support text-ink-600">항목 {version.content.items.length}개 · {version.locked_at ? "공동확정" : "검토 가능"}</p></article>; })}{versions.length === 0 ? <p className="rounded-[var(--radius-card)] bg-surface-muted p-4 text-ui-support text-ink-600">버전 기록을 불러오는 중…</p> : null}<article className="rounded-[var(--radius-card)] border border-line p-4"><strong>현재 확인 상태</strong><div className="mt-3 flex flex-wrap gap-2"><StatusTag tone={scope.company_confirmed_at ? "success" : "warning"}>업체 {scope.company_confirmed_at ? "확인" : "미확인"}</StatusTag><StatusTag tone={scope.customer_confirmed_at ? "success" : "warning"}>고객 {scope.customer_confirmed_at ? "확인" : "대기"}</StatusTag></div>{scope.revision_request ? <p className="mt-3 rounded-[var(--radius-control)] bg-warning-bg p-3 text-ui-support text-warning-ink">수정 요청 · {scope.revision_request.reason}</p> : null}</article>{scope.approved_changes.map((change) => <article className="rounded-[var(--radius-card)] border border-line p-4" key={change.proposal_id}><span className="text-ui-micro text-primary-700">현장 변경 반영</span><strong className="mt-1 block break-words">{change.title}</strong><p className="mt-1 break-words text-ui-support text-ink-600">{change.reason}</p><p className="mt-3 text-ui-control">{money(change.quote.total_amount_krw)}</p></article>)}</div></DialogContent></Dialog>;
+  const showingList = selectedVersionId === "list";
+  const selectedVersion = versions.find((version) => version.id === selectedVersionId);
+  const selectedScope = selectedVersion ? scopeForHistoryVersion(scope, selectedVersion) : scope;
+  const close = () => { setSelectedVersionId(scope.scope.id); onOpenChange(false); };
+
+  return <Dialog onOpenChange={(nextOpen) => nextOpen ? onOpenChange(true) : close()} open={open}><DialogContent className={showingList ? "max-w-xl" : "max-w-2xl"}>
+    {showingList ? <>
+      <DialogHeader><DialogTitle>범위·합의 이력</DialogTitle><DialogDescription>저장된 확인서 버전과 양쪽의 확인 상태입니다.</DialogDescription></DialogHeader>
+      <div className="mt-6 space-y-3">
+        {versions.map((version) => { const current = version.id === scope.scope.id; return <button className={`block w-full rounded-[var(--radius-card)] border p-4 text-left transition-colors hover:bg-surface-muted ${current ? "border-primary-400 bg-primary-50/50" : "border-line"}`} key={version.id} onClick={() => setSelectedVersionId(version.id)} type="button"><div className="flex flex-wrap items-center justify-between gap-2"><strong>{current ? scope.scope.version_label : `v${version.sequence_number}`}{current ? " · 현재" : ""}</strong><time className="text-ui-data text-ink-600">{new Intl.DateTimeFormat("ko-KR", { month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(version.created_at))}</time></div><p className="mt-2 text-ui-support text-ink-600">항목 {version.content.items.length}개 · {version.locked_at ? "공동확정" : "검토 가능"}</p></button>; })}
+        {versions.length === 0 ? <p className="rounded-[var(--radius-card)] bg-surface-muted p-4 text-ui-support text-ink-600">버전 기록을 불러오는 중…</p> : null}
+        <article className="rounded-[var(--radius-card)] border border-line p-4"><strong>현재 확인 상태</strong><div className="mt-3 flex flex-wrap gap-2"><StatusTag tone={scope.company_confirmed_at ? "success" : "warning"}>업체 {scope.company_confirmed_at ? "확인" : "미확인"}</StatusTag><StatusTag tone={scope.customer_confirmed_at ? "success" : "warning"}>고객 {scope.customer_confirmed_at ? "확인" : "대기"}</StatusTag></div>{scope.revision_request ? <p className="mt-3 rounded-[var(--radius-control)] bg-warning-bg p-3 text-ui-support text-warning-ink">수정 요청 · {scope.revision_request.reason}</p> : null}</article>
+        {scope.approved_changes.map((change) => <article className="rounded-[var(--radius-card)] border border-line p-4" key={change.proposal_id}><span className="text-ui-micro text-primary-700">현장 변경 반영</span><strong className="mt-1 block break-words">{change.title}</strong><p className="mt-1 break-words text-ui-support text-ink-600">{change.reason}</p><p className="mt-3 text-ui-control">{money(change.quote.total_amount_krw)}</p></article>)}
+      </div>
+    </> : <>
+      <div className="flex items-start justify-between gap-3"><DialogHeader><DialogTitle>{selectedScope.scope.version_label} 확인서</DialogTitle><DialogDescription>해당 버전의 범위, 조건, 금액과 확인 상태입니다.</DialogDescription></DialogHeader><Button onClick={() => setSelectedVersionId("list")} size="chip" variant="ghost">전체 이력</Button></div>
+      <div className="mt-6"><AgreementOverview onOpenHistory={() => setSelectedVersionId("list")} scope={selectedScope} showCurrentStatus={selectedScope.scope.status === "customer_review" || selectedScope.scope.status === "confirmed"} showVersionHeader={false} /></div>
+    </>}
+  </DialogContent></Dialog>;
+}
+
+type HistoryScopeItem = ScopeReview["scope"]["room_groups"][number]["items"][number];
+
+function scopeForHistoryVersion(scope: ScopeReview, version: ScopeVersionSummary): ScopeReview {
+  if (version.id === scope.scope.id) return scope;
+  const versionItems = version.content.items;
+  const roomGroups = scope.scope.room_groups.map((group) => {
+    const items = versionItems.filter((item) => item.room_zone_id === group.room_zone_id).map((item) => {
+      const name = "name" in item ? item.name : item.description;
+      const reviewStatus: HistoryScopeItem["review_status"] = "review_status" in item && (item.review_status === "confirmed" || item.review_status === "review_required") ? item.review_status : "confirmed";
+      const source: HistoryScopeItem["source"] = "source" in item && (item.source === "ai" || item.source === "customer" || item.source === "company" || item.source === "field_change") ? item.source : "customer";
+      return { item_key: item.item_key, room_zone_id: item.room_zone_id, description: name, name, quantity: "quantity" in item ? item.quantity : null, unit: "unit" in item ? item.unit : null, work_note: "work_note" in item ? item.work_note ?? null : null, review_status: reviewStatus, source, review_required: false, source_media_asset_ids: [] };
+    });
+    return { ...group, item_count: items.length, review_required_count: 0, items };
+  }).filter((group) => group.items.length > 0);
+  return { ...scope, scope: { ...scope.scope, id: version.id, version_label: `v${version.sequence_number}`, locked_at: version.locked_at, status: version.locked_at ? "confirmed" : "company_review", item_count: versionItems.length, work_count: 0, exclusion_count: 0, review_required_count: 0, room_groups: roomGroups, location_conditions: version.content.schema_version === 2 ? version.content.location_conditions : [], included_works: [], exclusions: [] }, proposal_id: null, quote: null, execution_plan: null, proposal_reason: null, approved_changes: [], company_confirmed_at: version.locked_at ? scope.company_confirmed_at : null, customer_confirmed_at: version.locked_at ? scope.customer_confirmed_at : null, revision_request: null };
 }
 
 function ProviderConnectionEmpty({ onConnect }: { onConnect: () => void }) {
