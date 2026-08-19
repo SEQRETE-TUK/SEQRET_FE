@@ -7,7 +7,7 @@ import { customerDisplayNameStorageKey, useAuth } from "@/features/auth/model/au
 import { ConsumerApp } from "@/features/consumer/ui/consumer-app";
 
 export function ConsumerPage() {
-  const { connect, session } = useAuth();
+  const { connect, ready, session } = useAuth();
   const attempted = useRef(false);
   const [mockConnectionFailed, setMockConnectionFailed] = useState(false);
   const newCustomerStart = Boolean(window.sessionStorage.getItem(customerDisplayNameStorageKey)?.trim());
@@ -18,6 +18,7 @@ export function ConsumerPage() {
     connect(mockAccessSecrets.customer, "customer").catch(() => setMockConnectionFailed(true));
   }, [connect, newCustomerStart, session?.actor.role]);
 
+  if (!ready) return <RouteLoading />;
   if (session?.actor.role !== "customer" && !newCustomerStart) return mockApiEnabled && !mockConnectionFailed ? <RouteLoading /> : <Navigate replace to="/" />;
   return <ConsumerApp />;
 }

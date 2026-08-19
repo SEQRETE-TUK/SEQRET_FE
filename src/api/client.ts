@@ -4,7 +4,7 @@ const API_PREFIX = "/api/v1";
 const API_REQUEST_TIMEOUT_MS = 15_000;
 
 export interface ApiRequestOptions extends Omit<RequestInit, "headers"> {
-  accessToken: string;
+  accessToken?: string;
   headers?: HeadersInit;
 }
 
@@ -44,6 +44,12 @@ export class SignedUploadError extends Error {
     this.name = "SignedUploadError";
     this.status = status;
   }
+}
+
+let workspaceCsrfToken: string | null = null;
+
+export function setWorkspaceCsrfToken(token: string | null): void {
+  workspaceCsrfToken = token;
 }
 
 function getApiBaseUrl(): string {
@@ -142,11 +148,15 @@ async function request<T>(
     }
     headers.set("Authorization", `Bearer ${normalizedToken}`);
   }
+  const method = (requestInit.method ?? "GET").toUpperCase();
+  if (!accessToken && !["GET", "HEAD", "OPTIONS"].includes(method) && workspaceCsrfToken) {
+    headers.set("X-SEQRET-CSRF", workspaceCsrfToken);
+  }
 
   const response = await fetch(resolveApiUrl(path), {
     ...requestInit,
     cache: "no-store",
-    credentials: "omit",
+    credentials: "include",
     headers,
     redirect: "error",
     signal: requestInit.signal
@@ -183,19 +193,16 @@ export async function publicApiRequest<T>(
 
 export async function downloadApiFile(
   path: string,
-  accessToken: string,
+  accessToken?: string,
 ): Promise<{ blob: Blob; filename: string }> {
   if (mockApiEnabled) {
     return { blob: new Blob(["SEQRET Mock 문서"], { type: "application/zip" }), filename: "seqret-documents.zip" };
   }
-  const normalizedToken = accessToken.trim();
-  if (!normalizedToken) {
-    throw new Error("An access token is required");
-  }
+  const normalizedToken = accessToken?.trim();
   const response = await fetch(resolveApiUrl(path), {
     cache: "no-store",
-    credentials: "omit",
-    headers: { Authorization: `Bearer ${normalizedToken}` },
+    credentials: "include",
+    headers: normalizedToken ? { Authorization: `Bearer ${normalizedToken}` } : undefined,
     redirect: "error",
     signal: AbortSignal.timeout(API_REQUEST_TIMEOUT_MS),
   });

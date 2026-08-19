@@ -11,7 +11,7 @@ import {
   UserPlusIcon as UserPlus,
   WarningCircleIcon as WarningCircle,
 } from "@phosphor-icons/react";
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { mockAccessSecrets, mockApiEnabled, mockProviderCompletedAccessSecret, mockProviderDraftAccessSecret, mockProviderRevisionAccessSecret } from "@/api/mock-api";
@@ -29,6 +29,7 @@ import {
   getCompletionSummary,
   getScopeReview,
   listFieldIssues,
+  listMoveJobs,
   listNotifications,
   workflowKeys,
   type Connection,
@@ -64,14 +65,6 @@ export function ProviderWebPage() {
     setConnections((current) => upsertProviderConnection(current, next));
     return next;
   }, [connect]);
-  const mockConnectionAttempted = useRef(false);
-  useEffect(() => {
-    if (!mockApiEnabled || activeSession || mockConnectionAttempted.current) return;
-    mockConnectionAttempted.current = true;
-    void addConnection(mockAccessSecrets.company_manager).catch(() => {
-      mockConnectionAttempted.current = false;
-    });
-  }, [activeSession, addConnection]);
   const selectConnection = (next: AuthSession) => switchSession(next);
   const removeConnection = () => {
     const remaining = activeSession
@@ -102,9 +95,17 @@ function ProviderWebConsole({ connections, onConnect, onDisconnect, onSelect, se
   const scopeQuery = useQuery({ enabled: canReadJob, queryKey: workflowKeys.scope(connection?.jobId ?? "unconnected"), queryFn: () => getScopeReview(connection!), refetchInterval: mockApiEnabled ? 2_000 : false });
   const issueQuery = useQuery({ enabled: canReadJob, queryKey: workflowKeys.fieldIssues(connection?.jobId ?? "unconnected"), queryFn: () => listFieldIssues(connection!), refetchInterval: mockApiEnabled ? 2_000 : false });
   const notificationsQuery = useQuery({ enabled: canReadJob, queryKey: workflowKeys.notifications(connection?.jobId ?? "unconnected"), queryFn: () => listNotifications(connection!) });
-  const linkedScopeQueries = useQueries({ queries: connections.map((item) => ({ enabled: item.actor.invitation?.status !== "pending", queryKey: workflowKeys.scope(item.actor.job_id), queryFn: () => getScopeReview({ accessToken: item.accessToken, jobId: item.actor.job_id }) })) });
-  const linkedCompletionQueries = useQueries({ queries: connections.map((item) => ({ enabled: item.actor.invitation?.status !== "pending", queryKey: workflowKeys.completion(item.actor.job_id), queryFn: () => getCompletionSummary({ accessToken: item.accessToken, jobId: item.actor.job_id }), refetchInterval: mockApiEnabled ? 2_000 : false })) });
-  const linkedJobs: ProviderLinkedJob[] = connections.map((item, index) => ({ session: item, scope: linkedScopeQueries[index]?.data, completion: linkedCompletionQueries[index]?.data }));
+  const moveListQuery = useQuery({ enabled: canReadJob, queryKey: workflowKeys.moves(session?.actor.role ?? "company_manager"), queryFn: () => listMoveJobs(session?.accessToken) });
+  const visibleConnections = useMemo<AuthSession[]>(() => {
+    if (mockApiEnabled || !session) return connections;
+    return (moveListQuery.data?.moves ?? []).flatMap((move) => {
+      const participant = move.job.participants.find((item) => item.role === "company_manager");
+      return participant ? [{ actor: { ...session.actor, job_id: move.job.id, participant_id: participant.id, display_name: participant.display_name, invitation: null }, accessToken: undefined }] : [];
+    });
+  }, [connections, moveListQuery.data?.moves, session]);
+  const linkedScopeQueries = useQueries({ queries: visibleConnections.map((item) => ({ enabled: item.actor.invitation?.status !== "pending", queryKey: workflowKeys.scope(item.actor.job_id), queryFn: () => getScopeReview({ accessToken: item.accessToken, jobId: item.actor.job_id }) })) });
+  const linkedCompletionQueries = useQueries({ queries: visibleConnections.map((item) => ({ enabled: item.actor.invitation?.status !== "pending", queryKey: workflowKeys.completion(item.actor.job_id), queryFn: () => getCompletionSummary({ accessToken: item.accessToken, jobId: item.actor.job_id }), refetchInterval: mockApiEnabled ? 2_000 : false })) });
+  const linkedJobs: ProviderLinkedJob[] = visibleConnections.map((item, index) => ({ session: item, scope: linkedScopeQueries[index]?.data, completion: linkedCompletionQueries[index]?.data }));
   const scope = scopeQuery.data;
   const issues = issueQuery.data ?? [];
   const openIssues = issues.filter((issue) => issue.status === "open" || issue.status === "clarification_requested");
@@ -135,7 +136,7 @@ function ProviderWebConsole({ connections, onConnect, onDisconnect, onSelect, se
   const viewTitle = jobMode === "quote" ? "범위·견적" : view === "jobs" ? "작업" : view === "issues" ? "현장 이슈" : "기사·배차";
   const activeJobHeader = scope?.job ?? linkedJobs.find((item) => item.session.actor.job_id === session?.actor.job_id)?.completion?.job;
   const viewContext = view === "jobs" && jobMode === "detail"
-    ? `연결 ${connections.length}건`
+    ? `연결 ${visibleConnections.length}건`
     : activeJobHeader?.customer_display_name ?? "선택 작업 없음";
   const nextMockProviderSecret = mockApiEnabled
     ? [mockAccessSecrets.company_manager, mockProviderDraftAccessSecret, mockProviderRevisionAccessSecret, mockProviderCompletedAccessSecret][Math.min(connections.length, 3)]
@@ -190,7 +191,7 @@ function ProviderWebConsole({ connections, onConnect, onDisconnect, onSelect, se
         <ProviderMobileNav active={view === "issues"} badge={openIssues.length || undefined} icon={<WarningCircle aria-hidden="true" />} label="현장 이슈" onClick={() => changeView("issues")} />
         <ProviderMobileNav active={view === "invite"} icon={<UserPlus aria-hidden="true" />} label="기사·배차" onClick={() => changeView("invite")} />
       </nav>
-      <ProviderConnectionDialog connect={onConnect} initialSecret={nextMockProviderSecret} key={connections.length} onOpenChange={setConnectionOpen} open={connectionOpen} />
+      <ProviderConnectionDialog connect={onConnect} initialSecret={nextMockProviderSecret} key={visibleConnections.length} onOpenChange={setConnectionOpen} open={connectionOpen} />
       <ProviderDisconnectDialog onConfirm={onDisconnect} onOpenChange={setDisconnectOpen} open={disconnectOpen} />
     </div>
   );

@@ -23,7 +23,7 @@ import {
 import { SignedUploadError } from "@/api/client";
 
 export interface CaptureConnection {
-  accessToken: string;
+  accessToken?: string;
   cacheScope: string;
   jobId: string;
 }

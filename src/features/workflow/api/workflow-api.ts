@@ -49,7 +49,18 @@ interface RoomZoneInput {
 interface LocationInput {
   kind: "origin" | "destination";
   label: string;
+  conditions?: MoveLocationConditions;
   room_zones: RoomZoneInput[];
+}
+
+export interface MoveLocationConditions {
+  residence_type: "apartment" | "villa" | "officetel" | "house" | "studio" | "other" | "unknown";
+  floor: { status: "known" | "unknown"; value: number | null };
+  elevator: "available" | "unavailable" | "unknown";
+  stairs: "required" | "not_required" | "unknown";
+  parking_access: "available" | "restricted" | "unavailable" | "unknown";
+  carry_distance: { status: "known" | "unknown"; value_m: number | null };
+  access_note: string | null;
 }
 
 export interface CustomerOnboardingInput {
@@ -71,6 +82,7 @@ export interface MoveJob {
     id: string;
     kind: "origin" | "destination";
     label: string;
+    conditions?: MoveLocationConditions;
     room_zones: Array<{ id: string; name: string; sort_order: number }>;
   }>;
 }
@@ -410,14 +422,29 @@ export interface WorkflowNotification {
 }
 
 export interface Connection {
-  accessToken: string;
+  accessToken?: string;
   jobId: string;
+}
+
+export interface WorkspaceSession {
+  account_id: string;
+  role: ParticipantRole;
+  display_name: string;
+  expires_at: string;
+  csrf_token: string;
+  members: Array<{
+    job_id: string;
+    participant_id: string;
+    role: ParticipantRole;
+    display_name: string;
+    invitation: Invitation | null;
+  }>;
 }
 
 const jsonHeaders = { "Content-Type": "application/json" };
 const segment = (value: string) => encodeURIComponent(value);
 const jobPath = (jobId: string) => `/api/v1/move-jobs/${segment(jobId)}`;
-const command = <T>(connection: Connection, path: string, method: "POST" | "PUT", body: T) =>
+const command = <T>(connection: Connection, path: string, method: "POST" | "PUT" | "PATCH", body: T) =>
   apiRequest(path, {
     accessToken: connection.accessToken,
     body: JSON.stringify(body),
@@ -427,7 +454,7 @@ const command = <T>(connection: Connection, path: string, method: "POST" | "PUT"
 
 export const workflowKeys = {
   root: (jobId: string) => ["workflow", jobId] as const,
-  moves: (accessToken: string) => ["workflow", "moves", accessToken] as const,
+  moves: (identity?: string) => ["workflow", "moves", identity ?? "workspace"] as const,
   actor: (jobId: string) => ["workflow", jobId, "actor"] as const,
   invitations: (jobId: string) => ["workflow", jobId, "invitations"] as const,
   scope: (jobId: string) => ["workflow", jobId, "scope"] as const,
@@ -451,18 +478,35 @@ export function getActorSelf(accessToken: string) {
   return apiRequest<ActorSelf>("/api/v1/me", { accessToken, method: "GET" });
 }
 
+export function createWorkspaceSession(accessToken: string) {
+  return apiRequest<WorkspaceSession>("/api/v1/sessions", { accessToken, method: "POST" });
+}
+
+export function getWorkspaceSession() {
+  return apiRequest<WorkspaceSession>("/api/v1/session", { method: "GET" });
+}
+
+export function deleteWorkspaceSession() {
+  return apiRequest<void>("/api/v1/session", { method: "DELETE" });
+}
+
 export function getMoveJob(connection: Connection) {
   return apiRequest<MoveJob>(jobPath(connection.jobId), { accessToken: connection.accessToken, method: "GET" });
 }
 
-export function listMockMoveJobs(connection: Connection) {
-  if (!mockApiEnabled) throw new Error("Move job listing is not part of the live API contract");
-  return apiRequest<{ moves: MockMoveSummary[] }>("/api/v1/move-jobs", { accessToken: connection.accessToken, method: "GET" });
+export function listMoveJobs(accessToken?: string) {
+  return apiRequest<{ moves: MockMoveSummary[] }>("/api/v1/move-jobs", { accessToken: mockApiEnabled ? accessToken : undefined, method: "GET" });
 }
 
-export function deleteMockMoveJob(connection: Connection) {
-  if (!mockApiEnabled) throw new Error("Move job deletion is not part of the live API contract");
+export function deleteMoveJob(connection: Connection) {
   return apiRequest<void>(jobPath(connection.jobId), { accessToken: connection.accessToken, method: "DELETE" });
+}
+
+export function patchMoveJob(connection: Connection, input: {
+  scheduled_at?: string | null;
+  locations?: Array<{ kind: "origin" | "destination"; label?: string; conditions?: MoveLocationConditions }>;
+}) {
+  return command(connection, jobPath(connection.jobId), "PATCH", input) as Promise<MoveJob>;
 }
 
 export function listInvitations(connection: Connection) {

@@ -179,7 +179,7 @@ export interface MediaUploadTarget {
 export type SupportedCaptureContentType = "image/jpeg" | "image/png" | "video/mp4";
 
 interface AuthorizedRequest {
-  accessToken: string;
+  accessToken?: string;
   jobId: string;
   signal?: AbortSignal;
 }

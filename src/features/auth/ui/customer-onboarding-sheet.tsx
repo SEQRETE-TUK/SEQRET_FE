@@ -71,6 +71,13 @@ function createStop(kind: Exclude<Step, "schedule">): StopDraft {
   };
 }
 
+function stopConditions(stop: StopDraft) {
+  const residence = ({ 아파트: "apartment", "빌라·연립": "villa", 오피스텔: "officetel", 단독주택: "house" } as const)[stop.residenceType as "아파트" | "빌라·연립" | "오피스텔" | "단독주택"] ?? "other";
+  const floorValue = stop.floor === "반지하" ? -1 : stop.floor === "5층 이상" ? 5 : Number.parseInt(stop.floor, 10);
+  const notes = [stop.detailAddress && `상세 주소: ${stop.detailAddress}`, `사다리차: ${stop.ladder}`, stop.memo && `메모: ${stop.memo}`].filter(Boolean);
+  return { residence_type: residence, floor: Number.isFinite(floorValue) ? { status: "known" as const, value: floorValue } : { status: "unknown" as const, value: null }, elevator: stop.elevator === "있음" ? "available" as const : "unavailable" as const, stairs: "unknown" as const, parking_access: stop.parking === "가능" ? "available" as const : "unavailable" as const, carry_distance: { status: "unknown" as const, value_m: null }, access_note: notes.join("\n") || null };
+}
+
 function CalendarStep({ month, onMonth, onSelect, selectedDate, time, onTime }: { month: Date; onMonth: (date: Date) => void; onSelect: (date: string) => void; selectedDate: string; time: string; onTime: (value: string) => void }) {
   const days = useMemo(() => {
     const first = new Date(month.getFullYear(), month.getMonth(), 1);
@@ -127,8 +134,8 @@ export function CustomerOnboardingSheet({ onOpenChange, open }: { onOpenChange: 
         scheduled_at: new Date(scheduledAt).toISOString(),
         customer_display_name: displayName,
         locations: [
-          { kind: "origin", label: origin.address.trim(), room_zones: roomZones() },
-          { kind: "destination", label: destination.address.trim(), room_zones: roomZones() },
+          { kind: "origin", label: origin.address.trim(), conditions: stopConditions(origin), room_zones: roomZones() },
+          { kind: "destination", label: destination.address.trim(), conditions: stopConditions(destination), room_zones: roomZones() },
         ],
       });
       window.sessionStorage.setItem(`${moveDraftStorageKey}:${nextSession.actor.job_id}`, JSON.stringify({ schedule: scheduledAt, stops: { origin, destination } }));

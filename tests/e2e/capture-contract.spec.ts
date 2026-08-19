@@ -3,7 +3,6 @@ import { expect, test } from "@playwright/test";
 import { analysisReviewCompletePayload, captureSessionCreatePayload, scopeProposalPayload } from "../../src/api/contract-payloads";
 
 const customerAccessSecret = "seqret_mock_customer_0000000000000000000000000000";
-const fieldWorkerAccessSecret = "seqret_mock_worker_000000000000000000000000000000";
 
 test("keeps the access secret out of browser storage", async ({ page }) => {
   await page.goto("/consumer", { waitUntil: "domcontentloaded" });
@@ -31,7 +30,12 @@ test("enters the customer home without a guest app", async ({ page }) => {
   await page.getByRole("button", { name: "내 이사" }).click();
   await expect(page.getByRole("tab", { name: "진행 중 0" })).toBeVisible();
   await expect(page.getByRole("tab", { name: "기록 0" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "진행 중인 이사가 없어요" })).toBeVisible();
+  await page.getByRole("tab", { name: "기록 0" }).click();
+  await expect(page.getByRole("tab", { name: "기록 0" })).toHaveAttribute("aria-selected", "true");
   await expect(page.getByRole("heading", { name: "아직 이사 기록이 없어요" })).toBeVisible();
+  await page.getByRole("tab", { name: "진행 중 0" }).click();
+  await expect(page.getByRole("tab", { name: "진행 중 0" })).toHaveAttribute("aria-selected", "true");
 });
 
 test("lists only the move created by a new mock customer", async ({ page }) => {
@@ -55,22 +59,33 @@ test("lists only the move created by a new mock customer", async ({ page }) => {
   await page.getByText("서울 성동구 성수동 1가 → 서울 광진구 자양동 오피스텔").click();
   await page.getByRole("button", { name: "더보기" }).click();
   await page.getByRole("button", { name: "이사 삭제" }).click();
-  await expect(page.getByRole("heading", { name: "아직 이사 기록이 없어요" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "진행 중인 이사가 없어요" })).toBeVisible();
   await page.getByRole("button", { name: "더보기" }).click();
   await expect(page.getByRole("heading", { name: "목록 고객" })).toBeVisible();
 });
 
-test("connects a field worker before entering the crew app", async ({ page }) => {
+test("loads crew mock data only after entering an invite code", async ({ page }) => {
   await page.goto("/");
   await page.getByText("현장기사", { exact: true }).click();
   await page.getByRole("button", { name: "현장기사로 시작" }).click();
 
-  await expect(page.getByRole("heading", { name: "초대 코드로 연결할게요" })).toBeVisible();
-  await expect(page.getByRole("textbox", { name: "초대 코드" })).toHaveValue(fieldWorkerAccessSecret);
-  await page.getByRole("button", { name: "연결하기" }).click();
-
   await expect(page).toHaveURL(/\/crew$/);
+  await expect(page.getByRole("heading", { name: "연결된 작업이 없어요" })).toBeVisible();
+  await page.getByRole("button", { name: /초대 코드 입력하기/ }).click();
+  await page.getByRole("button", { name: "내 작업에 연결" }).click();
   await expect(page.getByRole("heading", { name: /오늘 작업을 준비해요/ })).toBeVisible();
+});
+
+test("loads provider mock data only after adding an invite key", async ({ page }) => {
+  await page.goto("/");
+  await page.getByText("이사업체", { exact: true }).click();
+  await page.getByRole("button", { name: "이사업체로 시작" }).click();
+
+  await expect(page).toHaveURL(/\/provider\/web$/);
+  await expect(page.getByRole("heading", { name: "연결된 이사가 없어요" })).toBeVisible();
+  await page.locator("#main-content").getByRole("button", { name: "초대키 추가" }).click();
+  await page.getByRole("button", { name: "작업 추가" }).click();
+  await expect(page.getByRole("heading", { name: "작업 큐" })).toBeVisible();
 });
 
 test("lets a connected customer choose a new move or invite code", async ({ page }) => {

@@ -9,11 +9,12 @@ import type {
 export const customerDisplayNameStorageKey = "seqret-customer-display-name";
 
 export interface AuthSession {
-  accessToken: string;
+  accessToken?: string;
   actor: ActorSelf;
 }
 
 export interface AuthContextValue {
+  ready: boolean;
   session: AuthSession | null;
   clearSession: () => void;
   connect: (secret: string, expectedRole?: ParticipantRole) => Promise<AuthSession>;
