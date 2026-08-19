@@ -1,3 +1,5 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "if [ \"$VERCEL_ENV\" = \"production\" ]; then VITE_API_BASE_URL=https://34-160-87-130.sslip.io VITE_MOCK_API=false pnpm build; else pnpm build; fi",
   "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
 }
