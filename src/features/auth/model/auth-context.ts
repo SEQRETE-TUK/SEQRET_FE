@@ -6,6 +6,8 @@ import type {
   ParticipantRole,
 } from "@/features/workflow/api/workflow-api";
 
+export const customerDisplayNameStorageKey = "seqret-customer-display-name";
+
 export interface AuthSession {
   accessToken: string;
   actor: ActorSelf;

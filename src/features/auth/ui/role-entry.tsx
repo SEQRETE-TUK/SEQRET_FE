@@ -8,7 +8,8 @@ import { useNavigate } from "react-router-dom";
 import { mockApiEnabled } from "@/api/mock-api";
 import { MobileFrame } from "@/components/layout/mobile-frame";
 import { Button } from "@/components/ui/button";
-import { rolePath } from "@/features/auth/model/auth-context";
+import { Input } from "@/components/ui/input";
+import { customerDisplayNameStorageKey, rolePath } from "@/features/auth/model/auth-context";
 import { type ParticipantRole } from "@/features/workflow/api/workflow-api";
 import { cn } from "@/lib/utils";
 
@@ -22,6 +23,8 @@ const primaryRoles = roles;
 export function RoleEntry() {
   const navigate = useNavigate();
   const [selected, setSelected] = useState<ParticipantRole>("customer");
+  const [nameStep, setNameStep] = useState(false);
+  const [displayName, setDisplayName] = useState("");
   const selectedRole = roles.find((role) => role.id === selected)!;
 
   const chooseRole = (role: ParticipantRole) => {
@@ -36,7 +39,18 @@ export function RoleEntry() {
     chooseRole(primaryRoles[nextIndex].id);
     document.getElementById(`role-${primaryRoles[nextIndex].id}`)?.focus();
   };
-  const start = () => navigate(rolePath(selected));
+  const start = () => {
+    if (selected === "customer" && !nameStep) {
+      setNameStep(true);
+      return;
+    }
+    if (selected === "customer") {
+      const name = displayName.trim();
+      if (!name) return;
+      window.sessionStorage.setItem(customerDisplayNameStorageKey, name);
+    }
+    navigate(rolePath(selected));
+  };
 
   return (
     <div className="mobile-stage">
@@ -50,38 +64,24 @@ export function RoleEntry() {
         <main className="flex flex-1 flex-col px-[var(--content-gutter)] pb-40 pt-10" id="main-content">
           <div className="my-auto w-full">
             <section aria-labelledby="role-entry-title">
-              <h1 className="text-ui-section font-black tracking-[var(--tracking-display)]" id="role-entry-title">어떤 역할로 시작할까요?</h1>
+              <h1 className="text-ui-section font-black tracking-[var(--tracking-display)]" id="role-entry-title">{nameStep ? "어떻게 불러드릴까요?" : "어떤 역할로 시작할까요?"}</h1>
             </section>
 
             <div className="pt-4">
-              <fieldset>
+              {nameStep ? <div className="pt-4"><label className="sr-only" htmlFor="customer-display-name">이름</label><Input autoComplete="name" autoFocus id="customer-display-name" maxLength={100} onChange={(event) => setDisplayName(event.target.value)} placeholder="이름 입력" value={displayName} /></div> : <fieldset>
                 <legend className="sr-only">연결 역할</legend>
                 <div className="grid grid-cols-3 gap-2">
                   {primaryRoles.map((item) => {
-                  const active = item.id === selected;
-                  return (
-                    <label
-                      className={cn(
-                        "interactive-row relative flex min-h-36 cursor-pointer flex-col items-start justify-between rounded-[var(--radius-feature)] border p-3 text-left transition-colors duration-[var(--dur-short)] ease-[var(--ease-out)] has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:-outline-offset-2 has-[:focus-visible]:outline-focus-ring",
-                        active ? "border-primary-400 bg-primary-50" : "border-line bg-surface hover:border-primary-400 hover:bg-surface-muted",
-                      )}
-                      key={item.id}
-                    >
-                      <input checked={active} className="sr-only" id={`role-${item.id}`} name="participantRole" onChange={() => chooseRole(item.id)} onKeyDown={(event) => moveRole(event, item.id)} type="radio" value={item.id} />
-                      <span className="grid size-16 shrink-0 place-items-center">
-                        <img alt="" aria-hidden="true" className="size-16 object-contain" decoding="async" src={item.asset} />
-                      </span>
-                      <strong className="text-ui-component">{item.label}</strong>
-                    </label>
-                  );
+                    const active = item.id === selected;
+                    return <label className={cn("interactive-row relative flex min-h-36 cursor-pointer flex-col items-start justify-between rounded-[var(--radius-feature)] border p-3 text-left transition-colors duration-[var(--dur-short)] ease-[var(--ease-out)] has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:-outline-offset-2 has-[:focus-visible]:outline-focus-ring", active ? "border-primary-400 bg-primary-50" : "border-line bg-surface hover:border-primary-400 hover:bg-surface-muted")} key={item.id}><input checked={active} className="sr-only" id={`role-${item.id}`} name="participantRole" onChange={() => chooseRole(item.id)} onKeyDown={(event) => moveRole(event, item.id)} type="radio" value={item.id} /><span className="grid size-16 shrink-0 place-items-center"><img alt="" aria-hidden="true" className="size-16 object-contain" decoding="async" src={item.asset} /></span><strong className="text-ui-component">{item.label}</strong></label>;
                   })}
                 </div>
-              </fieldset>
+              </fieldset>}
             </div>
           </div>
         </main>
         <div className="app-fixed-action fixed inset-x-0 bottom-0 z-[var(--z-sticky)] mx-auto w-full max-w-[var(--shell-mobile)] px-[var(--content-gutter)] pt-3">
-          <Button className="w-full" onClick={start} size="cta">{selectedRole.startLabel}<ArrowRight aria-hidden="true" /></Button>
+          <div className={nameStep ? "grid grid-cols-[92px_minmax(0,1fr)] gap-2" : undefined}>{nameStep ? <Button onClick={() => setNameStep(false)} size="cta" variant="secondary">이전</Button> : null}<Button className="w-full" disabled={nameStep && !displayName.trim()} onClick={start} size="cta">{nameStep ? "시작" : selectedRole.startLabel}<ArrowRight aria-hidden="true" /></Button></div>
         </div>
       </MobileFrame>
     </div>

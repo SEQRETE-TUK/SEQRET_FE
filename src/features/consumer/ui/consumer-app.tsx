@@ -46,7 +46,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
-import { useAuth } from "@/features/auth/model/auth-context";
+import { customerDisplayNameStorageKey, useAuth } from "@/features/auth/model/auth-context";
 import { CustomerOnboardingSheet, moveDraftStorageKey } from "@/features/auth/ui/customer-onboarding-sheet";
 import { AddressSearchInput } from "@/features/consumer/ui/address-search-input";
 import {
@@ -209,7 +209,8 @@ export function ConsumerApp() {
     queryFn: () => getScopeReview(connection),
     refetchInterval: (query) => query.state.data ? (query.state.data.quote ? false : 2_000) : false,
   });
-  const activeCustomerName = scopeQuery.data?.job.customer_display_name ?? session!.actor.display_name;
+  const storedCustomerName = window.sessionStorage.getItem(customerDisplayNameStorageKey)?.trim();
+  const activeCustomerName = storedCustomerName || session!.actor.display_name || scopeQuery.data?.job.customer_display_name || "고객";
   const completionQuery = useQuery({ queryKey: workflowKeys.completion(selectedJobId), queryFn: () => getCompletionSummary(connection) });
   const issuesQuery = useQuery({ queryKey: workflowKeys.fieldIssues(selectedJobId), queryFn: () => listFieldIssues(connection), refetchInterval: mockApiEnabled ? 2_000 : false });
   const deleteMutation = useMutation({
@@ -375,11 +376,9 @@ function MockMoveCard({ move, onOpen }: { move: MockMoveSummary; onOpen: () => v
   const scheduledAt = move.job.scheduled_at ? new Date(move.job.scheduled_at) : null;
   const hasQuote = Boolean(move.quote);
   const completionArrived = move.completion_request_status === "requested";
-  const customerName = move.job.participants.find((participant) => participant.role === "customer")?.display_name ?? "고객";
   const statusLabel = completionArrived ? "확인서 도착" : hasQuote ? "견적서 도착" : move.company_participation_status === "company_not_invited" ? "링크 보내기 전" : "업체 연결됨 · 견적 대기";
-  const exampleLabel = completionArrived ? "방금 받은 확인서 예시" : hasQuote ? "견적 작성 후 예시" : "견적 작성 전 예시";
   const currentStep = completionArrived || move.scope_status === "confirmed" ? 4 : move.scope_status === "customer_review" || move.scope_status === "revision_requested" ? 3 : move.quote ? 2 : 1;
-  return <button className="press-static w-full ui-card p-5 text-left shadow-[var(--shadow-card)]" onClick={onOpen} type="button"><span className={`inline-flex h-[var(--status-height)] items-center rounded-full px-3 text-ui-status ${completionArrived ? "bg-warning-bg text-warning-ink" : hasQuote ? "bg-primary-50 text-primary-700" : "bg-surface-muted text-ink-600"}`}>{statusLabel}</span><span className="mt-3 block text-ui-data font-extrabold text-primary-700">{customerName} 고객 · {exampleLabel}</span><strong className="mt-1 flex items-center justify-between gap-3 text-ui-section"><span className="min-w-0 truncate">{move.job.locations[0]?.label ?? "출발지"} → {move.job.locations[1]?.label ?? "도착지"}</span><CaretRight aria-hidden="true" className="shrink-0 text-ink-400" size="var(--icon-sm)" /></strong><span className="mt-2 block text-ui-support text-ink-600">{scheduledAt ? fullDateFormatter.format(scheduledAt) : "일정 확인 중"}</span><span className="mt-5 block border-t border-line pt-4 text-sm">{hasQuote ? <>현재 확인서 <b>{move.version_label}</b><span className="mx-2 text-line">|</span><b className="text-primary-700">{money(move.quote?.total_amount_krw)}</b></> : <span className="text-ink-600">아직 견적서를 받지 않았어요</span>}</span>{hasQuote ? <MoveJourneyProgress current={currentStep} /> : null}<span className="mt-4 grid grid-cols-3 divide-x divide-line text-center text-xs text-ink-600"><span><Package aria-hidden="true" className="mx-auto mb-1" size="var(--icon-sm)" />짐 {move.item_count}개</span><span><Notepad aria-hidden="true" className="mx-auto mb-1" size="var(--icon-sm)" />{hasQuote ? `확인서 ${move.version_label}` : "초안"}</span><span><TrendUp aria-hidden="true" className="mx-auto mb-1" size="var(--icon-sm)" />변경 {move.adjustment_count}건</span></span></button>;
+  return <button className="press-static w-full ui-card p-5 text-left shadow-[var(--shadow-card)]" onClick={onOpen} type="button"><span className={`inline-flex h-[var(--status-height)] items-center rounded-full px-3 text-ui-status ${completionArrived ? "bg-warning-bg text-warning-ink" : hasQuote ? "bg-primary-50 text-primary-700" : "bg-surface-muted text-ink-600"}`}>{statusLabel}</span><strong className="mt-3 flex items-center justify-between gap-3 text-ui-section"><span className="min-w-0 truncate">{move.job.locations[0]?.label ?? "출발지"} → {move.job.locations[1]?.label ?? "도착지"}</span><CaretRight aria-hidden="true" className="shrink-0 text-ink-400" size="var(--icon-sm)" /></strong><span className="mt-2 block text-ui-support text-ink-600">{scheduledAt ? fullDateFormatter.format(scheduledAt) : "일정 확인 중"}</span><span className="mt-5 block border-t border-line pt-4 text-sm">{hasQuote ? <>현재 확인서 <b>{move.version_label}</b><span className="mx-2 text-line">|</span><b className="text-primary-700">{money(move.quote?.total_amount_krw)}</b></> : <span className="text-ink-600">아직 견적서를 받지 않았어요</span>}</span>{hasQuote ? <MoveJourneyProgress current={currentStep} /> : null}<span className="mt-4 grid grid-cols-3 divide-x divide-line text-center text-xs text-ink-600"><span><Package aria-hidden="true" className="mx-auto mb-1" size="var(--icon-sm)" />짐 {move.item_count}개</span><span><Notepad aria-hidden="true" className="mx-auto mb-1" size="var(--icon-sm)" />{hasQuote ? `확인서 ${move.version_label}` : "초안"}</span><span><TrendUp aria-hidden="true" className="mx-auto mb-1" size="var(--icon-sm)" />변경 {move.adjustment_count}건</span></span></button>;
 }
 
 function MoveHistoryCard({ onOpen, record }: { onOpen: () => void; record: MoveHistoryRecord }) {

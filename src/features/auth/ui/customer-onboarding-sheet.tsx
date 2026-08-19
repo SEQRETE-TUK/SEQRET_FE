@@ -17,7 +17,7 @@ import { ChoiceGroup } from "@/components/ui/choice-group";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetFooter } from "@/components/ui/sheet";
-import { useAuth } from "@/features/auth/model/auth-context";
+import { customerDisplayNameStorageKey, useAuth } from "@/features/auth/model/auth-context";
 import { AddressSearchInput } from "@/features/consumer/ui/address-search-input";
 import { apiErrorMessage } from "@/features/workflow/api/workflow-api";
 
@@ -103,6 +103,7 @@ export function CustomerOnboardingSheet({ onOpenChange, open }: { onOpenChange: 
   const [time, setTime] = useState("09:00");
   const [origin, setOrigin] = useState(() => createStop("origin"));
   const [destination, setDestination] = useState(() => createStop("destination"));
+  const customerDisplayName = session?.actor.display_name ?? window.sessionStorage.getItem(customerDisplayNameStorageKey) ?? "";
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const index = stepOrder.indexOf(step);
@@ -114,17 +115,24 @@ export function CustomerOnboardingSheet({ onOpenChange, open }: { onOpenChange: 
     setCreating(true);
     setError(null);
     const scheduledAt = `${selectedDate}T${time}`;
+    const displayName = customerDisplayName.trim() || session?.actor.display_name?.trim() || (mockApiEnabled ? "김서큐" : "");
+    if (!displayName) {
+      setError("이름을 먼저 입력해 주세요.");
+      setCreating(false);
+      return;
+    }
     try {
       window.sessionStorage.setItem(moveDraftStorageKey, JSON.stringify({ schedule: scheduledAt, stops: { origin, destination } }));
       const nextSession = await onboard({
         title: "우리 집 이사",
         scheduled_at: new Date(scheduledAt).toISOString(),
-        customer_display_name: session?.actor.display_name ?? (mockApiEnabled ? "김서큐" : "고객"),
+        customer_display_name: displayName,
         locations: [
           { kind: "origin", label: origin.address.trim(), room_zones: roomZones() },
           { kind: "destination", label: destination.address.trim(), room_zones: roomZones() },
         ],
       });
+      window.sessionStorage.removeItem(customerDisplayNameStorageKey);
       onOpenChange(false);
       navigate(`/consumer?tab=move&view=info&job=${encodeURIComponent(nextSession.actor.job_id)}`, { replace: true });
     } catch (caught) {

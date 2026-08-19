@@ -467,6 +467,26 @@ function moveSummary(state: MockState): MockMoveSummary {
   };
 }
 
+// Customer list fixtures describe one customer's perspective. Provider fixtures
+// remain separate so their multi-customer names stay useful in provider views.
+function customerMoveSummary(state: MockState, customerDisplayName: string): MockMoveSummary {
+  const summary = moveSummary(state);
+  return {
+    ...summary,
+    job: {
+      ...summary.job,
+      participants: summary.job.participants.map((participant) => participant.role === "customer" ? { ...participant, display_name: customerDisplayName } : participant),
+    },
+  };
+}
+
+function customerMoveSummaries(customerDisplayName: string) {
+  return [JOB_ID, MOCK_DRAFT_JOB_ID, MOCK_REVISION_JOB_ID]
+    .map((jobId) => mockStates.get(jobId))
+    .filter((state): state is MockState => Boolean(state))
+    .map((state) => customerMoveSummary(state, customerDisplayName));
+}
+
 export async function mockApiRequest<T>(path: string, init: RequestInit, accessToken?: string): Promise<T> {
   const method = init.method ?? "GET";
   const isInvitationIssue = method === "POST" && /^\/api\/v1\/move-jobs\/[^/]+\/invitations$/.test(path);
@@ -525,7 +545,7 @@ export async function mockApiRequest<T>(path: string, init: RequestInit, accessT
   if (!state.actors[accessToken] && authenticatedActor.role === "customer") state.actors[accessToken] = actor("customer", CUSTOMER_ID, authenticatedActor.display_name, state.job.id);
   if (path === "/api/v1/move-jobs" && method === "GET") {
     if (authenticatedActor.role !== "customer") throw new Error("고객 이사 목록은 고객만 확인할 수 있어요.");
-    return result({ moves: [...mockStates.values()].filter((candidate) => Object.values(candidate.actors).some((actor) => actor.role === "customer")).map(moveSummary) }) as Promise<T>;
+    return result({ moves: customerMoveSummaries(authenticatedActor.display_name) }) as Promise<T>;
   }
   const jobPath = `/api/v1/move-jobs/${encodeURIComponent(state.job.id)}`;
   if (path === jobPath && method === "GET") return result(state.job) as Promise<T>;
