@@ -30,6 +30,7 @@ test("lists only the move created by a new mock customer", async ({ page }) => {
   await page.getByRole("textbox", { name: "이름" }).fill("목록 고객");
   await page.getByRole("button", { name: "시작" }).click();
   await page.getByRole("button", { name: /새 이사 시작하기/ }).click();
+  await page.getByRole("dialog").getByRole("button", { name: /^새 이사 시작/ }).click();
   await page.getByRole("button", { name: "다음", exact: true }).click();
   await page.getByRole("button", { name: "다음", exact: true }).click();
   await page.getByRole("button", { name: "이사 초안 만들기" }).click();
