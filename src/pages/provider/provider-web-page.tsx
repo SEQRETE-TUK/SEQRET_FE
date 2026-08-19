@@ -14,7 +14,7 @@ import {
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
-import { mockAccessSecrets, mockApiEnabled, mockProviderCompletedAccessSecret, mockProviderDraftAccessSecret, mockProviderRevisionAccessSecret } from "@/api/mock-api";
+import { mockApiEnabled, mockConnectionCodes } from "@/api/mock-api";
 import { AgreementHistorySheet } from "@/components/layout/agreement-history-sheet";
 import { FilterChip, MoveJourneyProgress, StatusTag } from "@/components/layout/app-primitives";
 import { Button } from "@/components/ui/button";
@@ -139,7 +139,7 @@ function ProviderWebConsole({ connections, onConnect, onDisconnect, onSelect, se
     ? `연결 ${visibleConnections.length}건`
     : activeJobHeader?.customer_display_name ?? "선택 작업 없음";
   const nextMockProviderSecret = mockApiEnabled
-    ? [mockAccessSecrets.company_manager, mockProviderDraftAccessSecret, mockProviderRevisionAccessSecret, mockProviderCompletedAccessSecret][Math.min(connections.length, 3)]
+    ? [mockConnectionCodes.main, mockConnectionCodes.draft, mockConnectionCodes.revision, mockConnectionCodes.completed][Math.min(connections.length, 3)]
     : "";
 
   if (session && invitationPending) {
@@ -175,7 +175,7 @@ function ProviderWebConsole({ connections, onConnect, onDisconnect, onSelect, se
                 <ProviderNotificationsPanel compact error={notificationsQuery.error} notifications={notificationsQuery.data} pending={notificationsQuery.isPending} />
               </PopoverContent>
             </Popover> : null}
-            <Button aria-label="초대키 추가" className="px-3 xl:px-4" onClick={() => setConnectionOpen(true)} variant="outline"><Key aria-hidden="true" /><span className="hidden xl:inline">초대키 추가</span></Button>
+            <Button aria-label="연결 코드 추가" className="px-3 xl:px-4" onClick={() => setConnectionOpen(true)} variant="outline"><Key aria-hidden="true" /><span className="hidden xl:inline">연결 코드 추가</span></Button>
           </div>
         </header>
 
@@ -201,6 +201,7 @@ function JobDashboard({ issues, jobs: linkedJobs, onConnect, onIssue, onQuote, o
   const [filter, setFilter] = useState<JobFilter>("all");
   const [listTab, setListTab] = useState<"active" | "history" | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [connectionCopied, setConnectionCopied] = useState(false);
   const allJobs = useMemo(() => {
     const rows = linkedJobs.map((item) => {
       const header = item.scope?.job ?? item.completion?.job;
@@ -249,11 +250,22 @@ function JobDashboard({ issues, jobs: linkedJobs, onConnect, onIssue, onQuote, o
   const statusTone = (status: string): "primary" | "success" | "warning" => status === "completed" || status === "confirmed" ? "success" : status === "company_review" ? "primary" : "warning";
   const progress = selectedJob?.status === "completed" || scope?.scope.status === "confirmed" ? 4 : scope?.scope.status === "customer_review" ? 3 : scope?.scope.status === "revision_requested" ? 2 : 1;
   const needsQuoteAction = scope?.scope.status === "company_review" || scope?.scope.status === "revision_requested";
+  const connectionCode = selectedJobId ? `MOVE-${selectedJobId.replaceAll("-", "").slice(0, 8).toUpperCase()}` : null;
   const changeListTab = (next: "active" | "history") => {
     setListTab(next);
     setFilter("all");
     const nextJob = (next === "history" ? historyJobs : activeJobs)[0];
     if (nextJob && nextJob.session.actor.job_id !== selectedJobId) onSelect(nextJob.session);
+  };
+  const copyConnectionCode = async () => {
+    if (!connectionCode) return;
+    try {
+      await navigator.clipboard.writeText(connectionCode);
+      setConnectionCopied(true);
+      window.setTimeout(() => setConnectionCopied(false), 1500);
+    } catch {
+      // Clipboard permissions are handled by the browser.
+    }
   };
 
   return (
@@ -289,6 +301,7 @@ function JobDashboard({ issues, jobs: linkedJobs, onConnect, onIssue, onQuote, o
         </section>
 
         <article aria-label="선택 작업 상세" className="min-w-0 p-5 sm:p-6">
+          {connectionCode ? <div className="mb-4 flex justify-end"><Button onClick={() => void copyConnectionCode()} size="chip" variant="outline"><Clipboard aria-hidden="true" /> {connectionCode} · {connectionCopied ? "복사됨" : "복사"}</Button></div> : null}
           {scope ? <>
             <header className="min-w-0 border-b border-line pb-4">
               <div className="flex min-w-0 items-start justify-between gap-3"><h3 className="truncate text-ui-section">{scope.job.customer_display_name ?? "고객"}</h3><StatusTag tone={statusTone(selectedJob?.status ?? scope.scope.status)}>{statusLabel(selectedJob?.status ?? scope.scope.status)}</StatusTag></div>
@@ -351,7 +364,7 @@ function ProviderNotificationsPanel({ compact = false, error, notifications, pen
 }
 
 function ProviderConnectionEmpty({ onConnect }: { onConnect: () => void }) {
-  return <section className="py-10 text-center"><h3 className="text-ui-component">연결된 이사가 없어요</h3><p className="mt-2 text-ui-support text-ink-600">고객에게 받은 초대 코드로 이사 상태를 불러오세요.</p><Button className="mt-5" onClick={onConnect}><Key aria-hidden="true" /> 초대키 추가</Button></section>;
+  return <section className="py-10 text-center"><h3 className="text-ui-component">연결된 이사가 없어요</h3><p className="mt-2 text-ui-support text-ink-600">고객과 공유한 이사 연결 코드로 작업을 불러오세요.</p><Button className="mt-5" onClick={onConnect}><Key aria-hidden="true" /> 연결 코드 추가</Button></section>;
 }
 
 function ProviderConnectionDialog({ connect, initialSecret, onOpenChange, open }: { connect: ReturnType<typeof useAuth>["connect"]; initialSecret: string; onOpenChange: (open: boolean) => void; open: boolean }) {
@@ -371,11 +384,11 @@ function ProviderConnectionDialog({ connect, initialSecret, onOpenChange, open }
       setPending(false);
     }
   };
-  return <Dialog onOpenChange={onOpenChange} open={open}><DialogContent><DialogHeader><DialogTitle>초대키 추가</DialogTitle><DialogDescription>고객에게 받은 초대키를 입력하면 작업을 추가합니다.</DialogDescription></DialogHeader><div className="mt-6"><Label htmlFor="provider-invite-code">초대키</Label><Input autoCapitalize="none" autoComplete="off" className="mt-2" id="provider-invite-code" name="providerInviteCode" onChange={(event) => setSecret(event.target.value)} placeholder="초대키 붙여넣기…" spellCheck={false} type="password" value={secret} />{error ? <p className="mt-3 text-ui-support text-danger-ink" role="alert">{error}</p> : null}</div><DialogFooter><Button className="w-full sm:w-auto" disabled={!secret.trim() || pending} onClick={submit} size="cta"><Key aria-hidden="true" />{pending ? "추가 중…" : "작업 추가"}</Button></DialogFooter></DialogContent></Dialog>;
+  return <Dialog onOpenChange={onOpenChange} open={open}><DialogContent><DialogHeader><DialogTitle>이사 연결 코드 추가</DialogTitle><DialogDescription>고객·기사와 공유하는 코드를 입력하면 작업을 추가합니다.</DialogDescription></DialogHeader><div className="mt-6"><Label htmlFor="provider-invite-code">이사 연결 코드</Label><Input autoCapitalize="characters" autoComplete="off" className="mt-2" id="provider-invite-code" name="providerInviteCode" onChange={(event) => setSecret(event.target.value)} placeholder="MOVE-XXXXXXXX" spellCheck={false} value={secret} />{error ? <p className="mt-3 text-ui-support text-danger-ink" role="alert">{error}</p> : null}</div><DialogFooter><Button className="w-full sm:w-auto" disabled={!secret.trim() || pending} onClick={submit} size="cta"><Key aria-hidden="true" />{pending ? "추가 중…" : "작업 추가"}</Button></DialogFooter></DialogContent></Dialog>;
 }
 
 function ProviderDisconnectDialog({ onConfirm, onOpenChange, open }: { onConfirm: () => void; onOpenChange: (open: boolean) => void; open: boolean }) {
-  return <Dialog onOpenChange={onOpenChange} open={open}><DialogContent><DialogHeader><DialogTitle>이 기기에서 연결을 해제할까요?</DialogTitle><DialogDescription>현재 기기에 저장된 접근 정보가 지워집니다. 다시 들어오려면 새 초대키가 필요할 수 있어요.</DialogDescription></DialogHeader><DialogFooter className="grid grid-cols-2 gap-2"><Button onClick={() => onOpenChange(false)} variant="secondary">계속 사용</Button><Button onClick={onConfirm} variant="destructive">연결 해제</Button></DialogFooter></DialogContent></Dialog>;
+  return <Dialog onOpenChange={onOpenChange} open={open}><DialogContent><DialogHeader><DialogTitle>이 기기에서 연결을 해제할까요?</DialogTitle><DialogDescription>현재 기기의 연결만 지워집니다. 이사 연결 코드로 다시 들어올 수 있어요.</DialogDescription></DialogHeader><DialogFooter className="grid grid-cols-2 gap-2"><Button onClick={() => onOpenChange(false)} variant="secondary">계속 사용</Button><Button onClick={onConfirm} variant="destructive">연결 해제</Button></DialogFooter></DialogContent></Dialog>;
 }
 
 

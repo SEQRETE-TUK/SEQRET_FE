@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   CheckIcon as Check,
+  CopyIcon as Copy,
   PaperPlaneTiltIcon as Send,
   TruckIcon as Truck,
   UsersIcon as Users,
@@ -18,8 +19,8 @@ import {
   createCompletionRequest,
   getCompletionSummary,
   getDispatch,
+  getMoveJob,
   getScopeReview,
-  listInvitations,
   shouldRecoverState,
   setupDispatch,
   confirmDispatch,
@@ -28,7 +29,7 @@ import {
 } from "@/features/workflow/api/workflow-api";
 import { useAuthFailure } from "@/features/workflow/model/use-auth-failure";
 import { useRetryAfter } from "@/features/workflow/model/use-retry-after";
-import { ApiNotice, EmptyState, InvitationPanel, WorkflowShell } from "@/features/workflow/ui/workflow-shell";
+import { ApiNotice, EmptyState, WorkflowShell } from "@/features/workflow/ui/workflow-shell";
 
 const moneyFormatter = new Intl.NumberFormat("ko-KR");
 const money = (value: number | null | undefined) => value == null ? "금액 미정" : `${moneyFormatter.format(value)}원`;
@@ -48,24 +49,25 @@ export function LiveProviderWorkflow({ embedded = false, wide = false }: { embed
   const [workerNote, setWorkerNote] = useState("");
   const [selectedVehicleId, setSelectedVehicleId] = useState("");
   const [selectedWorkerIds, setSelectedWorkerIds] = useState<string[]>([]);
+  const [connectionCodeCopied, setConnectionCodeCopied] = useState(false);
   const connection: Connection | null = session ? { accessToken: session.accessToken, jobId: session.actor.job_id } : null;
   const invitationPending = session?.actor.invitation?.status === "pending";
 
   const canReadJob = Boolean(connection && !invitationPending);
   const scopeQuery = useQuery({ enabled: canReadJob, queryKey: workflowKeys.scope(session?.actor.job_id ?? ""), queryFn: () => getScopeReview(connection!) });
-  const invitationQuery = useQuery({ enabled: canReadJob, queryKey: workflowKeys.invitations(session?.actor.job_id ?? ""), queryFn: () => listInvitations(connection!) });
+  const jobQuery = useQuery({ enabled: canReadJob, queryKey: ["move-job", session?.actor.job_id], queryFn: () => getMoveJob(connection!), refetchInterval: 2_000 });
   const dispatchQuery = useQuery({ enabled: canReadJob && Boolean(scopeQuery.data), queryKey: workflowKeys.dispatch(session?.actor.job_id ?? ""), queryFn: () => getDispatch(connection!) });
   const completionQuery = useQuery({ enabled: canReadJob, queryKey: workflowKeys.completion(session?.actor.job_id ?? ""), queryFn: () => getCompletionSummary(connection!) });
 
   const invalidate = (...keys: readonly (readonly unknown[])[]) => Promise.all(keys.map((queryKey) => queryClient.invalidateQueries({ queryKey })));
   const setupMutation = useMutation({
     mutationFn: () => {
-      const acceptedWorkers = invitationQuery.data!.invitations.filter((invitation) => invitation.role === "field_worker" && invitation.status === "accepted");
+      const worker = jobQuery.data!.participants.find((participant) => participant.role === "field_worker")!;
       const input = {
         source_scope_version_id: scopeQuery.data!.scope.id,
         expected_duration_minutes: Number(duration),
         required_vehicle_capacity_m2: Number(vehicleCapacity),
-        required_worker_count: acceptedWorkers.length,
+        required_worker_count: 1,
         required_skills: [],
         required_certifications: [],
         check_in_items: [
@@ -84,16 +86,16 @@ export function LiveProviderWorkflow({ embedded = false, wide = false }: { embed
           available: true,
           conflict_reason: null,
         }],
-        workers: acceptedWorkers.map((invitation, index) => ({
-          external_reference: `worker-${index + 1}`,
-          display_name: invitation.display_name,
-          role_label: index === 0 ? "팀장" : "작업자",
+        workers: [{
+          external_reference: "worker-1",
+          display_name: worker.display_name,
+          role_label: "팀장",
           skills: [],
           certifications: [],
           available: true,
           conflict_reason: null,
-          participant_id: invitation.invitee_participant_id,
-        })),
+          participant_id: worker.id,
+        }],
       };
       return setupDispatch(connection!, {
         client_reference: reference(JSON.stringify(["dispatch", input])),
@@ -124,10 +126,20 @@ export function LiveProviderWorkflow({ embedded = false, wide = false }: { embed
   });
   const mutationError = setupMutation.error ?? dispatchMutation.error ?? completionRequestMutation.error;
   const retryAfter = useRetryAfter(mutationError);
-  useAuthFailure(scopeQuery.error, invitationQuery.error, dispatchQuery.error, completionQuery.error, mutationError);
+  useAuthFailure(scopeQuery.error, jobQuery.error, dispatchQuery.error, completionQuery.error, mutationError);
   if (!connection || session?.actor.role !== "company_manager") return null;
-  const acceptedWorkerCount = invitationQuery.data?.invitations.filter((invitation) => invitation.role === "field_worker" && invitation.status === "accepted").length ?? 0;
-  const operationStep = acceptedWorkerCount === 0 ? 0 : dispatchQuery.data?.status !== "confirmed" ? 1 : completionQuery.data?.completion_submission_id ? 3 : 2;
+  const connectedWorker = jobQuery.data?.participants.find((participant) => participant.role === "field_worker");
+  const operationStep = !connectedWorker ? 0 : dispatchQuery.data?.status !== "confirmed" ? 1 : completionQuery.data?.completion_submission_id ? 3 : 2;
+  const copyConnectionCode = async () => {
+    if (!scopeQuery.data) return;
+    try {
+      await navigator.clipboard.writeText(scopeQuery.data.job.job_code);
+      setConnectionCodeCopied(true);
+      window.setTimeout(() => setConnectionCodeCopied(false), 1500);
+    } catch {
+      // Clipboard permissions are handled by the browser.
+    }
+  };
 
   return (
     <WorkflowShell
@@ -140,17 +152,27 @@ export function LiveProviderWorkflow({ embedded = false, wide = false }: { embed
       /> : undefined}
       currentStep={operationStep}
       retryAfter={retryAfter}
-      stepLabels={["기사 초대", "배차", "현장 진행", "완료 확인"]}
-      summary="현장기사 초대부터 배차 확정, 완료 증빙과 고객 확인 요청까지 이어서 처리합니다."
+      stepLabels={["기사 연결", "배차", "현장 진행", "완료 확인"]}
+      summary="이사 연결 코드 공유부터 배차 확정, 완료 증빙과 고객 확인 요청까지 이어서 처리합니다."
       title="배차·완료 진행"
       embedded={embedded}
       wide={wide}
     >
       <div className="workflow-task-list overflow-hidden rounded-[var(--radius-input)] border border-line bg-surface">
-        <InvitationPanel presentation="dialog" />
+        <WorkflowTask
+          description={connectedWorker ? `${connectedWorker.display_name} 기사 연결 완료` : "고객·업체와 같은 코드를 기사에게 전달해요"}
+          index={0}
+          presentation="dialog"
+          status={connectedWorker ? "연결됨" : "연결 대기"}
+          title="기사 연결"
+          tone={connectedWorker ? "success" : "primary"}
+        >
+          <p className="mt-4 rounded-[var(--radius-card)] bg-primary-50 p-4 text-center font-mono text-lg font-black tracking-wide text-primary-800">{scopeQuery.data?.job.job_code ?? "코드 준비 중"}</p>
+          <Button className="mt-3 w-full" disabled={!scopeQuery.data} onClick={() => void copyConnectionCode()} variant="outline"><Copy aria-hidden="true" />{connectionCodeCopied ? "복사됨" : "연결 코드 복사"}</Button>
+        </WorkflowTask>
         {!scopeQuery.data ? <p className="border-t border-line px-5 py-6 text-sm leading-6 text-ink-600">고객의 촬영과 짐 검수가 끝나면 배차와 완료 단계를 진행할 수 있습니다.</p> : <>
         <WorkflowTask
-          description={`수락 기사 ${acceptedWorkerCount}명 · 차량과 작업시간을 배정해요`}
+          description={`${connectedWorker ? "연결 기사 1명" : "기사 연결 대기"} · 차량과 작업시간을 배정해요`}
           index={1}
           presentation="dialog"
           status={dispatchQuery.data?.status === "confirmed" ? "확정" : dispatchQuery.data?.status === "ready" ? "확정 필요" : "준비"}
@@ -159,7 +181,7 @@ export function LiveProviderWorkflow({ embedded = false, wide = false }: { embed
         >
           <ApiNotice error={dispatchQuery.error} />
           {dispatchQuery.data?.status === "confirmed" ? <div className="mt-4 rounded-[var(--radius-card)] bg-success-bg p-4 text-success-ink"><Check aria-hidden="true" className="inline" /> 배차 확정 · {dispatchQuery.data.confirmed_at ? eventTimeFormatter.format(new Date(dispatchQuery.data.confirmed_at)) : "시간 확인 중"}</div> : null}
-          {(!dispatchQuery.data || dispatchQuery.data.status === "setup_required") ? <form className="mt-4 space-y-3" onSubmit={(event) => { event.preventDefault(); setupMutation.mutate(); }}><div className="grid grid-cols-2 gap-2"><div><Label htmlFor="vehicle-name">차량</Label><Input autoComplete="off" id="vehicle-name" name="vehicleName" onChange={(event) => setVehicleName(event.target.value)} value={vehicleName} /></div><div><Label htmlFor="capacity">적재 ㎡</Label><Input autoComplete="off" id="capacity" inputMode="decimal" min="0" name="vehicleCapacity" onChange={(event) => setVehicleCapacity(event.target.value)} type="number" value={vehicleCapacity} /></div></div><Label htmlFor="duration">예상 작업시간(분)</Label><Input autoComplete="off" id="duration" inputMode="numeric" min="1" max="720" name="durationMinutes" onChange={(event) => setDuration(event.target.value)} type="number" value={duration} /><p className="rounded-xl bg-canvas p-3 text-sm"><Users aria-hidden="true" className="mr-1 inline size-4" /> 수락한 현장기사 {acceptedWorkerCount}명</p><Button className="w-full" disabled={!scopeQuery.data || acceptedWorkerCount === 0 || setupMutation.isPending} type="submit"><Truck aria-hidden="true" /> 배차 후보 등록</Button></form> : null}
+          {(!dispatchQuery.data || dispatchQuery.data.status === "setup_required") ? <form className="mt-4 space-y-3" onSubmit={(event) => { event.preventDefault(); setupMutation.mutate(); }}><div className="grid grid-cols-2 gap-2"><div><Label htmlFor="vehicle-name">차량</Label><Input autoComplete="off" id="vehicle-name" name="vehicleName" onChange={(event) => setVehicleName(event.target.value)} value={vehicleName} /></div><div><Label htmlFor="capacity">적재 ㎡</Label><Input autoComplete="off" id="capacity" inputMode="decimal" min="0" name="vehicleCapacity" onChange={(event) => setVehicleCapacity(event.target.value)} type="number" value={vehicleCapacity} /></div></div><Label htmlFor="duration">예상 작업시간(분)</Label><Input autoComplete="off" id="duration" inputMode="numeric" min="1" max="720" name="durationMinutes" onChange={(event) => setDuration(event.target.value)} type="number" value={duration} /><p className="rounded-xl bg-canvas p-3 text-sm"><Users aria-hidden="true" className="mr-1 inline size-4" /> {connectedWorker ? `연결 기사 · ${connectedWorker.display_name}` : "현장기사 연결 대기"}</p><Button className="w-full" disabled={!scopeQuery.data || !connectedWorker || setupMutation.isPending} type="submit"><Truck aria-hidden="true" /> 배차 후보 등록</Button></form> : null}
           {dispatchQuery.data && ["ready", "stale"].includes(dispatchQuery.data.status) ? <div className="mt-4 space-y-3"><div className="space-y-2">{dispatchQuery.data.vehicle_options.map((vehicle) => <button className={`w-full rounded-xl border p-3 text-left ${selectedVehicleId === vehicle.id ? "border-primary-400 bg-primary-50" : "border-line"}`} disabled={!vehicle.available} key={vehicle.id} onClick={() => setSelectedVehicleId(vehicle.id)} type="button"><b>{vehicle.display_name}</b><p className="text-xs text-ink-600">{vehicle.capacity_m2}㎡ · {vehicle.conflict_reason ?? "사용 가능"}</p></button>)}</div><div className="space-y-2">{dispatchQuery.data.worker_options.map((worker) => <label className="flex items-center gap-3 rounded-xl border border-line p-3" key={worker.id}><input checked={selectedWorkerIds.includes(worker.id)} disabled={!worker.available} name="workerIds" onChange={(event) => setSelectedWorkerIds((current) => event.target.checked ? [...current, worker.id] : current.filter((id) => id !== worker.id))} type="checkbox" value={worker.id} /><span><b>{worker.display_name}</b><span className="block text-xs text-ink-600">{worker.conflict_reason ?? worker.role_label}</span></span></label>)}</div><Label htmlFor="worker-note">기사 전달 메모</Label><Textarea autoComplete="off" id="worker-note" name="workerNote" onChange={(event) => setWorkerNote(event.target.value)} value={workerNote} /><Button className="w-full" disabled={dispatchMutation.isPending || dispatchQuery.data.status === "stale"} onClick={() => dispatchMutation.mutate()} size="cta">배차 확정</Button></div> : null}
           <ApiNotice error={setupMutation.error ?? dispatchMutation.error} title="배차를 처리하지 못했어요" />
         </WorkflowTask>

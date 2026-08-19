@@ -2,13 +2,13 @@ import { expect, test } from "@playwright/test";
 
 import { analysisReviewCompletePayload, captureSessionCreatePayload, scopeProposalPayload } from "../../src/api/contract-payloads";
 
-const customerAccessSecret = "seqret_mock_customer_0000000000000000000000000000";
+const moveConnectionCode = "MOVE-11111111";
 
 test("keeps the access secret out of browser storage", async ({ page }) => {
   await page.goto("/consumer", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: /김서큐님/ })).toBeVisible();
 
-  expect(await page.evaluate(() => JSON.stringify({ localStorage, sessionStorage }))).not.toContain(customerAccessSecret);
+  expect(await page.evaluate(() => JSON.stringify({ localStorage, sessionStorage }))).not.toContain(moveConnectionCode);
 
 });
 
@@ -25,7 +25,7 @@ test("enters the customer home without a guest app", async ({ page }) => {
   await expect(page.getByRole("button", { name: "더보기" })).toBeVisible();
   await page.getByRole("button", { name: /60초 촬영으로/ }).click();
   await expect(page.getByRole("dialog", { name: "이사를 시작해요" }).getByRole("button", { name: "새 이사 시작하기" })).toBeVisible();
-  await expect(page.getByRole("dialog", { name: "이사를 시작해요" }).getByRole("button", { name: "초대 코드로 불러오기" })).toBeVisible();
+  await expect(page.getByRole("dialog", { name: "이사를 시작해요" }).getByRole("button", { name: "이사 연결 코드로 불러오기" })).toBeVisible();
   await page.getByRole("button", { name: "닫기" }).click();
   await page.getByRole("button", { name: "내 이사" }).click();
   await expect(page.getByRole("tab", { name: "진행 중 0" })).toBeVisible();
@@ -71,7 +71,7 @@ test("loads crew mock data only after entering an invite code", async ({ page })
 
   await expect(page).toHaveURL(/\/crew$/);
   await expect(page.getByRole("heading", { name: "연결된 작업이 없어요" })).toBeVisible();
-  await page.getByRole("button", { name: /초대 코드 입력하기/ }).click();
+  await page.getByRole("button", { name: /연결 코드 입력하기/ }).click();
   await page.getByRole("button", { name: "내 작업에 연결" }).click();
   await expect(page.getByRole("heading", { name: /오늘 작업을 준비해요/ })).toBeVisible();
 });
@@ -83,9 +83,10 @@ test("loads provider mock data only after adding an invite key", async ({ page }
 
   await expect(page).toHaveURL(/\/provider\/web$/);
   await expect(page.getByRole("heading", { name: "연결된 이사가 없어요" })).toBeVisible();
-  await page.locator("#main-content").getByRole("button", { name: "초대키 추가" }).click();
+  await page.locator("#main-content").getByRole("button", { name: "연결 코드 추가" }).click();
   await page.getByRole("button", { name: "작업 추가" }).click();
   await expect(page.getByRole("heading", { name: "작업 큐" })).toBeVisible();
+  await expect(page.getByRole("button", { name: `${moveConnectionCode} · 복사` })).toBeVisible();
 });
 
 test("lets a connected customer choose a new move or invite code", async ({ page }) => {
@@ -94,8 +95,8 @@ test("lets a connected customer choose a new move or invite code", async ({ page
 
   await expect(page.getByRole("dialog", { name: "이사를 시작해요" })).toBeVisible();
   await expect(page.getByRole("button", { name: "새 이사 시작하기" })).toBeVisible();
-  await page.getByRole("button", { name: "초대 코드로 불러오기" }).click();
-  await expect(page.getByLabel("초대 코드")).toHaveValue(customerAccessSecret);
+  await page.getByRole("button", { name: "이사 연결 코드로 불러오기" }).click();
+  await expect(page.getByLabel("이사 연결 코드")).toHaveValue(moveConnectionCode);
   await page.getByRole("button", { name: "내 이사 불러오기" }).click();
   await expect(page.getByRole("tab", { name: "진행 중 3" })).toBeVisible();
 });

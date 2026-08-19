@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { setWorkspaceCsrfToken } from "@/api/client";
 import { mockApiEnabled } from "@/api/mock-api";
 import {
-  createWorkspaceSession,
+  connectMove,
   deleteWorkspaceSession,
   getActorSelf,
   getWorkspaceSession,
@@ -19,6 +19,7 @@ function sessionFromWorkspace(workspace: WorkspaceSession, preferredJobId?: stri
   const member = workspace.members.find((item) => item.job_id === preferredJobId) ?? workspace.members[0];
   if (!member) return null;
   return {
+    accessToken: workspace.access_token,
     actor: {
       ...member,
       permissions: proven?.actor.job_id === member.job_id ? proven.actor.permissions : [],
@@ -57,32 +58,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [applyWorkspace]);
 
   const connect = useCallback(async (secret: string, expectedRole?: ParticipantRole) => {
-    const accessToken = secret.trim();
-    const actor = await getActorSelf(accessToken);
-    if (expectedRole && actor.role !== expectedRole) {
-      throw new Error("선택한 역할과 초대 코드의 역할이 달라요.");
-    }
-    const proven = { accessToken, actor };
-    if (mockApiEnabled || actor.invitation?.status === "pending") {
-      replaceSession(proven);
-      return proven;
-    }
-    const workspace = await createWorkspaceSession(accessToken);
-    return applyWorkspace(workspace, actor.job_id, proven) ?? proven;
-  }, [applyWorkspace, replaceSession]);
+    const role = expectedRole ?? "customer";
+    const workspace = await connectMove(secret, role);
+    const next = applyWorkspace(workspace);
+    if (!next) throw new Error("이사 연결 정보를 확인해 주세요.");
+    return next;
+  }, [applyWorkspace]);
 
   const onboard = useCallback(async (input: CustomerOnboardingInput) => {
     const result = await onboardCustomer(input);
-    const accessToken = result.customer_access_link.secret;
-    const actor = await getActorSelf(accessToken);
-    const proven = { accessToken, actor };
-    if (mockApiEnabled) {
-      replaceSession(proven);
-      return proven;
-    }
-    const workspace = await createWorkspaceSession(accessToken);
-    return applyWorkspace(workspace, actor.job_id, proven) ?? proven;
-  }, [applyWorkspace, replaceSession]);
+    const workspace = await connectMove(result.connection_code, "customer");
+    const next = applyWorkspace(workspace, result.job.id);
+    if (!next) throw new Error("새 이사 연결 정보를 확인해 주세요.");
+    return next;
+  }, [applyWorkspace]);
 
   const clearSession = useCallback(() => {
     if (workspaceActive.current) void deleteWorkspaceSession().catch(() => undefined);
@@ -100,10 +89,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return next?.actor ?? null;
     }
     const actor = await getActorSelf(session.accessToken);
-    if (!mockApiEnabled && actor.invitation?.status !== "pending") {
-      const workspace = await createWorkspaceSession(session.accessToken);
-      return applyWorkspace(workspace, actor.job_id, { ...session, actor })?.actor ?? actor;
-    }
     setSession((current) => current ? { ...current, actor } : null);
     return actor;
   }, [applyWorkspace, session]);

@@ -90,6 +90,7 @@ export interface MoveJob {
 export interface CustomerOnboardingResult {
   job: MoveJob;
   customer_access_link: AccessLink;
+  connection_code: string;
 }
 
 export interface MockMoveSummary {
@@ -427,6 +428,7 @@ export interface Connection {
 }
 
 export interface WorkspaceSession {
+  access_token?: string;
   account_id: string;
   role: ParticipantRole;
   display_name: string;
@@ -476,6 +478,14 @@ export function onboardCustomer(input: CustomerOnboardingInput) {
 
 export function getActorSelf(accessToken: string) {
   return apiRequest<ActorSelf>("/api/v1/me", { accessToken, method: "GET" });
+}
+
+export function connectMove(connectionCode: string, role: ParticipantRole) {
+  return publicApiRequest<WorkspaceSession>("/api/v1/connections", {
+    body: JSON.stringify({ connection_code: connectionCode.trim(), role }),
+    headers: jsonHeaders,
+    method: "POST",
+  });
 }
 
 export function createWorkspaceSession(accessToken: string) {
@@ -690,7 +700,7 @@ export function apiErrorMessage(error: unknown): string {
   }
   switch (error.status) {
     case 401:
-      return "접근 정보가 만료되었어요. 초대 코드로 다시 연결해 주세요.";
+      return "접근 정보가 만료되었어요. 이사 연결 코드로 다시 연결해 주세요.";
     case 403:
       return "현재 역할로는 이 작업을 할 수 없어요.";
     case 404:

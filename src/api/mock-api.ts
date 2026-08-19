@@ -40,6 +40,14 @@ export const mockJobId = "11111111-1111-4111-8111-111111111111";
 const JOB_ID = mockJobId;
 const MOCK_DRAFT_JOB_ID = "99999999-9999-4999-8999-999999999999";
 const MOCK_REVISION_JOB_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+const MOCK_COMPLETED_JOB_ID = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+const moveConnectionCode = (jobId: string) => `MOVE-${jobId.replaceAll("-", "").slice(0, 8).toUpperCase()}`;
+export const mockConnectionCodes = {
+  main: moveConnectionCode(JOB_ID),
+  draft: moveConnectionCode(MOCK_DRAFT_JOB_ID),
+  revision: moveConnectionCode(MOCK_REVISION_JOB_ID),
+  completed: moveConnectionCode(MOCK_COMPLETED_JOB_ID),
+};
 const CUSTOMER_ID = "22222222-2222-4222-8222-222222222222";
 const PROVIDER_ID = "33333333-3333-4333-8333-333333333333";
 const WORKER_ID = "44444444-4444-4444-8444-444444444444";
@@ -120,7 +128,7 @@ function createState(jobId = JOB_ID, customerAccessToken = mockAccessSecrets.cus
   };
   const jobHeader = {
     job_id: jobId,
-    job_code: "MOCK-2026-001",
+    job_code: moveConnectionCode(jobId),
     title: job.title,
     scheduled_at: job.scheduled_at,
     customer_display_name: "김서큐",
@@ -361,7 +369,7 @@ function createDraftState(jobId: string, customerAccessToken: string) {
   const draft = createState(jobId, customerAccessToken);
   const draftCustomerName = "이하늘";
   const emptyGroups = draft.scope.scope.room_groups.map((group) => ({ ...group, item_count: 0, review_required_count: 0, items: [] }));
-  const draftJob = { ...draft.scope.job, company_display_name: null, customer_display_name: draftCustomerName, destination_summary: "서울 송파구", job_code: "MOCK-2026-002", origin_summary: "서울 마포구", title: "새 이사 준비" };
+  const draftJob = { ...draft.scope.job, company_display_name: null, customer_display_name: draftCustomerName, destination_summary: "서울 송파구", job_code: moveConnectionCode(jobId), origin_summary: "서울 마포구", title: "새 이사 준비" };
   draft.scope = {
     ...draft.scope,
     job: draftJob,
@@ -392,7 +400,7 @@ function createDraftState(jobId: string, customerAccessToken: string) {
 function createRevisionState(jobId: string, customerAccessToken: string) {
   const revision = createState(jobId, customerAccessToken, true);
   const customerName = "박민준";
-  const revisionJob = { ...revision.scope.job, customer_display_name: customerName, destination_summary: "서울 송파구 문정동", job_code: "MOCK-2026-003", origin_summary: "서울 강남구 논현동", title: "반포 오피스텔 이사" };
+  const revisionJob = { ...revision.scope.job, customer_display_name: customerName, destination_summary: "서울 송파구 문정동", job_code: moveConnectionCode(jobId), origin_summary: "서울 강남구 논현동", title: "반포 오피스텔 이사" };
   revision.scope = {
     ...revision.scope,
     job: revisionJob,
@@ -415,7 +423,7 @@ function createCompletedState(jobId: string, customerAccessToken: string) {
   const completed = createState(jobId, customerAccessToken, true);
   const customerName = "정다은";
   const completedAt = now();
-  const completedJobHeader = { ...completed.scope.job, customer_display_name: customerName, destination_summary: "서울 용산구 한남동", job_code: "MOCK-2026-004", origin_summary: "서울 서초구 반포동", title: "한남동 아파트 이사" };
+  const completedJobHeader = { ...completed.scope.job, customer_display_name: customerName, destination_summary: "서울 용산구 한남동", job_code: moveConnectionCode(jobId), origin_summary: "서울 서초구 반포동", title: "한남동 아파트 이사" };
   const completedJob = { ...completed.job, title: completedJobHeader.title, status: "completed" as const, completed_at: completedAt, participants: completed.job.participants.map((participant) => participant.role === "customer" ? { ...participant, display_name: customerName } : participant), locations: completed.job.locations.map((location, index) => ({ ...location, label: index === 0 ? completedJobHeader.origin_summary : completedJobHeader.destination_summary })) };
   completed.scope = {
     ...completed.scope,
@@ -478,7 +486,7 @@ const mockStates = new Map<string, MockState>([
   [JOB_ID, createState(JOB_ID)],
   [MOCK_DRAFT_JOB_ID, createDraftState(MOCK_DRAFT_JOB_ID, mockAccessSecrets.customer)],
   [MOCK_REVISION_JOB_ID, createRevisionState(MOCK_REVISION_JOB_ID, mockAccessSecrets.customer)],
-  ["bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", createCompletedState("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", mockAccessSecrets.customer)],
+  [MOCK_COMPLETED_JOB_ID, createCompletedState(MOCK_COMPLETED_JOB_ID, mockAccessSecrets.customer)],
 ]);
 
 function result<T>(value: T): Promise<T> {
@@ -541,7 +549,7 @@ function customerMoveSummary(state: MockState, customerDisplayName: string): Moc
 
 function customerMoveSummaries(customerAccessToken: string) {
   return [...mockStates.values()]
-    .filter((state) => state.customerAccessToken === customerAccessToken)
+    .filter((state) => state.customerAccessToken === customerAccessToken || state.actors[customerAccessToken]?.role === "customer")
     .map((state) => customerMoveSummary(state, state.actors[customerAccessToken]?.display_name ?? "고객"));
 }
 
@@ -576,7 +584,32 @@ export async function mockApiRequest<T>(path: string, init: RequestInit, accessT
     state.job.title = input.title;
     state.job.scheduled_at = input.scheduled_at;
     mockStates.set(jobId, state);
-    return result({ job: state.job, customer_access_link: accessLink("customer", CUSTOMER_ID, customerAccessToken, jobId) } as CustomerOnboardingResult) as Promise<T>;
+    const connectionCode = moveConnectionCode(jobId);
+    state.scope.job.job_code = connectionCode;
+    state.completion.job.job_code = connectionCode;
+    state.dispatch.job.job_code = connectionCode;
+    state.fieldBrief.job.job_code = connectionCode;
+    return result({ job: state.job, customer_access_link: accessLink("customer", CUSTOMER_ID, customerAccessToken, jobId), connection_code: connectionCode } as CustomerOnboardingResult) as Promise<T>;
+  }
+  if (path === "/api/v1/connections" && method === "POST") {
+    const input = jsonBody<{ connection_code: string; role: ParticipantRole }>(init);
+    const connectionCode = input.connection_code.trim().toUpperCase();
+    const state = [...mockStates.values()].find((candidate) => moveConnectionCode(candidate.job.id) === connectionCode);
+    const participant = state?.job.participants.find((candidate) => candidate.role === input.role);
+    if (!state || !participant) throw new Error("Mock 이사 연결 코드를 확인해 주세요.");
+    const mockToken = input.role === "customer"
+      ? state.customerAccessToken
+      : `seqret_mock_connection_${input.role}_${state.job.id.replaceAll("-", "")}`;
+    state.actors[mockToken] = actor(input.role, participant.id, participant.display_name, state.job.id);
+    return result({
+      access_token: mockToken,
+      account_id: `mock-${input.role}-${state.job.id}`,
+      role: input.role,
+      display_name: participant.display_name,
+      expires_at: future(),
+      csrf_token: "mock_csrf_token_00000000000000000000000000000000",
+      members: [{ job_id: state.job.id, participant_id: participant.id, role: input.role, display_name: participant.display_name, invitation: null }],
+    }) as Promise<T>;
   }
   if (path === "/api/v1/me" && method === "GET") {
     const found = accessToken ? [...mockStates.values()].map((state) => state.actors[accessToken]).find(Boolean) : undefined;

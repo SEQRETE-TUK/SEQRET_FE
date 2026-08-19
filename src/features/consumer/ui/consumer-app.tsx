@@ -11,7 +11,6 @@ import {
   CaretLeftIcon as CaretLeft,
   CaretRightIcon as CaretRight,
   CheckIcon as Check,
-  ClockIcon as Clock,
   CopyIcon as Copy,
   CubeIcon as Cube,
   HouseIcon as Home,
@@ -29,10 +28,10 @@ import {
   TruckIcon as Truck,
   WarningCircleIcon as WarningCircle,
 } from "@phosphor-icons/react";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
-import { mockAccessSecrets, mockApiEnabled } from "@/api/mock-api";
+import { mockApiEnabled, mockConnectionCodes } from "@/api/mock-api";
 import { movingItemAssetForName, movingItemCategoryForName, type MovingItemCategory } from "@/components/moving-item-assets";
 import { MovingItemIcon } from "@/components/moving-item-icon";
 import { AgreementOverview } from "@/components/layout/agreement-overview";
@@ -53,7 +52,6 @@ import { AddressSearchInput } from "@/features/consumer/ui/address-search-input"
 import {
   apiErrorMessage,
   confirmScopeReview,
-  createInvitation,
   decideChangeProposal,
   decideCompletionRequest,
   getCompletionSummary,
@@ -69,7 +67,6 @@ import {
   type CompletionSummary,
   type Connection,
   type FieldIssue,
-  type InvitationIssued,
   type MoveJob,
   type MoveLocationConditions,
   type MockMoveSummary,
@@ -337,7 +334,7 @@ function MoveHeader({ onBack, onMore, scope }: { onBack: () => void; onMore?: ()
 
 function CustomerMoveStartSheet({ connect, onConnected, onNewMove, onOpenChange, open }: { connect: ReturnType<typeof useAuth>["connect"]; onConnected: () => void | Promise<void>; onNewMove: () => void; onOpenChange: (open: boolean) => void; open: boolean }) {
   const [mode, setMode] = useState<"choice" | "code">("choice");
-  const [secret, setSecret] = useState(mockApiEnabled ? mockAccessSecrets.customer : "");
+  const [secret, setSecret] = useState(mockApiEnabled ? mockConnectionCodes.main : "");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -349,7 +346,7 @@ function CustomerMoveStartSheet({ connect, onConnected, onNewMove, onOpenChange,
     onOpenChange(next);
   };
   const chooseCode = () => {
-    setSecret(mockApiEnabled ? mockAccessSecrets.customer : "");
+    setSecret(mockApiEnabled ? mockConnectionCodes.main : "");
     setError(null);
     setMode("code");
   };
@@ -368,7 +365,7 @@ function CustomerMoveStartSheet({ connect, onConnected, onNewMove, onOpenChange,
     }
   };
 
-  return <Sheet onOpenChange={close} open={open}><SheetContent><SheetHeader><SheetTitle>이사를 시작해요</SheetTitle><SheetDescription>새로 시작하거나 초대 코드로 기존 이사를 불러올 수 있어요.</SheetDescription></SheetHeader>{mode === "choice" ? <div className="grid gap-3 px-4 pb-5 sm:grid-cols-2"><Button aria-label="새 이사 시작하기" className="h-auto min-h-0 flex-col items-stretch justify-start gap-0 rounded-[var(--radius-feature)] border-line bg-surface p-3 text-left shadow-[var(--shadow-card)] hover:border-primary-300 hover:bg-surface" onClick={onNewMove} size="cta" type="button" variant="outline"><span className="grid h-24 place-items-center overflow-hidden rounded-[var(--radius-card)] p-2"><img alt="" aria-hidden="true" className="size-16 object-contain" decoding="async" src="/moving-items/moving-box.png" /></span><span className="mt-3 block text-ui-component font-black text-ink-900">새 이사 시작</span><span className="mt-1 block text-ui-data font-normal leading-5 text-ink-600">이사 정보를 입력해<br />새로 시작해요</span></Button><Button aria-label="초대 코드로 불러오기" className="h-auto min-h-0 flex-col items-stretch justify-start gap-0 rounded-[var(--radius-feature)] border-line bg-surface p-3 text-left shadow-[var(--shadow-card)] hover:border-primary-300 hover:bg-surface" onClick={chooseCode} size="cta" type="button" variant="outline"><span className="grid h-24 place-items-center overflow-hidden rounded-[var(--radius-card)] p-2"><img alt="" aria-hidden="true" className="size-16 object-contain" decoding="async" src="/moving-items/sofa.png" /></span><span className="mt-3 block text-ui-component font-black text-ink-900">초대 코드 입력</span><span className="mt-1 block text-ui-data font-normal leading-5 text-ink-600">기존 이사 상황을<br />불러와요</span></Button></div> : <div className="px-5 pb-2"><Label htmlFor="customer-move-invite-code">초대 코드</Label><Input autoCapitalize="none" autoComplete="one-time-code" autoFocus className="mt-2" id="customer-move-invite-code" onChange={(event) => setSecret(event.target.value)} placeholder="초대 코드 붙여넣기" spellCheck={false} value={secret} />{error ? <p className="mt-3 text-sm font-bold text-danger-ink" role="alert">{error}</p> : null}<SheetFooter className="grid grid-cols-[92px_minmax(0,1fr)] gap-2"><Button onClick={() => { setError(null); setMode("choice"); }} variant="secondary">이전</Button><Button disabled={!secret.trim() || pending} onClick={() => { void submit(); }}><Key aria-hidden="true" />{pending ? "연결 중" : "내 이사 불러오기"}</Button></SheetFooter></div>}</SheetContent></Sheet>;
+  return <Sheet onOpenChange={close} open={open}><SheetContent><SheetHeader><SheetTitle>이사를 시작해요</SheetTitle><SheetDescription>새로 시작하거나 이사 연결 코드로 기존 이사를 불러올 수 있어요.</SheetDescription></SheetHeader>{mode === "choice" ? <div className="grid gap-3 px-4 pb-5 sm:grid-cols-2"><Button aria-label="새 이사 시작하기" className="h-auto min-h-0 flex-col items-stretch justify-start gap-0 rounded-[var(--radius-feature)] border-line bg-surface p-3 text-left shadow-[var(--shadow-card)] hover:border-primary-300 hover:bg-surface" onClick={onNewMove} size="cta" type="button" variant="outline"><span className="grid h-24 place-items-center overflow-hidden rounded-[var(--radius-card)] p-2"><img alt="" aria-hidden="true" className="size-16 object-contain" decoding="async" src="/moving-items/moving-box.png" /></span><span className="mt-3 block text-ui-component font-black text-ink-900">새 이사 시작</span><span className="mt-1 block text-ui-data font-normal leading-5 text-ink-600">이사 정보를 입력해<br />새로 시작해요</span></Button><Button aria-label="이사 연결 코드로 불러오기" className="h-auto min-h-0 flex-col items-stretch justify-start gap-0 rounded-[var(--radius-feature)] border-line bg-surface p-3 text-left shadow-[var(--shadow-card)] hover:border-primary-300 hover:bg-surface" onClick={chooseCode} size="cta" type="button" variant="outline"><span className="grid h-24 place-items-center overflow-hidden rounded-[var(--radius-card)] p-2"><img alt="" aria-hidden="true" className="size-16 object-contain" decoding="async" src="/moving-items/sofa.png" /></span><span className="mt-3 block text-ui-component font-black text-ink-900">연결 코드 입력</span><span className="mt-1 block text-ui-data font-normal leading-5 text-ink-600">기존 이사 상황을<br />불러와요</span></Button></div> : <div className="px-5 pb-2"><Label htmlFor="customer-move-invite-code">이사 연결 코드</Label><Input autoCapitalize="characters" autoComplete="one-time-code" autoFocus className="mt-2" id="customer-move-invite-code" onChange={(event) => setSecret(event.target.value)} placeholder="MOVE-XXXXXXXX" spellCheck={false} value={secret} />{error ? <p className="mt-3 text-sm font-bold text-danger-ink" role="alert">{error}</p> : null}<SheetFooter className="grid grid-cols-[92px_minmax(0,1fr)] gap-2"><Button onClick={() => { setError(null); setMode("choice"); }} variant="secondary">이전</Button><Button disabled={!secret.trim() || pending} onClick={() => { void submit(); }}><Key aria-hidden="true" />{pending ? "연결 중" : "내 이사 불러오기"}</Button></SheetFooter></div>}</SheetContent></Sheet>;
 }
 
 function MoveActionsSheet({ canDelete, error, onDelete, onOpenChange, open, pending }: { canDelete: boolean; error: unknown; onDelete: () => void; onOpenChange: (open: boolean) => void; open: boolean; pending: boolean }) {
@@ -630,7 +627,7 @@ function ConsumerAgreement({ completion, connection, fallbackLocationConditions,
     onSuccess: async () => { setIssueOpen(false); await refresh(); },
   });
   if (!scope) return <div className="px-[var(--content-gutter)] py-8 text-sm text-ink-600">확인서를 불러오는 중입니다.</div>;
-  if (!scope.quote) return <CompanyInvitationEmpty connection={connection} itemCount={scope.scope.item_count} key={`${connection.accessToken}:${connection.jobId}`} />;
+  if (!scope.quote) return <CompanyInvitationEmpty connectionCode={scope.job.job_code} itemCount={scope.scope.item_count} key={connection.jobId} />;
   const quoteNeedsReview = scope.scope.status === "customer_review" && !completion?.completion_request;
 
   return (
@@ -694,31 +691,12 @@ function FieldChangeSheet({ error, issue, loading, onDecision, onOpenChange, ope
   </SheetContent></Sheet>;
 }
 
-function CompanyInvitationEmpty({ connection, itemCount }: { connection: Connection; itemCount: number }) {
-  const [issued, setIssued] = useState<InvitationIssued | null>(null);
-  const [inviteError, setInviteError] = useState<unknown>(null);
-  const [issuing, setIssuing] = useState(true);
+function CompanyInvitationEmpty({ connectionCode, itemCount }: { connectionCode: string; itemCount: number }) {
   const [copied, setCopied] = useState(false);
-  const invitationRequest = useRef<{ key: string; promise: Promise<InvitationIssued> } | null>(null);
-  const { accessToken, jobId } = connection;
-  useEffect(() => {
-    let cancelled = false;
-    const requestKey = `${accessToken}:${jobId}`;
-    const request = invitationRequest.current?.key === requestKey
-      ? invitationRequest.current.promise
-      : createInvitation({ accessToken, jobId }, "company_manager");
-    invitationRequest.current = { key: requestKey, promise: request };
-    request
-      .then((result) => { if (!cancelled) setIssued(result); })
-      .catch((error: unknown) => { if (!cancelled) setInviteError(error); })
-      .finally(() => { if (!cancelled) setIssuing(false); });
-    return () => { cancelled = true; };
-  }, [accessToken, jobId]);
-  const inviteText = issued ? `SEQRET 이사 확인 초대 코드\n${issued.access_link.secret}` : "";
+  const inviteText = `SEQRET 이사 연결 코드\n${connectionCode}`;
   const copyInvite = async () => {
-    if (!issued) return;
     try {
-      await navigator.clipboard.writeText(inviteText);
+      await navigator.clipboard.writeText(connectionCode);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1500);
     } catch {
@@ -726,10 +704,9 @@ function CompanyInvitationEmpty({ connection, itemCount }: { connection: Connect
     }
   };
   const shareInvite = async () => {
-    if (!issued) return;
     if (navigator.share) {
       try {
-        await navigator.share({ text: inviteText, title: "SEQRET 이사 확인 초대" });
+        await navigator.share({ text: inviteText, title: "SEQRET 이사 연결" });
         return;
       } catch (error) {
         if (error instanceof DOMException && error.name === "AbortError") return;
@@ -737,25 +714,24 @@ function CompanyInvitationEmpty({ connection, itemCount }: { connection: Connect
     }
     await copyInvite();
   };
-  const sharingDisabled = !issued || itemCount === 0;
+  const sharingDisabled = itemCount === 0;
   return <main className="px-[var(--content-gutter)] pb-28 pt-8">
     <h1 className="whitespace-nowrap text-ui-component font-black tracking-[var(--tracking-display)]">업체와 함께 확인할 차례예요</h1>
     <p className="mt-4 max-w-[340px] text-sm leading-6 text-ink-600">이사업체를 초대해 검수 결과를 함께 확인하고 정확한 견적을 받아보세요.</p>
 
     <section className="mt-8">
-      <h2 className="text-ui-component font-black">업체 초대</h2>
+      <h2 className="text-ui-component font-black">이사 연결 코드</h2>
       <div className="mt-3 rounded-[var(--radius-feature)] border border-line bg-surface px-4">
-        <div className="flex min-h-[76px] items-center gap-3 border-b border-line"><span className="grid size-10 shrink-0 place-items-center rounded-full bg-primary-50 text-primary-700"><Clock aria-hidden="true" size="var(--icon-md)" /></span><span className="min-w-0 flex-1"><strong className="block text-sm">초대 코드 유효 시간</strong><span className="mt-1 block text-sm text-ink-600">만료되면 안전하게 재발급할 수 있어요</span></span></div>
+        <div className="flex min-h-[76px] items-center gap-3 border-b border-line"><span className="grid size-10 shrink-0 place-items-center rounded-full bg-primary-50 text-primary-700"><Key aria-hidden="true" size="var(--icon-md)" /></span><span className="min-w-0 flex-1"><strong className="block font-mono text-base tracking-wide">{connectionCode}</strong><span className="mt-1 block text-sm text-ink-600">고객·업체·기사가 같은 코드를 사용해요</span></span></div>
         <div className="flex min-h-[76px] items-center gap-3"><span className="grid size-10 shrink-0 place-items-center rounded-full bg-success-bg text-success-ink"><ShieldCheck aria-hidden="true" size="var(--icon-md)" weight="fill" /></span><span className="min-w-0 flex-1"><strong className="block text-sm">열람 가능한 정보</strong><span className="mt-1 block text-sm text-ink-600">작업범위 · 촬영 근거 · 견적 작성</span></span></div>
       </div>
     </section>
 
-    {inviteError ? <p className="mt-3 text-sm font-bold text-danger-ink" role="alert">{apiErrorMessage(inviteError)}</p> : null}
     <div className="mt-6 space-y-2.5">
-      <Button className="w-full" disabled={sharingDisabled} onClick={() => void shareInvite()} size="cta"><ShareNetwork aria-hidden="true" />{issuing && !mockApiEnabled ? "공유 준비 중" : "공유"}</Button>
-      <Button className="w-full" disabled={sharingDisabled} onClick={() => void copyInvite()} size="cta" variant="outline">{copied ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}링크 복사</Button>
+      <Button className="w-full" disabled={sharingDisabled} onClick={() => void shareInvite()} size="cta"><ShareNetwork aria-hidden="true" />공유</Button>
+      <Button className="w-full" disabled={sharingDisabled} onClick={() => void copyInvite()} size="cta" variant="outline">{copied ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}코드 복사</Button>
     </div>
-    <div className="mt-7 flex items-start gap-3 rounded-[var(--radius-control)] bg-primary-50 px-4 py-4 text-sm leading-5 text-ink-600"><ShieldCheck aria-hidden="true" className="mt-0.5 shrink-0 text-success-ink" size="var(--icon-sm)" /><p><strong className="block text-ink-900">안전하게 공유돼요</strong><span className="mt-1 block">초대 코드는 담당자만 사용할 수 있으며, 업체가 참여하기 전에는 확인서가 만들어지지 않아요.</span></p></div>
+    <div className="mt-7 flex items-start gap-3 rounded-[var(--radius-control)] bg-primary-50 px-4 py-4 text-sm leading-5 text-ink-600"><ShieldCheck aria-hidden="true" className="mt-0.5 shrink-0 text-success-ink" size="var(--icon-sm)" /><p><strong className="block text-ink-900">연결 해제 후에도 다시 들어올 수 있어요</strong><span className="mt-1 block">이 코드를 보관했다가 역할을 선택해 같은 이사에 다시 연결하세요.</span></p></div>
   </main>;
 }
 

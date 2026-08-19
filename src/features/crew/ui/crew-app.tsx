@@ -22,7 +22,7 @@ import {
 import { useEffect, useMemo, useState, type ChangeEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
-import { mockAccessSecrets, mockApiEnabled } from "@/api/mock-api";
+import { mockApiEnabled, mockConnectionCodes } from "@/api/mock-api";
 import { AgreementOverview } from "@/components/layout/agreement-overview";
 import { AgreementHistorySheet } from "@/components/layout/agreement-history-sheet";
 import { ActiveMoveCard, MoveJourneyProgress } from "@/components/layout/app-primitives";
@@ -129,7 +129,7 @@ function CrewGuestApp() {
       {tab === "home" ? <CrewGuestHome onInvite={() => setInviteOpen(true)} /> : null}
       {tab === "work" ? <CrewWorkList moveJobs={[]} onOpen={() => undefined} onSelect={() => undefined} /> : null}
       {tab === "notifications" ? <CrewNotifications onAction={() => setInviteOpen(true)} /> : null}
-      {tab === "more" ? <section className="px-[var(--content-gutter)] pb-28 pt-6"><h1 className="text-ui-section font-black tracking-[var(--tracking-display)]">더보기</h1><p className="mt-6 border-y border-line py-5 text-sm text-ink-600">초대 코드를 입력하면 기사 정보와 배정된 이사를 확인할 수 있어요.</p></section> : null}
+      {tab === "more" ? <section className="px-[var(--content-gutter)] pb-28 pt-6"><h1 className="text-ui-section font-black tracking-[var(--tracking-display)]">더보기</h1><p className="mt-6 border-y border-line py-5 text-sm text-ink-600">이사 연결 코드를 입력하면 기사 정보와 배정된 이사를 확인할 수 있어요.</p></section> : null}
     </MobileAppShell>
     <CrewInviteSheet connect={connect} onOpenChange={setInviteOpen} open={inviteOpen} />
   </>;
@@ -140,7 +140,7 @@ function CrewGuestHome({ onInvite }: { onInvite: () => void }) {
 }
 
 function CrewInviteHero({ onInvite }: { onInvite: () => void }) {
-  return <button className="mt-4 ui-card ui-card-outlined ui-card-tinted press-static relative min-h-[174px] w-full overflow-hidden rounded-[var(--radius-feature)] px-5 py-4 text-left" onClick={onInvite} type="button"><span className="relative z-10 block max-w-[62%]"><strong className="block text-ui-component font-extrabold tracking-[var(--tracking-display)]">초대 코드로<br />오늘 작업 연결하기</strong><span className="mt-1.5 block text-ui-data leading-5 text-ink-600">배정된 이사와 현장 정보를 한 번에 불러와요.</span><span className="mt-4 flex items-center gap-1 whitespace-nowrap text-ui-control text-primary-700">초대 코드 입력하기 <CaretRight aria-hidden="true" size="var(--icon-xs)" /></span></span><img alt="휴대폰으로 이삿짐을 확인하는 모습" className="absolute -right-2 bottom-0 w-[140px] max-w-none" height="213" src="/move-capture-hero.png" width="170" /></button>;
+  return <button className="mt-4 ui-card ui-card-outlined ui-card-tinted press-static relative min-h-[174px] w-full overflow-hidden rounded-[var(--radius-feature)] px-5 py-4 text-left" onClick={onInvite} type="button"><span className="relative z-10 block max-w-[62%]"><strong className="block text-ui-component font-extrabold tracking-[var(--tracking-display)]">연결 코드로<br />오늘 작업 연결하기</strong><span className="mt-1.5 block text-ui-data leading-5 text-ink-600">배정된 이사와 현장 정보를 한 번에 불러와요.</span><span className="mt-4 flex items-center gap-1 whitespace-nowrap text-ui-control text-primary-700">연결 코드 입력하기 <CaretRight aria-hidden="true" size="var(--icon-xs)" /></span></span><img alt="휴대폰으로 이삿짐을 확인하는 모습" className="absolute -right-2 bottom-0 w-[140px] max-w-none" height="213" src="/move-capture-hero.png" width="170" /></button>;
 }
 
 function CrewHomeHeader({ onBell }: { onBell: () => void }) {
@@ -161,7 +161,7 @@ function CrewSafeArea() {
 }
 
 function CrewInviteSheet({ connect, onOpenChange, open }: { connect: ReturnType<typeof useAuth>["connect"]; onOpenChange: (open: boolean) => void; open: boolean }) {
-  const [secret, setSecret] = useState(mockApiEnabled ? mockAccessSecrets.field_worker : "");
+  const [secret, setSecret] = useState(mockApiEnabled ? mockConnectionCodes.main : "");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const submit = async () => {
@@ -177,7 +177,7 @@ function CrewInviteSheet({ connect, onOpenChange, open }: { connect: ReturnType<
       setPending(false);
     }
   };
-  return <Sheet onOpenChange={onOpenChange} open={open}><SheetContent><SheetHeader><SheetTitle>초대 코드 입력</SheetTitle><SheetDescription>업체가 전달한 초대 코드를 입력하면 배정된 이사와 연결돼요.</SheetDescription></SheetHeader><div className="px-5 pb-2"><Input aria-label="초대 코드" className="mt-2" id="crew-invite-code" onChange={(event) => setSecret(event.target.value)} placeholder="초대 코드 붙여넣기" value={secret} />{error ? <p className="mt-3 text-sm font-bold text-danger-ink" role="alert">{error}</p> : null}</div><SheetFooter><Button className="w-full" disabled={!secret.trim() || pending} onClick={submit} size="cta"><Key aria-hidden="true" />{pending ? "연결 중" : "내 작업에 연결"}</Button></SheetFooter></SheetContent></Sheet>;
+  return <Sheet onOpenChange={onOpenChange} open={open}><SheetContent><SheetHeader><SheetTitle>이사 연결 코드 입력</SheetTitle><SheetDescription>고객·업체와 공유하는 코드를 입력하면 배정된 이사와 연결돼요.</SheetDescription></SheetHeader><div className="px-5 pb-2"><Input aria-label="이사 연결 코드" autoCapitalize="characters" className="mt-2" id="crew-invite-code" onChange={(event) => setSecret(event.target.value)} placeholder="MOVE-XXXXXXXX" value={secret} />{error ? <p className="mt-3 text-sm font-bold text-danger-ink" role="alert">{error}</p> : null}</div><SheetFooter><Button className="w-full" disabled={!secret.trim() || pending} onClick={submit} size="cta"><Key aria-hidden="true" />{pending ? "연결 중" : "내 작업에 연결"}</Button></SheetFooter></SheetContent></Sheet>;
 }
 
 function CrewDetailHeader({ onBack, onMore, title }: { onBack: () => void; onMore: () => void; title: string }) {

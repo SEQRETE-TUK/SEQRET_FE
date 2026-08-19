@@ -62,6 +62,7 @@ access link는 로그인 계정이나 개인 신원 증명이 아니라 한 작�
 | Method | Path | 인증 | 설명 |
 | --- | --- | --- | --- |
 | `POST` | `/api/v1/move-jobs/onboarding` | 공개 | 소비자 작업과 소비자 전용 capability 하나 생성 |
+| `POST` | `/api/v1/connections` | 공개 | `MOVE-XXXXXXXX` 공용 코드와 선택 역할로 작업공간 연결 |
 | `GET` | `/api/v1/me` | 모든 link | 현재 역할·초대 상태·허용 permission 조회 |
 | `POST` | `/api/v1/move-jobs/{job_id}/invitations` | 소비자·업체 | 다음 역할 초대와 one-time secret 발급 |
 | `GET` | `/api/v1/move-jobs/{job_id}/invitations` | 소비자·업체 | 본인이 발급했거나 받은 초대 목록 조회 |
