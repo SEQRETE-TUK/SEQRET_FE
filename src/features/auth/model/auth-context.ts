@@ -7,6 +7,7 @@ import type {
 } from "@/features/workflow/api/workflow-api";
 
 export const customerDisplayNameStorageKey = "seqret-customer-display-name";
+export const customerNewMoveStorageKey = "seqret-customer-new-move";
 
 export interface AuthSession {
   accessToken: string;

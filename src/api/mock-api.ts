@@ -22,6 +22,7 @@ import type {
   MockMoveSummary,
   ParticipantRole,
   ScopeReview,
+  WorkflowNotification,
 } from "@/features/workflow/api/workflow-api";
 
 export const mockApiEnabled = import.meta.env.VITE_MOCK_API === "true";
@@ -482,6 +483,30 @@ function result<T>(value: T): Promise<T> {
   return Promise.resolve(copy(value));
 }
 
+function mockNotifications(state: MockState, currentActor: ActorSelf): WorkflowNotification[] {
+  const eventTypes = currentActor.role === "customer"
+    ? ["analysis_completed.v1", "change_requested.v1", ...(state.completion.completion_request?.status === "requested" ? ["completion_requested.v1"] : [])]
+    : currentActor.role === "company_manager"
+      ? ["capture_submitted.v1", "completion_submitted.v1", ...(state.job.status === "completed" ? ["completion_decided.v1"] : [])]
+      : ["scope_locked.v1", "dispatch_confirmed.v1"];
+  return eventTypes.map((eventType, index) => {
+    const createdAt = new Date(Date.now() - index * 3_600_000).toISOString();
+    return {
+      id: crypto.randomUUID(),
+      event_id: crypto.randomUUID(),
+      event_type: eventType as WorkflowNotification["event_type"],
+      job_id: state.job.id,
+      recipient_participant_id: currentActor.participant_id,
+      status: "sent",
+      attempt_count: 1,
+      created_at: createdAt,
+      last_attempt_at: createdAt,
+      sent_at: createdAt,
+      last_error_code: null,
+    };
+  });
+}
+
 function accessLink(role: ParticipantRole, participantId: string, secret: string, jobId = JOB_ID) {
   return { id: crypto.randomUUID(), job_id: jobId, participant_id: participantId, role, secret, expires_at: future() };
 }
@@ -581,6 +606,7 @@ export async function mockApiRequest<T>(path: string, init: RequestInit, accessT
   }
   const jobPath = `/api/v1/move-jobs/${encodeURIComponent(state.job.id)}`;
   if (path === jobPath && method === "GET") return result(state.job) as Promise<T>;
+  if (path === `${jobPath}/notifications` && method === "GET") return result(mockNotifications(state, state.actors[accessToken])) as Promise<T>;
   if (path === jobPath && method === "DELETE") {
     if (state.actors[accessToken].role !== "customer") throw new Error("고객만 이사를 삭제할 수 있어요.");
     if (state.scope.quote) throw new Error("견적서를 받은 이사는 삭제할 수 없어요.");

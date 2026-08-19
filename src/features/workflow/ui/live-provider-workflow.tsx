@@ -54,7 +54,7 @@ export function LiveProviderWorkflow({ embedded = false, wide = false }: { embed
   const canReadJob = Boolean(connection && !invitationPending);
   const scopeQuery = useQuery({ enabled: canReadJob, queryKey: workflowKeys.scope(session?.actor.job_id ?? ""), queryFn: () => getScopeReview(connection!) });
   const invitationQuery = useQuery({ enabled: canReadJob, queryKey: workflowKeys.invitations(session?.actor.job_id ?? ""), queryFn: () => listInvitations(connection!) });
-  const dispatchQuery = useQuery({ enabled: canReadJob, queryKey: workflowKeys.dispatch(session?.actor.job_id ?? ""), queryFn: () => getDispatch(connection!) });
+  const dispatchQuery = useQuery({ enabled: canReadJob && Boolean(scopeQuery.data), queryKey: workflowKeys.dispatch(session?.actor.job_id ?? ""), queryFn: () => getDispatch(connection!) });
   const completionQuery = useQuery({ enabled: canReadJob, queryKey: workflowKeys.completion(session?.actor.job_id ?? ""), queryFn: () => getCompletionSummary(connection!) });
 
   const invalidate = (...keys: readonly (readonly unknown[])[]) => Promise.all(keys.map((queryKey) => queryClient.invalidateQueries({ queryKey })));
@@ -148,6 +148,7 @@ export function LiveProviderWorkflow({ embedded = false, wide = false }: { embed
     >
       <div className="workflow-task-list overflow-hidden rounded-[var(--radius-input)] border border-line bg-surface">
         <InvitationPanel presentation="dialog" />
+        {!scopeQuery.data ? <p className="border-t border-line px-5 py-6 text-sm leading-6 text-ink-600">고객의 촬영과 짐 검수가 끝나면 배차와 완료 단계를 진행할 수 있습니다.</p> : <>
         <WorkflowTask
           description={`수락 기사 ${acceptedWorkerCount}명 · 차량과 작업시간을 배정해요`}
           index={1}
@@ -176,6 +177,7 @@ export function LiveProviderWorkflow({ embedded = false, wide = false }: { embed
           {completionQuery.data ? <Button className="mt-4 w-full" disabled={!completionQuery.data.completion_submission_id || ["requested", "confirmed", "issue_reported"].includes(completionQuery.data.completion_request?.status ?? "") || completionRequestMutation.isPending} onClick={() => completionRequestMutation.mutate()}><Send aria-hidden="true" /> 고객 완료 확인 요청</Button> : null}
           <ApiNotice error={completionRequestMutation.error} title="완료 요청을 처리하지 못했어요" />
         </WorkflowTask>
+        </>}
       </div>
     </WorkflowShell>
   );

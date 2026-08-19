@@ -381,6 +381,33 @@ export interface CompletionSummary {
   problem_report_count: number;
 }
 
+export type NotificationEventType =
+  | "capture_submitted.v1"
+  | "analysis_completed.v1"
+  | "analysis_failed.v1"
+  | "scope_locked.v1"
+  | "change_requested.v1"
+  | "dispatch_confirmed.v1"
+  | "completion_media_submitted.v1"
+  | "completion_submitted.v1"
+  | "completion_requested.v1"
+  | "completion_decided.v1"
+  | "media_deleted.v1";
+
+export interface WorkflowNotification {
+  id: string;
+  event_id: string;
+  event_type: NotificationEventType;
+  job_id: string;
+  recipient_participant_id: string;
+  status: "pending" | "sent" | "failed";
+  attempt_count: number;
+  created_at: string;
+  last_attempt_at: string | null;
+  sent_at: string | null;
+  last_error_code: string | null;
+}
+
 export interface Connection {
   accessToken: string;
   jobId: string;
@@ -408,6 +435,7 @@ export const workflowKeys = {
   dispatch: (jobId: string) => ["workflow", jobId, "dispatch"] as const,
   brief: (jobId: string) => ["workflow", jobId, "field-brief"] as const,
   completion: (jobId: string) => ["workflow", jobId, "completion"] as const,
+  notifications: (jobId: string) => ["workflow", jobId, "notifications"] as const,
 };
 
 export function onboardCustomer(input: CustomerOnboardingInput) {
@@ -583,6 +611,10 @@ export function submitCompletion(connection: Connection, input: unknown) {
 
 export function getCompletionSummary(connection: Connection) {
   return apiRequest<CompletionSummary>(`${jobPath(connection.jobId)}/completion-summary`, { accessToken: connection.accessToken, method: "GET" });
+}
+
+export function listNotifications(connection: Connection) {
+  return apiRequest<WorkflowNotification[]>(`${jobPath(connection.jobId)}/notifications`, { accessToken: connection.accessToken, method: "GET" });
 }
 
 export function createCompletionRequest(connection: Connection, completionSubmissionId: string, clientReference: string) {

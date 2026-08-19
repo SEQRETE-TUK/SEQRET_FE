@@ -210,10 +210,10 @@ export function InvitationPanel({ presentation = "page" }: { presentation?: "pag
   const shareInvite = async () => {
     try {
       const result = await ensureIssued();
-      const text = `짐확정 현장기사 초대 링크\n${result.access_link.secret}`;
+      const text = `SEQRET 현장기사 초대 링크\n${result.access_link.secret}`;
       if (navigator.share) {
         try {
-          await navigator.share({ text, title: "짐확정 현장기사 초대" });
+          await navigator.share({ text, title: "SEQRET 현장기사 초대" });
           return;
         } catch (caught) {
           if (caught instanceof DOMException && caught.name === "AbortError") return;
@@ -227,7 +227,7 @@ export function InvitationPanel({ presentation = "page" }: { presentation?: "pag
   const copyInvite = async () => {
     try {
       const result = await ensureIssued();
-      await copyText(`짐확정 현장기사 초대 링크\n${result.access_link.secret}`);
+      await copyText(`SEQRET 현장기사 초대 링크\n${result.access_link.secret}`);
     } catch {
       // The mutation error is rendered below.
     }

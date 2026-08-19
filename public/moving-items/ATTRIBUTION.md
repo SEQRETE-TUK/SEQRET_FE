@@ -7,6 +7,7 @@ Author: [Smashing Stocks](https://smashingstocks.com/)
 Source collections:
 
 - [Freepik Generic Isometric icons](https://www.freepik.com/icon/sofa_5763794)
+- [Magnific Sofa Generic Isometric icon](https://www.magnific.com/icon/sofa_5763794)
 - [Freepik Cabinet Generic Isometric icon](https://www.freepik.com/icon/cabinet_6543765)
 - [Freepik 2000+ Isometric Icons Set](https://smashingstocks.com/downloads/2000-isometric-icons-set/)
 - [Flaticon Smashing Stocks Isometric icons](https://www.flaticon.com/free-icon/bed_6543683)

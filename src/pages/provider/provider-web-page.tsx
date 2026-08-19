@@ -1,6 +1,7 @@
 import { useQueries, useQuery } from "@tanstack/react-query";
 import {
   CaretRightIcon as CaretRight,
+  BellIcon as Bell,
   CheckCircleIcon as CheckCircle,
   ClipboardTextIcon as Clipboard,
   ClockCounterClockwiseIcon as History,
@@ -10,8 +11,8 @@ import {
   UserPlusIcon as UserPlus,
   WarningCircleIcon as WarningCircle,
 } from "@phosphor-icons/react";
-import { useMemo, useState, type ReactNode } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { mockAccessSecrets, mockApiEnabled, mockProviderCompletedAccessSecret, mockProviderDraftAccessSecret, mockProviderRevisionAccessSecret } from "@/api/mock-api";
 import { AgreementHistorySheet } from "@/components/layout/agreement-history-sheet";
@@ -27,18 +28,20 @@ import {
   getCompletionSummary,
   getScopeReview,
   listFieldIssues,
+  listNotifications,
   workflowKeys,
   type Connection,
   type CompletionSummary,
   type FieldIssue,
   type ScopeReview,
 } from "@/features/workflow/api/workflow-api";
+import { notificationCopy, notificationDateFormatter } from "@/features/workflow/model/notification-copy";
 import { LiveProviderWorkflow } from "@/features/workflow/ui/live-provider-workflow";
 import { ProviderIssueWorkbench } from "@/features/workflow/ui/provider-issue-workbench";
 import { ProviderQuoteEditor } from "@/features/workflow/ui/provider-quote-editor";
 import { InvitationPanel } from "@/features/workflow/ui/workflow-shell";
 
-type ProviderView = "jobs" | "issues" | "invite";
+type ProviderView = "jobs" | "issues" | "invite" | "notifications";
 type JobMode = "detail" | "quote";
 type JobFilter = "all" | "action" | "customer" | "confirmed";
 type ProviderLinkedJob = { session: AuthSession; scope: ScopeReview | undefined; completion: CompletionSummary | undefined };
@@ -52,20 +55,33 @@ function upsertProviderConnection(connections: AuthSession[], next: AuthSession)
 
 export function ProviderWebPage() {
   const { clearSession, connect, session, switchSession } = useAuth();
+  const navigate = useNavigate();
   const activeSession = session?.actor.role === "company_manager" ? session : null;
   const [connections, setConnections] = useState<AuthSession[]>(() => activeSession ? [activeSession] : []);
-  const addConnection = async (secret: string) => {
+  const addConnection = useCallback(async (secret: string) => {
     const next = await connect(secret, "company_manager");
     setConnections((current) => upsertProviderConnection(current, next));
     return next;
-  };
+  }, [connect]);
+  const mockConnectionAttempted = useRef(false);
+  useEffect(() => {
+    if (!mockApiEnabled || activeSession || mockConnectionAttempted.current) return;
+    mockConnectionAttempted.current = true;
+    void addConnection(mockAccessSecrets.company_manager).catch(() => {
+      mockConnectionAttempted.current = false;
+    });
+  }, [activeSession, addConnection]);
   const selectConnection = (next: AuthSession) => switchSession(next);
   const removeConnection = () => {
-    if (!activeSession) return;
-    const remaining = connections.filter((item) => item.actor.job_id !== activeSession.actor.job_id);
+    const remaining = activeSession
+      ? connections.filter((item) => item.actor.job_id !== activeSession.actor.job_id)
+      : [];
     setConnections(remaining);
     if (remaining[0]) void selectConnection(remaining[0]);
-    else clearSession();
+    else {
+      clearSession();
+      navigate("/", { replace: true });
+    }
   };
   return <ProviderWebConsole connections={connections} onConnect={addConnection} onDisconnect={removeConnection} onSelect={selectConnection} session={activeSession} />;
 }
@@ -74,14 +90,16 @@ function ProviderWebConsole({ connections, onConnect, onDisconnect, onSelect, se
   const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState("");
   const [connectionOpen, setConnectionOpen] = useState(false);
+  const [disconnectOpen, setDisconnectOpen] = useState(false);
   const viewParam = searchParams.get("view");
-  const view: ProviderView = viewParam === "issues" || viewParam === "invite" ? viewParam : "jobs";
+  const view: ProviderView = viewParam === "issues" || viewParam === "invite" || viewParam === "notifications" ? viewParam : "jobs";
   const jobMode: JobMode = searchParams.get("mode") === "quote" ? "quote" : "detail";
   const invitationPending = session?.actor.invitation?.status === "pending";
   const connection: Connection | null = session ? { accessToken: session.accessToken, jobId: session.actor.job_id } : null;
   const canReadJob = Boolean(connection && !invitationPending);
   const scopeQuery = useQuery({ enabled: canReadJob, queryKey: workflowKeys.scope(connection?.jobId ?? "unconnected"), queryFn: () => getScopeReview(connection!), refetchInterval: mockApiEnabled ? 2_000 : false });
   const issueQuery = useQuery({ enabled: canReadJob, queryKey: workflowKeys.fieldIssues(connection?.jobId ?? "unconnected"), queryFn: () => listFieldIssues(connection!), refetchInterval: mockApiEnabled ? 2_000 : false });
+  const notificationsQuery = useQuery({ enabled: canReadJob, queryKey: workflowKeys.notifications(connection?.jobId ?? "unconnected"), queryFn: () => listNotifications(connection!) });
   const linkedScopeQueries = useQueries({ queries: connections.map((item) => ({ enabled: item.actor.invitation?.status !== "pending", queryKey: workflowKeys.scope(item.actor.job_id), queryFn: () => getScopeReview({ accessToken: item.accessToken, jobId: item.actor.job_id }) })) });
   const linkedCompletionQueries = useQueries({ queries: connections.map((item) => ({ enabled: item.actor.invitation?.status !== "pending", queryKey: workflowKeys.completion(item.actor.job_id), queryFn: () => getCompletionSummary({ accessToken: item.accessToken, jobId: item.actor.job_id }), refetchInterval: mockApiEnabled ? 2_000 : false })) });
   const linkedJobs: ProviderLinkedJob[] = connections.map((item, index) => ({ session: item, scope: linkedScopeQueries[index]?.data, completion: linkedCompletionQueries[index]?.data }));
@@ -102,10 +120,11 @@ function ProviderWebConsole({ connections, onConnect, onDisconnect, onSelect, se
     next.delete("view");
     return next;
   });
-  const viewTitle = jobMode === "quote" ? "범위·견적" : view === "jobs" ? "작업" : view === "issues" ? "현장 이슈" : "기사·배차";
+  const viewTitle = jobMode === "quote" ? "범위·견적" : view === "jobs" ? "작업" : view === "issues" ? "현장 이슈" : view === "notifications" ? "알림" : "기사·배차";
+  const activeJobHeader = scope?.job ?? linkedJobs.find((item) => item.session.actor.job_id === session?.actor.job_id)?.completion?.job;
   const viewContext = view === "jobs" && jobMode === "detail"
     ? `연결 ${connections.length}건`
-    : scope ? scope.job.customer_display_name ?? "고객" : "선택 작업 없음";
+    : activeJobHeader?.customer_display_name ?? "선택 작업 없음";
   const nextMockProviderSecret = mockApiEnabled
     ? [mockAccessSecrets.company_manager, mockProviderDraftAccessSecret, mockProviderRevisionAccessSecret, mockProviderCompletedAccessSecret][Math.min(connections.length, 3)]
     : "";
@@ -120,7 +139,7 @@ function ProviderWebConsole({ connections, onConnect, onDisconnect, onSelect, se
         <div className="px-3"><strong className="tracking-[var(--tracking-brand)] text-primary-800">SEQRET</strong></div>
         <nav aria-label="업체 메뉴" className="mt-7">
           <ProviderNav active={view === "jobs"} icon={<Clipboard aria-hidden="true" />} label="작업" onClick={() => changeView("jobs")} />
-          {scope ? <div className="mt-5 border-t border-line pt-3">
+          {session ? <div className="mt-5 border-t border-line pt-3">
             <div className="space-y-1">
               <ProviderNav active={view === "issues"} badge={openIssues.length || undefined} icon={<WarningCircle aria-hidden="true" />} label="현장 이슈" onClick={() => changeView("issues")} />
               <ProviderNav active={view === "invite"} icon={<UserPlus aria-hidden="true" />} label="기사·배차" onClick={() => changeView("invite")} />
@@ -128,7 +147,7 @@ function ProviderWebConsole({ connections, onConnect, onDisconnect, onSelect, se
           </div> : null}
         </nav>
         <div className="mt-auto border-t border-line px-2 pt-4">
-          {session ? <Button className="w-full justify-start" onClick={onDisconnect} size="chip" variant="ghost"><SignOut aria-hidden="true" /> 연결 해제</Button> : <Button className="w-full justify-start" onClick={() => setConnectionOpen(true)} size="chip" variant="ghost"><Key aria-hidden="true" /> 초대키 추가</Button>}
+          <Button className="w-full justify-start" onClick={() => setDisconnectOpen(true)} size="chip" variant="ghost"><SignOut aria-hidden="true" /> 연결 해제</Button>
         </div>
       </aside>
 
@@ -137,6 +156,7 @@ function ProviderWebConsole({ connections, onConnect, onDisconnect, onSelect, se
           <div className="min-w-0"><p className="truncate text-ui-micro text-ink-500">{viewContext}</p><h1 className="mt-0.5 truncate text-ui-section">{viewTitle}</h1></div>
           <div className="flex items-center gap-2">
             {view === "jobs" && jobMode === "detail" ? <label className="hidden h-[var(--control-touch)] min-w-[17rem] items-center gap-2 rounded-[var(--radius-control)] border border-input bg-surface px-4 focus-within:border-primary-400 focus-within:ring-3 focus-within:ring-primary-100 lg:flex"><Search aria-hidden="true" className="text-ink-600" /><input aria-label="고객명, 주소 검색" autoComplete="off" className="min-w-0 flex-1 bg-transparent text-ui-control outline-none placeholder:text-ink-400" data-slot="input-proxy" name="providerSearch" onChange={(event) => setSearch(event.target.value)} placeholder="고객명, 주소 검색…" type="search" value={search} /></label> : null}
+            {session ? <Button aria-label={`알림 ${notificationsQuery.data?.length ?? 0}건`} className="relative px-3" onClick={() => changeView("notifications")} variant="outline"><Bell aria-hidden="true" />{notificationsQuery.data?.length ? <span className="min-w-4 text-ui-micro text-primary-700">{notificationsQuery.data.length}</span> : null}</Button> : null}
             <Button aria-label="초대키 추가" className="px-3 xl:px-4" onClick={() => setConnectionOpen(true)} variant="outline"><Key aria-hidden="true" /><span className="hidden xl:inline">초대키 추가</span></Button>
           </div>
         </header>
@@ -146,6 +166,7 @@ function ProviderWebConsole({ connections, onConnect, onDisconnect, onSelect, se
           {view === "jobs" && jobMode === "quote" && connection ? <ProviderQuoteEditor key={connection.jobId} connection={connection} onBack={() => changeJobMode("detail")} scope={scope} /> : null}
           {view === "issues" ? connection ? <ProviderIssueWorkbench connection={connection} issues={issues} scope={scope} /> : <ProviderConnectionEmpty onConnect={() => setConnectionOpen(true)} /> : null}
           {view === "invite" ? session ? <OperationsPanel /> : <ProviderConnectionEmpty onConnect={() => setConnectionOpen(true)} /> : null}
+          {view === "notifications" ? <ProviderNotificationsPanel error={notificationsQuery.error} notifications={notificationsQuery.data} pending={notificationsQuery.isPending} /> : null}
         </div></main>
       </div>
       <nav aria-label="업체 모바일 메뉴" className="fixed inset-x-0 bottom-0 z-[var(--z-sticky)] grid grid-cols-3 border-t border-line bg-surface px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 md:hidden">
@@ -154,6 +175,7 @@ function ProviderWebConsole({ connections, onConnect, onDisconnect, onSelect, se
         <ProviderMobileNav active={view === "invite"} icon={<UserPlus aria-hidden="true" />} label="기사·배차" onClick={() => changeView("invite")} />
       </nav>
       <ProviderConnectionDialog connect={onConnect} initialSecret={nextMockProviderSecret} key={connections.length} onOpenChange={setConnectionOpen} open={connectionOpen} />
+      <ProviderDisconnectDialog onConfirm={onDisconnect} onOpenChange={setDisconnectOpen} open={disconnectOpen} />
     </div>
   );
 }
@@ -163,15 +185,19 @@ function JobDashboard({ issues, jobs: linkedJobs, onConnect, onIssue, onQuote, o
   const [listTab, setListTab] = useState<"active" | "history" | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const allJobs = useMemo(() => {
-    const rows = linkedJobs.map((item) => ({
-      date: item.scope?.job.scheduled_at ?? null,
-      customer: item.scope?.job.customer_display_name ?? "고객",
-      route: (item.scope?.job.origin_summary ?? "출발지") + " → " + (item.scope?.job.destination_summary ?? "도착지"),
-      status: item.completion?.job_status === "completed" || item.completion?.completion_request?.status === "confirmed" ? "completed" : item.scope?.scope.status ?? "company_review",
-      completion: item.completion,
-      current: item.session.actor.job_id === selectedJobId,
-      session: item.session,
-    }));
+    const rows = linkedJobs.map((item) => {
+      const header = item.scope?.job ?? item.completion?.job;
+      return {
+        date: header?.scheduled_at ?? null,
+        customer: header?.customer_display_name ?? "고객",
+        route: (header?.origin_summary ?? "출발지") + " → " + (header?.destination_summary ?? "도착지"),
+        status: item.completion?.job_status === "completed" || item.completion?.completion_request?.status === "confirmed" ? "completed" : item.scope?.scope.status ?? "preparing",
+        completion: item.completion,
+        current: item.session.actor.job_id === selectedJobId,
+        header,
+        session: item.session,
+      };
+    });
     const query = search.trim();
     return query ? rows.filter((job) => (job.customer + " " + job.route).includes(query)) : rows;
   }, [linkedJobs, search, selectedJobId]);
@@ -193,6 +219,7 @@ function JobDashboard({ issues, jobs: linkedJobs, onConnect, onIssue, onQuote, o
     { key: "action", label: "검토 필요", jobs: jobs.filter((job) => job.status === "company_review" || job.status === "revision_requested") },
     { key: "customer", label: "고객 확인 중", jobs: jobs.filter((job) => job.status === "customer_review") },
     { key: "confirmed", label: "공동확정", jobs: jobs.filter((job) => job.status === "confirmed") },
+    { key: "preparing", label: "범위 준비 중", jobs: jobs.filter((job) => job.status === "preparing") },
   ].filter((group) => group.jobs.length > 0 && (filter === "all" || filter === group.key));
   const priority = selectedJob?.status === "completed" ? null : scope?.scope.status === "revision_requested"
     ? { title: "고객 수정 요청이 도착했어요", description: scope.revision_request?.reason ?? "요청 내용을 반영해 새 버전으로 다시 제안해 주세요.", action: "수정해서 다시 제안", onClick: onQuote }
@@ -201,7 +228,7 @@ function JobDashboard({ issues, jobs: linkedJobs, onConnect, onIssue, onQuote, o
       : actionableIssues[0]
         ? { title: "현장 보고에 응답해 주세요", description: actionableIssues[0].title, action: "현장 이슈 열기", onClick: onIssue }
         : null;
-  const statusLabel = (status: string) => status === "completed" ? "완료" : status === "confirmed" ? "공동확정" : status === "customer_review" ? "고객 확인 중" : status === "revision_requested" ? "수정 요청" : "검토 필요";
+  const statusLabel = (status: string) => status === "completed" ? "완료" : status === "confirmed" ? "공동확정" : status === "customer_review" ? "고객 확인 중" : status === "revision_requested" ? "수정 요청" : status === "preparing" ? "범위 준비 중" : "검토 필요";
   const statusTone = (status: string): "primary" | "success" | "warning" => status === "completed" || status === "confirmed" ? "success" : status === "company_review" ? "primary" : "warning";
   const progress = selectedJob?.status === "completed" || scope?.scope.status === "confirmed" ? 4 : scope?.scope.status === "customer_review" ? 3 : scope?.scope.status === "revision_requested" ? 2 : 1;
   const needsQuoteAction = scope?.scope.status === "company_review" || scope?.scope.status === "revision_requested";
@@ -283,6 +310,13 @@ function JobDashboard({ issues, jobs: linkedJobs, onConnect, onIssue, onQuote, o
             </section>
 
             {!needsQuoteAction ? <p className={"mt-5 flex items-start gap-2 border-t border-line pt-4 text-ui-support " + (selectedJob?.status === "completed" || scope.scope.status === "confirmed" ? "text-success-ink" : "text-primary-800")}><CheckCircle aria-hidden="true" className="mt-0.5 shrink-0" />{selectedJob?.status === "completed" ? "고객의 완료 확인이 기록되었습니다." : scope.scope.status === "customer_review" ? "고객이 현재 제안을 확인하고 있습니다." : "고객과 업체가 같은 범위와 금액을 확인했습니다."}</p> : null}
+          </> : selectedJob?.header ? <>
+            <header className="min-w-0 border-b border-line pb-4">
+              <div className="flex min-w-0 items-start justify-between gap-3"><h3 className="truncate text-ui-section">{selectedJob.header.customer_display_name ?? "고객"}</h3><StatusTag tone="warning">범위 준비 중</StatusTag></div>
+              <p className="mt-1 break-words text-ui-support text-ink-600">{selectedJob.header.origin_summary ?? "출발지"} → {selectedJob.header.destination_summary ?? "도착지"}</p>
+              <time className="mt-3 block text-ui-data text-ink-600">{selectedJob.header.scheduled_at ? schedule.format(new Date(selectedJob.header.scheduled_at)) : "일정 확인 중"}</time>
+            </header>
+            <section className="py-10 text-center"><h4 className="text-ui-component">고객이 작업범위를 준비하고 있어요</h4><p className="mx-auto mt-2 max-w-md text-ui-support text-ink-600">촬영과 짐 검수가 끝나면 이 화면에서 범위와 견적을 검토할 수 있습니다.</p></section>
           </> : <ProviderConnectionEmpty onConnect={onConnect} />}
         </article>
       </section>}
@@ -290,6 +324,11 @@ function JobDashboard({ issues, jobs: linkedJobs, onConnect, onIssue, onQuote, o
       {scope ? <AgreementHistorySheet issue={undefined} onOpenChange={setHistoryOpen} open={historyOpen} presentation="dialog" scope={scope} /> : null}
     </div>
   );
+}
+
+function ProviderNotificationsPanel({ error, notifications, pending }: { error?: unknown; notifications?: Awaited<ReturnType<typeof listNotifications>>; pending: boolean }) {
+  const items = [...(notifications ?? [])].sort((a, b) => b.created_at.localeCompare(a.created_at));
+  return <section className="ui-card mx-auto max-w-3xl overflow-hidden"><header className="border-b border-line px-6 py-5"><h2 className="text-ui-section">작업 알림</h2><p className="mt-1 text-ui-support text-ink-600">현재 선택한 작업에서 업체 확인이 필요한 변화를 보여드립니다.</p></header>{pending ? <p className="px-6 py-12 text-center text-sm text-ink-600">알림을 불러오는 중입니다.</p> : error ? <p className="m-6 rounded-xl bg-danger-bg p-4 text-sm font-bold text-danger-ink" role="alert">{apiErrorMessage(error)}</p> : items.length ? <div className="divide-y divide-line">{items.map((notification) => { const copy = notificationCopy[notification.event_type]; return <article className="flex gap-4 px-6 py-5" key={notification.id}><span className="grid size-11 shrink-0 place-items-center rounded-xl bg-primary-50 text-primary-700"><Bell aria-hidden="true" size="var(--icon-sm)" /></span><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center justify-between gap-2"><span className="text-ui-status text-primary-700">{copy.label}</span><time className="text-ui-micro text-ink-400" dateTime={notification.created_at}>{notificationDateFormatter.format(new Date(notification.created_at))}</time></div><h3 className="mt-1 text-ui-component">{copy.title}</h3><p className="mt-1 text-ui-support text-ink-600">{copy.description}</p></div></article>; })}</div> : <div className="px-6 py-12 text-center"><Bell aria-hidden="true" className="mx-auto text-ink-400" size="var(--icon-category)" /><p className="mt-3 font-extrabold">도착한 알림이 없습니다.</p></div>}</section>;
 }
 
 function ProviderConnectionEmpty({ onConnect }: { onConnect: () => void }) {
@@ -314,6 +353,10 @@ function ProviderConnectionDialog({ connect, initialSecret, onOpenChange, open }
     }
   };
   return <Dialog onOpenChange={onOpenChange} open={open}><DialogContent><DialogHeader><DialogTitle>초대키 추가</DialogTitle><DialogDescription>고객에게 받은 초대키를 입력하면 작업을 추가합니다.</DialogDescription></DialogHeader><div className="mt-6"><Label htmlFor="provider-invite-code">초대키</Label><Input autoCapitalize="none" autoComplete="off" className="mt-2" id="provider-invite-code" name="providerInviteCode" onChange={(event) => setSecret(event.target.value)} placeholder="초대키 붙여넣기…" spellCheck={false} type="password" value={secret} />{error ? <p className="mt-3 text-ui-support text-danger-ink" role="alert">{error}</p> : null}</div><DialogFooter><Button className="w-full sm:w-auto" disabled={!secret.trim() || pending} onClick={submit} size="cta"><Key aria-hidden="true" />{pending ? "추가 중…" : "작업 추가"}</Button></DialogFooter></DialogContent></Dialog>;
+}
+
+function ProviderDisconnectDialog({ onConfirm, onOpenChange, open }: { onConfirm: () => void; onOpenChange: (open: boolean) => void; open: boolean }) {
+  return <Dialog onOpenChange={onOpenChange} open={open}><DialogContent><DialogHeader><DialogTitle>이 기기에서 연결을 해제할까요?</DialogTitle><DialogDescription>현재 기기에 저장된 접근 정보가 지워집니다. 다시 들어오려면 새 초대키가 필요할 수 있어요.</DialogDescription></DialogHeader><DialogFooter className="grid grid-cols-2 gap-2"><Button onClick={() => onOpenChange(false)} variant="secondary">계속 사용</Button><Button onClick={onConfirm} variant="destructive">연결 해제</Button></DialogFooter></DialogContent></Dialog>;
 }
 
 

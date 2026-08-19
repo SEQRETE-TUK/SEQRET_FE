@@ -75,7 +75,7 @@ export function ConnectedProfile({
         <SheetContent>
           <SheetHeader>
             <SheetTitle>{panel === "access" ? "내 접근 권한" : panel === "privacy" ? "촬영·개인정보 안내" : panel === "help" ? `${roleLabel} 도움말` : "서비스 정보"}</SheetTitle>
-            <SheetDescription>{panel === "access" ? "초대 코드로 연결된 현재 역할과 만료 정보예요." : panel === "privacy" ? "현장 자료는 작업 확인과 기록을 위해서만 사용해요." : panel === "help" ? "현재 역할에서 지켜야 할 작업 원칙이에요." : "짐확정 공동확인 기록의 범위와 의미예요."}</SheetDescription>
+            <SheetDescription>{panel === "access" ? "초대 코드로 연결된 현재 역할과 만료 정보예요." : panel === "privacy" ? "현장 자료는 작업 확인과 기록을 위해서만 사용해요." : panel === "help" ? "현재 역할에서 지켜야 할 작업 원칙이에요." : "SEQRET 공동확인 기록의 범위와 의미예요."}</SheetDescription>
           </SheetHeader>
           <div className="space-y-3 px-5">
             {panel === "access" ? <dl className="ui-card ui-card-outlined divide-y divide-line px-4"><div className="flex min-h-14 items-center justify-between gap-4"><dt className="text-ink-600">현재 역할</dt><dd className="text-ui-data">{roleLabel}</dd></div><div className="flex min-h-14 items-center justify-between gap-4"><dt className="text-ink-600">접근 상태</dt><dd className="text-ui-data text-success-ink">연결됨</dd></div><div className="flex min-h-14 items-center justify-between gap-4"><dt className="text-ink-600">접근 만료</dt><dd className="text-ui-data text-right tabular-nums">{expires}</dd></div><div className="flex min-h-14 items-center justify-between gap-4"><dt className="text-ink-600">서버 권한</dt><dd className="text-ui-data">{permissions?.length ? "확인 완료" : "확인 필요"}</dd></div></dl> : null}

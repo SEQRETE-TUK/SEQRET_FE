@@ -64,7 +64,7 @@ export function MobileAppShell<T extends string>({
     <div className="mobile-stage">
       <div className="mobile-frame min-w-0 bg-canvas">
         {header ?? <header aria-label={`${eyebrow} · ${title}`} className="app-safe-header sticky top-0 z-[var(--z-sticky)] flex min-h-[var(--header-height)] items-center justify-between bg-surface/98 px-[var(--content-gutter)] backdrop-blur" data-root={root || undefined}>
-          <h1 className="truncate text-ui-section font-black tracking-[var(--tracking-display)] text-primary-700">짐확정</h1>
+          <h1 className="truncate text-ui-section font-black tracking-[var(--tracking-display)] text-primary-700">SEQRET</h1>
           <div className="flex items-center gap-1">
           {onHeaderAction || onRefresh ? (
             <button

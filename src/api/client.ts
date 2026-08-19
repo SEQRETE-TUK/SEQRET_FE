@@ -52,6 +52,10 @@ function getApiBaseUrl(): string {
     throw new Error("VITE_API_BASE_URL is not configured");
   }
 
+  if (configuredBaseUrl === "same-origin") {
+    return window.location.origin;
+  }
+
   let parsedBaseUrl: URL;
   try {
     parsedBaseUrl = new URL(configuredBaseUrl);
@@ -178,7 +182,7 @@ export async function downloadApiFile(
   accessToken: string,
 ): Promise<{ blob: Blob; filename: string }> {
   if (mockApiEnabled) {
-    return { blob: new Blob(["짐확정 Mock 문서"], { type: "application/zip" }), filename: "jimhakjeong-documents.zip" };
+    return { blob: new Blob(["SEQRET Mock 문서"], { type: "application/zip" }), filename: "seqret-documents.zip" };
   }
   const normalizedToken = accessToken.trim();
   if (!normalizedToken) {

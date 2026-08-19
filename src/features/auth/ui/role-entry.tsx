@@ -5,12 +5,12 @@ import {
 } from "@phosphor-icons/react";
 import { useNavigate } from "react-router-dom";
 
-import { mockApiEnabled } from "@/api/mock-api";
+import { mockAccessSecrets, mockApiEnabled } from "@/api/mock-api";
 import { MobileFrame } from "@/components/layout/mobile-frame";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { customerDisplayNameStorageKey, rolePath } from "@/features/auth/model/auth-context";
-import { type ParticipantRole } from "@/features/workflow/api/workflow-api";
+import { customerDisplayNameStorageKey, customerNewMoveStorageKey, rolePath, useAuth } from "@/features/auth/model/auth-context";
+import { apiErrorMessage, type ParticipantRole } from "@/features/workflow/api/workflow-api";
 import { cn } from "@/lib/utils";
 
 const roles = [
@@ -22,9 +22,13 @@ const primaryRoles = roles;
 
 export function RoleEntry() {
   const navigate = useNavigate();
+  const { clearSession, connect } = useAuth();
   const [selected, setSelected] = useState<ParticipantRole>("customer");
-  const [nameStep, setNameStep] = useState(false);
+  const [entryStep, setEntryStep] = useState<"role" | "choice" | "name" | "code">("role");
   const [displayName, setDisplayName] = useState("");
+  const [accessCode, setAccessCode] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [connecting, setConnecting] = useState(false);
   const selectedRole = roles.find((role) => role.id === selected)!;
 
   const chooseRole = (role: ParticipantRole) => {
@@ -39,15 +43,33 @@ export function RoleEntry() {
     chooseRole(primaryRoles[nextIndex].id);
     document.getElementById(`role-${primaryRoles[nextIndex].id}`)?.focus();
   };
-  const start = () => {
-    if (selected === "customer" && !nameStep) {
-      setNameStep(true);
+  const start = async () => {
+    if (selected === "customer" && entryStep === "role") {
+      setEntryStep("choice");
+      return;
+    }
+    if (entryStep === "choice") return;
+    if (entryStep === "code") {
+      if (!accessCode.trim() || connecting) return;
+      setConnecting(true);
+      setError(null);
+      window.sessionStorage.removeItem(customerNewMoveStorageKey);
+      try {
+        await connect(accessCode, "customer");
+        navigate(rolePath("customer"));
+      } catch (caught) {
+        setError(apiErrorMessage(caught));
+      } finally {
+        setConnecting(false);
+      }
       return;
     }
     if (selected === "customer") {
       const name = displayName.trim();
       if (!name) return;
       window.sessionStorage.setItem(customerDisplayNameStorageKey, name);
+      window.sessionStorage.setItem(customerNewMoveStorageKey, "true");
+      clearSession();
     }
     navigate(rolePath(selected));
   };
@@ -56,7 +78,7 @@ export function RoleEntry() {
     <div className="mobile-stage">
       <MobileFrame className="flex min-h-dvh flex-col bg-canvas">
         <header className="app-safe-header flex min-h-16 items-center justify-between gap-3 px-[var(--content-gutter)]">
-          <strong className="text-xl font-black tracking-[var(--tracking-brand)] text-primary-800">짐확정</strong>
+          <strong className="text-xl font-black tracking-[var(--tracking-brand)] text-primary-800">SEQRET</strong>
           <span className="inline-flex min-h-8 items-center gap-1.5 rounded-[var(--radius-pill)] border border-line bg-surface px-3 text-ui-data text-ink-600">
             {mockApiEnabled ? "Mock 모드" : "보안 연결"}
           </span>
@@ -64,11 +86,11 @@ export function RoleEntry() {
         <main className="flex flex-1 flex-col px-[var(--content-gutter)] pb-40 pt-10" id="main-content">
           <div className="my-auto w-full">
             <section aria-labelledby="role-entry-title">
-              <h1 className="text-ui-section font-black tracking-[var(--tracking-display)]" id="role-entry-title">{nameStep ? "어떻게 불러드릴까요?" : "어떤 역할로 시작할까요?"}</h1>
+              <h1 className="text-ui-section font-black tracking-[var(--tracking-display)]" id="role-entry-title">{entryStep === "name" ? "어떻게 불러드릴까요?" : entryStep === "code" ? "보안 코드로 연결할게요" : entryStep === "choice" ? "어떻게 시작할까요?" : "어떤 역할로 시작할까요?"}</h1>
             </section>
 
             <div className="pt-4">
-              {nameStep ? <div className="pt-4"><label className="sr-only" htmlFor="customer-display-name">이름</label><Input autoComplete="name" autoFocus id="customer-display-name" maxLength={100} onChange={(event) => setDisplayName(event.target.value)} placeholder="이름 입력" value={displayName} /></div> : <fieldset>
+              {entryStep === "name" ? <div className="pt-4"><label className="sr-only" htmlFor="customer-display-name">이름</label><Input autoComplete="name" autoFocus id="customer-display-name" maxLength={100} onChange={(event) => setDisplayName(event.target.value)} placeholder="이름 입력" value={displayName} /></div> : entryStep === "code" ? <div className="space-y-3 pt-4"><p className="text-ui-support text-ink-600">코드에 연결된 고객 정보로 기존 이사에 들어갑니다.</p><label className="sr-only" htmlFor="customer-access-code">보안 코드</label><Input autoCapitalize="none" autoComplete="one-time-code" autoFocus id="customer-access-code" onChange={(event) => setAccessCode(event.target.value)} placeholder="보안 코드 입력" spellCheck={false} type="password" value={accessCode} />{error ? <p className="text-ui-support text-danger-ink" role="alert">{error}</p> : null}</div> : entryStep === "choice" ? <div className="grid grid-cols-2 gap-3 pt-4"><Button className="h-auto min-h-0 flex-col items-stretch justify-start gap-0 rounded-[var(--radius-feature)] border-line bg-surface p-3 text-left shadow-[var(--shadow-card)] hover:border-primary-300 hover:bg-surface" onClick={() => setEntryStep("name")} size="cta" type="button" variant="outline"><span className="grid h-28 place-items-center overflow-hidden rounded-[var(--radius-card)] p-2"><img alt="" aria-hidden="true" className="size-20 object-contain" decoding="async" src="/moving-items/moving-box.png" /></span><span className="mt-3 block text-ui-component font-black text-ink-900">새 이사</span><span className="mt-1 block text-ui-data font-normal leading-5 text-ink-600">이사 정보를 입력해<br />새로 시작해요</span></Button><Button className="h-auto min-h-0 flex-col items-stretch justify-start gap-0 rounded-[var(--radius-feature)] border-line bg-surface p-3 text-left shadow-[var(--shadow-card)] hover:border-primary-300 hover:bg-surface" onClick={() => { setAccessCode(mockApiEnabled ? mockAccessSecrets.customer : ""); setError(null); setEntryStep("code"); }} size="cta" type="button" variant="outline"><span className="grid h-28 place-items-center overflow-hidden rounded-[var(--radius-card)] p-2"><img alt="" aria-hidden="true" className="size-20 object-contain" decoding="async" src="/moving-items/sofa.png" /></span><span className="mt-3 block text-ui-component font-black text-ink-900">보안 코드</span><span className="mt-1 block text-ui-data font-normal leading-5 text-ink-600">기존 이사 상황을<br />불러와요</span></Button></div> : <fieldset>
                 <legend className="sr-only">연결 역할</legend>
                 <div className="grid grid-cols-3 gap-2">
                   {primaryRoles.map((item) => {
@@ -81,7 +103,7 @@ export function RoleEntry() {
           </div>
         </main>
         <div className="app-fixed-action fixed inset-x-0 bottom-0 z-[var(--z-sticky)] mx-auto w-full max-w-[var(--shell-mobile)] px-[var(--content-gutter)] pt-3">
-          <div className={nameStep ? "grid grid-cols-[92px_minmax(0,1fr)] gap-2" : undefined}>{nameStep ? <Button onClick={() => setNameStep(false)} size="cta" variant="secondary">이전</Button> : null}<Button className="w-full" disabled={nameStep && !displayName.trim()} onClick={start} size="cta">{nameStep ? "시작" : selectedRole.startLabel}<ArrowRight aria-hidden="true" /></Button></div>
+          {entryStep === "role" ? <Button className="w-full" onClick={() => { void start(); }} size="cta">{selectedRole.startLabel}<ArrowRight aria-hidden="true" /></Button> : entryStep === "name" || entryStep === "code" ? <div className="grid grid-cols-[92px_minmax(0,1fr)] gap-2"><Button onClick={() => { setError(null); setEntryStep("choice"); }} size="cta" variant="secondary">이전</Button><Button className="w-full" disabled={entryStep === "name" ? !displayName.trim() : !accessCode.trim() || connecting} onClick={() => { void start(); }} size="cta">{connecting ? "연결 중…" : entryStep === "name" ? "시작" : "연결하기"}<ArrowRight aria-hidden="true" /></Button></div> : entryStep === "choice" ? <Button className="w-full" onClick={() => setEntryStep("role")} size="cta" variant="secondary">이전</Button> : null}
         </div>
       </MobileFrame>
     </div>

@@ -6,6 +6,7 @@ import {
   BuildingsIcon as Buildings,
   CameraIcon as Camera,
   CaretDownIcon as CaretDown,
+  ClockCounterClockwiseIcon as ClockCounterClockwise,
 
   CaretRightIcon as CaretRight,
   CheckIcon as Check,
@@ -44,6 +45,7 @@ import {
   getFieldBrief,
   getScopeReview,
   listFieldIssues,
+  listNotifications,
   submitCompletion,
   workflowKeys,
   type Connection,
@@ -51,6 +53,7 @@ import {
   type ScopeReview,
 } from "@/features/workflow/api/workflow-api";
 import { CrewIssueReport } from "@/features/crew/ui/crew-issue-report";
+import { notificationCopy, notificationDateFormatter } from "@/features/workflow/model/notification-copy";
 import { InvitationPanel } from "@/features/workflow/ui/workflow-shell";
 
 type CrewTab = "home" | "work" | "more" | "notifications";
@@ -63,7 +66,7 @@ const items: MobileNavItem<CrewTab>[] = [
 ];
 const validTabs = new Set<CrewTab>([...items.map(({ id }) => id), "notifications"]);
 const validWorkViews = new Set<CrewWorkView>(["list", "agreement", "report", "completion"]);
-const titles: Record<CrewTab, string> = { home: "짐확정", work: "내 작업", more: "더보기", notifications: "알림" };
+const titles: Record<CrewTab, string> = { home: "SEQRET", work: "내 작업", more: "더보기", notifications: "알림" };
 const dayFormatter = new Intl.DateTimeFormat("ko-KR", { month: "long", day: "numeric", weekday: "short" });
 const timeFormatter = new Intl.DateTimeFormat("ko-KR", { hour: "2-digit", minute: "2-digit", hour12: false });
 const issueStatusLabel = (status: string) => ({ open: "업체 처리 대기", customer_review: "고객 확인 대기", clarification_requested: "설명 보완 중", approved: "고객 승인", rejected: "고객 거절" })[status] ?? "상태 확인 중";
@@ -95,6 +98,7 @@ function ConnectedCrewApp({ session }: { session: AuthSession }) {
   const briefQuery = useQuery({ enabled: !invitationPending, queryKey: workflowKeys.brief(connection.jobId), queryFn: () => getFieldBrief(connection) });
   const scopeQuery = useQuery({ enabled: !invitationPending, queryKey: workflowKeys.scope(connection.jobId), queryFn: () => getScopeReview(connection) });
   const issueQuery = useQuery({ enabled: !invitationPending, queryKey: workflowKeys.fieldIssues(connection.jobId), queryFn: () => listFieldIssues(connection), refetchInterval: mockApiEnabled && !invitationPending ? 2_000 : false });
+  const notificationsQuery = useQuery({ enabled: !invitationPending && tab === "notifications", queryKey: workflowKeys.notifications(connection.jobId), queryFn: () => listNotifications(connection) });
   const changeTab = (next: CrewTab) => setParams(next === "home" ? {} : next === "work" ? { tab: "work", view: "list" } : { tab: next }, { replace: true });
   const changeWorkView = (view: CrewWorkView) => setParams({ tab: "work", view }, { replace: true });
   const refresh = () => queryClient.invalidateQueries({ queryKey: workflowKeys.root(connection.jobId) });
@@ -106,9 +110,9 @@ function ConnectedCrewApp({ session }: { session: AuthSession }) {
   return (
     <>
     <MobileAppShell current={tab} eyebrow={`현장기사 · ${session.actor.display_name}`} header={header} items={items} onChange={changeTab} onProfile={() => changeTab("more")} onRefresh={tab === "more" ? undefined : refresh} root={tab === "home"} showNav={tab !== "work" || workView === "list"} title={titles[tab]}>
-      {tab === "home" ? <CrewHome brief={briefQuery.data} issueCount={issueQuery.data?.filter((issue) => issue.status !== "approved" && issue.status !== "rejected").length ?? 0} onInvite={() => setInviteOpen(true)} onWork={() => changeWorkView("agreement")} /> : null}
+      {tab === "home" ? <CrewHome brief={briefQuery.data} displayName={session.actor.display_name} issueCount={issueQuery.data?.filter((issue) => issue.status !== "approved" && issue.status !== "rejected").length ?? 0} onInvite={() => setInviteOpen(true)} onWork={() => changeWorkView("agreement")} /> : null}
       {tab === "work" ? <CrewWork brief={briefQuery.data} connection={connection} issues={issueQuery.data ?? []} onViewChange={changeWorkView} scope={scopeQuery.data} view={workView} /> : null}
-      {tab === "notifications" ? <CrewNotifications onAction={() => setParams({ tab: "work", view: "report" }, { replace: true })} /> : null}
+      {tab === "notifications" ? <CrewNotifications error={notificationsQuery.error} notifications={notificationsQuery.data} onAction={() => setParams({ tab: "work", view: "agreement" }, { replace: true })} pending={notificationsQuery.isPending} /> : null}
       {tab === "more" ? <ConnectedProfile displayName={session.actor.display_name} expiresAt={session.actor.expires_at} onDisconnect={disconnect} permissions={session.actor.permissions} roleLabel="현장기사" /> : null}
     </MobileAppShell>
     <CrewInviteSheet connect={connect} onOpenChange={setInviteOpen} open={inviteOpen} />
@@ -143,15 +147,16 @@ function CrewInviteHero({ onInvite }: { onInvite: () => void }) {
 }
 
 function CrewHomeHeader({ onBell }: { onBell: () => void }) {
-  return <header className="app-safe-header relative z-[var(--z-sticky)] h-0 bg-canvas"><button aria-label="알림 확인" className="absolute top-[calc(env(safe-area-inset-top)+34px)] right-[var(--content-gutter)] grid size-9 place-items-center rounded-full text-ink-900 hover:bg-surface-muted" onClick={onBell} type="button"><Bell aria-hidden="true" size="var(--icon-md)" /><span aria-hidden="true" className="absolute top-1 right-1 size-2 rounded-full bg-danger" /></button></header>;
+  return <header className="app-safe-header relative z-[var(--z-sticky)] h-0 bg-canvas"><button aria-label="알림 확인" className="absolute top-[calc(env(safe-area-inset-top)+34px)] right-[var(--content-gutter)] grid size-9 place-items-center rounded-full text-ink-900 hover:bg-surface-muted" onClick={onBell} type="button"><Bell aria-hidden="true" size="var(--icon-md)" /></button></header>;
 }
 
 function CrewNotificationsHeader({ onBack }: { onBack: () => void }) {
   return <MobilePageHeader className="sticky top-0 z-[var(--z-sticky)] bg-surface/98 backdrop-blur" onBack={onBack} title="알림" />;
 }
 
-function CrewNotifications({ onAction }: { onAction: () => void }) {
-  return <div className="px-[var(--content-gutter)] pb-28 pt-5"><h2 className="text-ui-section font-black tracking-[var(--tracking-display)]">새로 도착한 소식</h2><p className="mt-2 text-ui-support text-ink-600">작업 변경과 고객 요청을 모아서 보여드려요.</p><article className="mt-6 border-y border-line py-5"><div className="flex gap-3"><span className="grid size-11 shrink-0 place-items-center rounded-[var(--radius-card)] bg-primary-50 text-primary-700"><ChatCircleDots aria-hidden="true" size="var(--icon-md)" /></span><div className="min-w-0"><span className="text-ui-status text-primary-700">고객 수정 요청</span><h3 className="mt-1 text-ui-component font-black">변경안을 다시 확인해 주세요</h3><p className="mt-1 text-ui-support leading-5 text-ink-600">추가 시간과 운반 인원을 다시 확인해 달라는 요청이 도착했어요.</p><p className="mt-2 text-ui-micro text-ink-400">방금 전 · 성수동 1가 이사</p></div></div><button className="mt-4 flex min-h-11 w-full items-center justify-between border-t border-line pt-3 text-ui-control text-primary-700" onClick={onAction} type="button">요청 내용 확인 <CaretRight aria-hidden="true" size="var(--icon-xs)" /></button></article></div>;
+function CrewNotifications({ error, notifications, onAction, pending }: { error?: unknown; notifications?: Awaited<ReturnType<typeof listNotifications>>; onAction: () => void; pending?: boolean }) {
+  const items = [...(notifications ?? [])].sort((a, b) => b.created_at.localeCompare(a.created_at));
+  return <div className="px-[var(--content-gutter)] pb-28 pt-5"><h2 className="text-ui-section font-black tracking-[var(--tracking-display)]">작업 알림</h2><p className="mt-2 text-ui-support text-ink-600">배차와 확정된 작업범위 소식을 보여드려요.</p>{pending ? <p className="mt-8 text-center text-sm text-ink-600">알림을 불러오는 중입니다.</p> : error ? <p className="mt-6 rounded-xl bg-danger-bg p-4 text-sm font-bold text-danger-ink" role="alert">{apiErrorMessage(error)}</p> : items.length ? <div className="mt-6 divide-y divide-line border-y border-line">{items.map((notification) => { const copy = notificationCopy[notification.event_type]; return <article className="py-5" key={notification.id}><div className="flex gap-3"><span className="grid size-11 shrink-0 place-items-center rounded-[var(--radius-card)] bg-primary-50 text-primary-700"><ChatCircleDots aria-hidden="true" size="var(--icon-md)" /></span><div className="min-w-0"><span className="text-ui-status text-primary-700">{copy.label}</span><h3 className="mt-1 text-ui-component font-black">{copy.title}</h3><p className="mt-1 text-ui-support leading-5 text-ink-600">{copy.description}</p><p className="mt-2 text-ui-micro text-ink-400">{notificationDateFormatter.format(new Date(notification.created_at))}</p></div></div><button className="mt-4 flex min-h-11 w-full items-center justify-between border-t border-line pt-3 text-ui-control text-primary-700" onClick={onAction} type="button">작업 내용 확인 <CaretRight aria-hidden="true" size="var(--icon-xs)" /></button></article>; })}</div> : <section className="mt-8 border-y border-line py-10 text-center"><Bell aria-hidden="true" className="mx-auto text-ink-400" size="var(--icon-category)" /><p className="mt-3 font-extrabold">알림이 없어요</p></section>}</div>;
 }
 
 function CrewSafeArea() {
@@ -300,20 +305,21 @@ function CrewAgreementHistorySheet({ issue, onOpenChange, open, scope }: { issue
   );
 }
 
-function CrewHome({ brief, issueCount, onInvite, onWork }: {
+function CrewHome({ brief, displayName, issueCount, onInvite, onWork }: {
   brief: Awaited<ReturnType<typeof getFieldBrief>> | undefined;
+  displayName: string;
   issueCount: number;
   onInvite: () => void;
   onWork: () => void;
 }) {
   const startAt = brief?.start_at ? new Date(brief.start_at) : null;
-  const workerName = mockApiEnabled ? "김민수" : brief?.lead_worker_name ?? "기사";
+  const workerName = mockApiEnabled ? "김민수" : brief?.lead_worker_name ?? (displayName.trim() || "기사");
+  const salutation = workerName.endsWith("기사") ? `${workerName}님` : `${workerName} 기사님`;
   return (
     <div className="px-[var(--content-gutter)] pb-28 pt-4">
-      <h1 className="text-ui-section leading-9 font-black tracking-[var(--tracking-display)]">{workerName} 기사님,<br />오늘 작업을 준비해요</h1>
+      <h1 className="text-ui-section leading-9 font-black tracking-[var(--tracking-display)]">{salutation},<br />오늘 작업을 준비해요</h1>
       <CrewInviteHero onInvite={onInvite} />
-      <ActiveMoveCard heading="진행 중인 이사 1건" leading={<span className="grid size-12 shrink-0 place-items-center rounded-full bg-primary-50 text-primary-700"><Truck aria-hidden="true" size="var(--icon-md)" /></span>} meta={startAt ? `${dayFormatter.format(startAt)} · ${timeFormatter.format(startAt)}` : "일정 확인 중"} onOpen={onWork} route={<>{brief?.masked_origin ?? "출발지"} → {brief?.masked_destination ?? "도착지"}</>}><MoveJourneyProgress current={brief?.completion_submission_id ? 4 : brief?.checked_in_at ? 3 : 2} /><div className="mt-3 border-t border-line pt-3"><p className="flex min-w-0 items-baseline gap-2 whitespace-nowrap"><strong className="shrink-0 text-ui-support text-primary-700">작업범위 확인</strong><span className="ml-auto min-w-0 truncate text-right text-ui-data text-ink-600">최신 승인본과 현장 조건을 확인해요</span></p><button className="mt-2 flex min-h-10 w-full items-center justify-center rounded-xl bg-primary-600 text-ui-support font-extrabold text-white" onClick={onWork} type="button">지금 확인</button></div></ActiveMoveCard>
-      <aside className="mt-4 flex items-start gap-3 rounded-[var(--radius-card)] bg-warning-bg p-3 text-sm font-medium leading-5 text-warning-ink"><WarningCircle aria-hidden="true" className="mt-0.5 shrink-0" /><p>현장이 승인본과 다르면 추가 금액을 요구하지 말고 먼저 보고해 주세요. {issueCount > 0 ? `현재 보고 ${issueCount}건이 처리 중이에요.` : ""}</p></aside>
+      {brief ? <><ActiveMoveCard heading="진행 중인 이사 1건" leading={<span className="grid size-12 shrink-0 place-items-center rounded-full bg-primary-50 text-primary-700"><Truck aria-hidden="true" size="var(--icon-md)" /></span>} meta={startAt ? `${dayFormatter.format(startAt)} · ${timeFormatter.format(startAt)}` : "일정 확인 중"} onOpen={onWork} route={<>{brief.masked_origin ?? "출발지"} → {brief.masked_destination ?? "도착지"}</>}><MoveJourneyProgress current={brief.completion_submission_id ? 4 : brief.checked_in_at ? 3 : 2} /><div className="mt-3 border-t border-line pt-3"><p className="flex min-w-0 items-baseline gap-2 whitespace-nowrap"><strong className="shrink-0 text-ui-support text-primary-700">작업범위 확인</strong><span className="ml-auto min-w-0 truncate text-right text-ui-data text-ink-600">최신 승인본과 현장 조건을 확인해요</span></p><button className="mt-2 flex min-h-10 w-full items-center justify-center rounded-xl bg-primary-600 text-ui-support font-extrabold text-white" onClick={onWork} type="button">지금 확인</button></div></ActiveMoveCard><aside className="mt-4 flex items-start gap-3 rounded-[var(--radius-card)] bg-warning-bg p-3 text-sm font-medium leading-5 text-warning-ink"><WarningCircle aria-hidden="true" className="mt-0.5 shrink-0" /><p>현장이 승인본과 다르면 추가 금액을 요구하지 말고 먼저 보고해 주세요. {issueCount > 0 ? `현재 보고 ${issueCount}건이 처리 중이에요.` : ""}</p></aside></> : <section className="mt-4 ui-card px-5 py-8 text-center"><ClockCounterClockwise aria-hidden="true" className="mx-auto text-ink-400" size="var(--icon-category)" /><h2 className="mt-3 text-ui-component">업체의 작업 확정을 기다리고 있어요</h2><p className="mt-2 text-ui-support text-ink-600">배차와 작업범위가 확정되면 오늘 작업이 표시됩니다.</p></section>}
     </div>
   );
 }

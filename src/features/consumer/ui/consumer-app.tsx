@@ -59,6 +59,7 @@ import {
   getChangeProposal,
   getScopeReview,
   listFieldIssues,
+  listNotifications,
   listMoveJobs,
   requestScopeRevision,
   deleteMoveJob,
@@ -71,6 +72,7 @@ import {
   type ScopeLocationConditions,
   type ScopeReview,
 } from "@/features/workflow/api/workflow-api";
+import { notificationCopy, notificationDateFormatter } from "@/features/workflow/model/notification-copy";
 
 type ConsumerTab = "home" | "move" | "more" | "notifications";
 type ConsumerMoveView = "list" | "info" | "items" | "agreement";
@@ -172,10 +174,11 @@ export function ConsumerGuestApp() {
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const [onboardingOpen, setOnboardingOpen] = useState(false);
+  const customerName = window.sessionStorage.getItem(customerDisplayNameStorageKey)?.trim() || "고객";
   const requested = params.get("tab") as ConsumerTab | null;
   const tab = requested && validTabs.has(requested) ? requested : "home";
   const setTab = (next: ConsumerTab) => setParams(next === "home" ? {} : { tab: next, ...(next === "move" ? { view: "list" } : {}) }, { replace: true });
-  const header = tab === "home" ? <HomeHeader customerName="고객" onBell={() => setTab("notifications")} /> : tab === "move" ? <MoveListSafeArea /> : tab === "notifications" ? <NotificationsHeader onBack={() => setTab("home")} /> : tab === "more" ? false : undefined;
+  const header = tab === "home" ? <HomeHeader customerName={customerName} onBell={() => setTab("notifications")} /> : tab === "move" ? <MoveListSafeArea /> : tab === "notifications" ? <NotificationsHeader onBack={() => setTab("home")} /> : tab === "more" ? false : undefined;
   return <>
     <MobileAppShell current={tab} eyebrow="고객" header={header} items={tabs} onChange={setTab} onProfile={() => setTab("more")} title={tab === "home" ? "홈" : tab === "move" ? "내 이사" : "더보기"}>
       {tab === "home" ? <GuestHome onStart={() => setOnboardingOpen(true)} /> : null}
@@ -213,6 +216,7 @@ export function ConsumerApp() {
   const activeCustomerName = storedCustomerName || session!.actor.display_name || scopeQuery.data?.job.customer_display_name || "고객";
   const completionQuery = useQuery({ queryKey: workflowKeys.completion(selectedJobId), queryFn: () => getCompletionSummary(connection) });
   const issuesQuery = useQuery({ queryKey: workflowKeys.fieldIssues(selectedJobId), queryFn: () => listFieldIssues(connection), refetchInterval: mockApiEnabled ? 2_000 : false });
+  const notificationsQuery = useQuery({ enabled: tab === "notifications", queryKey: workflowKeys.notifications(selectedJobId), queryFn: () => listNotifications(connection) });
   const deleteMutation = useMutation({
     mutationFn: (jobId: string) => deleteMoveJob({ accessToken: session!.accessToken, jobId }),
     onSuccess: async (_result, deletedJobId) => {
@@ -254,7 +258,7 @@ export function ConsumerApp() {
     <MobileAppShell current={tab} eyebrow={`고객 · ${activeCustomerName}`} header={header} items={tabs} onChange={setTab} onProfile={() => setTab("more")} showNav={tab !== "move" || moveView === "list"} title={tab === "home" ? "홈" : tab === "move" ? "내 이사" : "더보기"}>
       {tab === "home" ? <HomeTab completion={completionQuery.data} onOpenAgreement={openAgreement} onOpenMove={() => openMove()} onStartMove={() => setOnboardingOpen(true)} scope={scopeQuery.data} /> : null}
       {tab === "move" ? <ConsumerMoveTab completion={completionQuery.data} connection={connection} editor={moveInfoEditor} issues={issuesQuery.data} moveJobs={moveListQuery.data?.moves} onCapture={() => navigate(`/consumer/capture?mode=video&job=${encodeURIComponent(selectedJobId)}`)} onEditorChange={setMoveInfoEditor} onManualAdd={() => navigate(`/consumer/capture?mode=manual&job=${encodeURIComponent(selectedJobId)}`)} onNewMove={() => setOnboardingOpen(true)} onOpen={(jobId) => openMove(jobId)} onOpenCompletion={() => navigate(`/consumer/completion?job=${encodeURIComponent(selectedJobId)}`)} onOpenQuote={() => navigate(`/consumer/quote?job=${encodeURIComponent(selectedJobId)}`)} onViewChange={setMoveView} scope={scopeQuery.data} view={moveView} /> : null}
-      {tab === "notifications" ? <CustomerNotifications issues={issuesQuery.data} scope={scopeQuery.data} /> : null}
+      {tab === "notifications" ? <CustomerNotifications error={notificationsQuery.error} notifications={notificationsQuery.data} pending={notificationsQuery.isPending} /> : null}
       {tab === "more" ? <ConnectedProfile displayName={activeCustomerName} expiresAt={session!.actor.expires_at} onDisconnect={disconnect} permissions={session!.actor.permissions} roleLabel="고객" /> : null}
     </MobileAppShell>
     <CustomerOnboardingSheet onOpenChange={setOnboardingOpen} open={onboardingOpen} />
@@ -276,11 +280,9 @@ function NotificationsHeader({ onBack }: { onBack: () => void }) {
   return <header className="app-safe-header sticky top-0 z-[var(--z-sticky)] grid min-h-[68px] grid-cols-[48px_1fr_48px] items-center bg-surface px-2"><button aria-label="홈으로 돌아가기" className="grid size-11 place-items-center rounded-full" onClick={onBack} type="button"><CaretLeft aria-hidden="true" size="var(--icon-category)" weight="bold" /></button><h1 className="text-center text-ui-section font-black">알림</h1><span /></header>;
 }
 
-function CustomerNotifications({ issues, scope }: { issues?: FieldIssue[]; scope?: ScopeReview }) {
-  const report = issues?.[0];
-  const quoteArrived = Boolean(scope?.quote);
-  const hasNews = Boolean(report || quoteArrived);
-  return <div className="px-[var(--content-gutter)] pb-28 pt-5"><h2 className="text-ui-section font-black tracking-[var(--tracking-display)]">새로 도착한 소식</h2><p className="mt-2 text-sm text-ink-600">현장 보고와 새 견적만 모아서 보여드려요.</p>{hasNews ? <div className="mt-6 divide-y divide-line border-y border-line">{report ? <article className="flex gap-3 py-5"><span className="grid size-11 shrink-0 place-items-center rounded-xl bg-warning-bg text-warning-ink"><WarningCircle aria-hidden="true" size="var(--icon-md)" /></span><div className="min-w-0"><span className="text-xs font-extrabold text-warning-ink">현장 보고</span><h3 className="mt-1 text-ui-component font-black">{report.title}</h3><p className="mt-1 line-clamp-2 text-sm leading-5 text-ink-600">{report.description}</p></div></article> : null}{quoteArrived ? <article className="flex gap-3 py-5"><span className="grid size-11 shrink-0 place-items-center rounded-xl bg-primary-50 text-primary-700"><Notepad aria-hidden="true" size="var(--icon-md)" /></span><div className="min-w-0"><span className="text-xs font-extrabold text-primary-700">견적 도착</span><h3 className="mt-1 text-ui-component font-black">작업 범위와 금액이 도착했어요</h3><p className="mt-1 text-sm leading-5 text-ink-600">{scope ? `${scope.scope.version_label} · ${money(scope.quote?.total_amount_krw)}` : "확인서에서 제안 내용을 확인해 주세요."}</p></div></article> : null}</div> : <section className="mt-8 border-y border-line py-10 text-center"><Bell aria-hidden="true" className="mx-auto text-ink-400" size="var(--icon-category)" /><p className="mt-3 font-extrabold">새 알림이 없어요</p></section>}</div>;
+function CustomerNotifications({ error, notifications, pending }: { error?: unknown; notifications?: Awaited<ReturnType<typeof listNotifications>>; pending?: boolean }) {
+  const items = [...(notifications ?? [])].sort((a, b) => b.created_at.localeCompare(a.created_at));
+  return <div className="px-[var(--content-gutter)] pb-28 pt-5"><h2 className="text-ui-section font-black tracking-[var(--tracking-display)]">작업 알림</h2><p className="mt-2 text-sm text-ink-600">작업범위와 현장 변경, 완료 요청 소식을 보여드려요.</p>{pending ? <p className="mt-8 text-center text-sm text-ink-600">알림을 불러오는 중입니다.</p> : error ? <p className="mt-6 rounded-xl bg-danger-bg p-4 text-sm font-bold text-danger-ink" role="alert">{apiErrorMessage(error)}</p> : items.length ? <div className="mt-6 divide-y divide-line border-y border-line">{items.map((notification) => { const copy = notificationCopy[notification.event_type]; const warning = notification.event_type === "analysis_failed.v1" || notification.event_type === "change_requested.v1"; return <article className="flex gap-3 py-5" key={notification.id}><span className={`grid size-11 shrink-0 place-items-center rounded-xl ${warning ? "bg-warning-bg text-warning-ink" : "bg-primary-50 text-primary-700"}`}>{warning ? <WarningCircle aria-hidden="true" size="var(--icon-md)" /> : <Notepad aria-hidden="true" size="var(--icon-md)" />}</span><div className="min-w-0"><span className={`text-xs font-extrabold ${warning ? "text-warning-ink" : "text-primary-700"}`}>{copy.label}</span><h3 className="mt-1 text-ui-component font-black">{copy.title}</h3><p className="mt-1 text-sm leading-5 text-ink-600">{copy.description}</p><p className="mt-2 text-ui-micro text-ink-400">{notificationDateFormatter.format(new Date(notification.created_at))}</p></div></article>; })}</div> : <section className="mt-8 border-y border-line py-10 text-center"><Bell aria-hidden="true" className="mx-auto text-ink-400" size="var(--icon-category)" /><p className="mt-3 font-extrabold">알림이 없어요</p></section>}</div>;
 }
 
 function MoveHeader({ onBack, onMore, scope }: { onBack: () => void; onMore: () => void; scope: ScopeReview | undefined }) {
@@ -297,23 +299,24 @@ function MoveListSafeArea() {
 }
 
 function HomeTab({ completion, onOpenAgreement, onOpenMove, onStartMove, scope }: { completion: CompletionSummary | undefined; onOpenAgreement: () => void; onOpenMove: () => void; onStartMove: () => void; scope: ScopeReview | undefined }) {
-  const scheduledAt = scope?.job.scheduled_at ? new Date(scope.job.scheduled_at) : null;
+  const job = scope?.job ?? completion?.job;
+  const scheduledAt = job?.scheduled_at ? new Date(job.scheduled_at) : null;
   const dDay = scheduledAt ? Math.max(0, Math.ceil((scheduledAt.getTime() - renderStartedAt) / 86_400_000)) : null;
   const requiresScopeReview = scope?.scope.status === "customer_review";
   const completed = scope?.scope.status === "confirmed";
   const completionRequested = completion?.completion_request?.status === "requested";
-  const actionTitle = completionRequested ? "작업 완료 내용 확인" : requiresScopeReview ? "작업범위와 금액 확인" : completed ? "공동확인 내용 보기" : "촬영 결과 확인";
-  const actionMeta = scope ? `${scope.job.company_display_name ?? "이사업체"} 제안 · ${money(scope.quote?.total_amount_krw)} · ${scope.scope.version_label}` : "최신 제안을 불러오는 중";
+  const actionTitle = completionRequested ? "작업 완료 내용 확인" : requiresScopeReview ? "작업범위와 금액 확인" : completed ? "공동확인 내용 보기" : scope ? "촬영 결과 확인" : "촬영·짐 입력 시작";
+  const actionMeta = scope ? `${scope.job.company_display_name ?? "이사업체"} 제안 · ${money(scope.quote?.total_amount_krw)} · ${scope.scope.version_label}` : "짐을 촬영하거나 직접 입력해 범위를 만들어 주세요";
   const currentStep = completionRequested || completed ? 4 : requiresScopeReview ? 3 : scope?.quote ? 2 : 1;
 
   return (
     <div className="pb-[var(--bottom-rail-height)]">
       <section className="px-[var(--content-gutter)]"><NewMoveHero onStart={onStartMove} /></section>
 
-      <div className="mx-[var(--content-gutter)]"><ActiveMoveCard heading="진행 중인 이사 1건" leading={<span className="grid size-12 shrink-0 place-items-center rounded-full bg-primary-50 text-primary-700"><Truck aria-hidden="true" size="var(--icon-md)" /></span>} meta={<>{scheduledAt ? dateFormatter.format(scheduledAt) : "일정 확인 중"} {dDay !== null ? <b className="text-primary-700">· D-{dDay}</b> : null}</>} onOpen={onOpenMove} route={scope ? `${scope.job.origin_summary ?? "출발지"} → ${scope.job.destination_summary ?? "도착지"}` : "이사 정보를 불러오는 중"}>
+      <div className="mx-[var(--content-gutter)]"><ActiveMoveCard heading="진행 중인 이사 1건" leading={<span className="grid size-12 shrink-0 place-items-center rounded-full bg-primary-50 text-primary-700"><Truck aria-hidden="true" size="var(--icon-md)" /></span>} meta={<>{scheduledAt ? dateFormatter.format(scheduledAt) : "일정 확인 중"} {dDay !== null ? <b className="text-primary-700">· D-{dDay}</b> : null}</>} onOpen={onOpenMove} route={job ? `${job.origin_summary ?? "출발지"} → ${job.destination_summary ?? "도착지"}` : "이사 정보를 불러오는 중"}>
         <MoveJourneyProgress current={currentStep} />
         <div className="mt-3 border-t border-line pt-3">
-          <p className="flex min-w-0 items-baseline gap-2 whitespace-nowrap"><strong className="shrink-0 text-ui-support text-primary-700">{actionTitle}</strong><span className="ml-auto min-w-0 truncate text-right text-ui-data text-ink-600">{actionMeta}</span></p><Button className="mt-2 w-full" onClick={onOpenAgreement} size="cta">지금 확인</Button>
+          <p className="flex min-w-0 items-baseline gap-2 whitespace-nowrap"><strong className="shrink-0 text-ui-support text-primary-700">{actionTitle}</strong><span className="ml-auto min-w-0 truncate text-right text-ui-data text-ink-600">{actionMeta}</span></p><Button className="mt-2 w-full" onClick={scope ? onOpenAgreement : onOpenMove} size="cta">{scope ? "지금 확인" : "이사 정보 열기"}</Button>
         </div>
       </ActiveMoveCard></div>
 
@@ -349,7 +352,8 @@ function ConsumerMoveList({ completion, moveJobs, onNewMove, onOpen, scope }: { 
   const mockMoves = mockApiEnabled && moveJobs ? moveJobs : null;
   const activeMockMoves = mockMoves?.filter((move) => move.job.status !== "completed" && move.job.status !== "canceled") ?? [];
   const showCurrentMove = mockMoves ? listTab === "active" : listTab === (completed ? "history" : "active");
-  const scheduledAt = scope?.job.scheduled_at ? new Date(scope.job.scheduled_at) : null;
+  const job = scope?.job ?? completion?.job;
+  const scheduledAt = job?.scheduled_at ? new Date(job.scheduled_at) : null;
   const adjustmentCount = scope?.quote?.adjustments.length ?? 0;
   const historyCount = (completed ? 1 : 0) + (mockApiEnabled ? moveHistoryRecords.length : 0);
   const [selectedHistory, setSelectedHistory] = useState<MoveHistoryRecord | null>(null);
@@ -361,12 +365,11 @@ function ConsumerMoveList({ completion, moveJobs, onNewMove, onOpen, scope }: { 
       <button aria-selected={listTab === "active"} className={`relative min-h-11 text-ui-control ${listTab === "active" ? "text-primary-700 after:absolute after:inset-x-6 after:bottom-0 after:h-0.5 after:bg-primary-600" : "text-ink-600"}`} onClick={() => setListTab("active")} role="tab" type="button">진행 중 {mockMoves ? activeMockMoves.length : completed ? 0 : 1}</button>
       <button aria-selected={listTab === "history"} className={`relative min-h-11 text-ui-control ${listTab === "history" ? "text-primary-700 after:absolute after:inset-x-6 after:bottom-0 after:h-0.5 after:bg-primary-600" : "text-ink-600"}`} onClick={() => setListTab("history")} role="tab" type="button">기록 {historyCount}</button>
     </div></div><div className="px-[var(--content-gutter)]">
-    {showCurrentMove && mockMoves ? <div className="mt-5 space-y-3">{activeMockMoves.map((move) => <MockMoveCard key={move.job.id} move={move} onOpen={() => onOpen(move.job.id)} />)}</div> : showCurrentMove ? <button className="press-static mt-5 w-full ui-card p-5 text-left shadow-[var(--shadow-card)]" onClick={() => onOpen(scope?.job.job_id ?? "")} type="button">
-      <span className={`inline-flex h-[var(--status-height)] items-center rounded-full px-3 text-ui-status ${completed ? "bg-success-bg text-success-ink" : "bg-primary-50 text-primary-700"}`}>{completed ? "완료" : "진행 중"}</span>
-      <strong className="mt-4 flex items-center justify-between gap-3 text-ui-section"><span className="min-w-0 truncate">{scope ? `${scope.job.origin_summary ?? "출발지"} → ${scope.job.destination_summary ?? "도착지"}` : "이사 정보를 불러오는 중"}</span><CaretRight aria-hidden="true" className="shrink-0 text-ink-400" size="var(--icon-sm)" /></strong>
+    {showCurrentMove && mockMoves ? <div className="mt-5 space-y-3">{activeMockMoves.map((move) => <MockMoveCard key={move.job.id} move={move} onOpen={() => onOpen(move.job.id)} />)}</div> : showCurrentMove ? <button className="press-static mt-5 w-full ui-card p-5 text-left shadow-[var(--shadow-card)]" onClick={() => onOpen(job?.job_id ?? "")} type="button">
+      <span className={`inline-flex h-[var(--status-height)] items-center rounded-full px-3 text-ui-status ${completed ? "bg-success-bg text-success-ink" : scope ? "bg-primary-50 text-primary-700" : "bg-warning-bg text-warning-ink"}`}>{completed ? "완료" : scope ? "진행 중" : "범위 준비 중"}</span>
+      <strong className="mt-4 flex items-center justify-between gap-3 text-ui-section"><span className="min-w-0 truncate">{job ? `${job.origin_summary ?? "출발지"} → ${job.destination_summary ?? "도착지"}` : "이사 정보를 불러오는 중"}</span><CaretRight aria-hidden="true" className="shrink-0 text-ink-400" size="var(--icon-sm)" /></strong>
       <span className="mt-2 block text-ui-support text-ink-600">{scheduledAt ? fullDateFormatter.format(scheduledAt) : "일정 확인 중"}</span>
-      <span className="mt-5 block border-t border-line pt-4 text-sm">{completed ? "최종" : "현재"} 확인서 <b>{scope?.scope.version_label ?? "–"}</b><span className="mx-2 text-line">|</span><b className="text-primary-700">{money(completion?.final_amount_krw ?? scope?.quote?.total_amount_krw)}</b></span>
-      <span className="mt-4 grid grid-cols-3 divide-x divide-line text-center text-xs text-ink-600"><span><Package aria-hidden="true" className="mx-auto mb-1" size="var(--icon-sm)" />짐 {scope?.scope.item_count ?? "–"}개</span><span><Notepad aria-hidden="true" className="mx-auto mb-1" size="var(--icon-sm)" />확인서 {scope?.scope.version_label ?? "–"}</span><span><TrendUp aria-hidden="true" className="mx-auto mb-1" size="var(--icon-sm)" />변경 {adjustmentCount}건</span></span>
+      {scope ? <><span className="mt-5 block border-t border-line pt-4 text-sm">{completed ? "최종" : "현재"} 확인서 <b>{scope.scope.version_label}</b><span className="mx-2 text-line">|</span><b className="text-primary-700">{money(completion?.final_amount_krw ?? scope.quote?.total_amount_krw)}</b></span><span className="mt-4 grid grid-cols-3 divide-x divide-line text-center text-xs text-ink-600"><span><Package aria-hidden="true" className="mx-auto mb-1" size="var(--icon-sm)" />짐 {scope.scope.item_count}개</span><span><Notepad aria-hidden="true" className="mx-auto mb-1" size="var(--icon-sm)" />확인서 {scope.scope.version_label}</span><span><TrendUp aria-hidden="true" className="mx-auto mb-1" size="var(--icon-sm)" />변경 {adjustmentCount}건</span></span></> : <span className="mt-5 block border-t border-line pt-4 text-ui-support text-ink-600">촬영이나 직접 입력으로 짐 범위를 준비해 주세요.</span>}
     </button> : listTab === "history" && mockApiEnabled ? <div className="mt-5 space-y-3">{moveHistoryRecords.map((record) => <MoveHistoryCard key={`${record.date}-${record.version}`} onOpen={() => setSelectedHistory(record)} record={record} />)}</div> : <section className="mt-5 ui-card px-5 py-8 text-center"><Archive aria-hidden="true" className="mx-auto text-ink-400" size="var(--icon-category)" /><h2 className="mt-3 font-black">{listTab === "active" ? "진행 중인 이사가 없어요" : "완료된 이사가 없어요"}</h2></section>}
     </div><ArchivedAgreementSheet fallbackLocationConditions={fallbackLocationConditions} onOpenChange={(open) => { if (!open) setSelectedHistory(null); }} record={selectedHistory} scope={scope} />
   </div>;
@@ -651,7 +654,7 @@ function CompanyInvitationEmpty({ connection, itemCount }: { connection: Connect
       .finally(() => { if (!cancelled) setIssuing(false); });
     return () => { cancelled = true; };
   }, [accessToken, jobId]);
-  const inviteText = issued ? `짐확정 이사 확인 초대 코드\n${issued.access_link.secret}` : "";
+  const inviteText = issued ? `SEQRET 이사 확인 초대 코드\n${issued.access_link.secret}` : "";
   const copyInvite = async () => {
     if (!issued) return;
     try {
@@ -666,7 +669,7 @@ function CompanyInvitationEmpty({ connection, itemCount }: { connection: Connect
     if (!issued) return;
     if (navigator.share) {
       try {
-        await navigator.share({ text: inviteText, title: "짐확정 이사 확인 초대" });
+        await navigator.share({ text: inviteText, title: "SEQRET 이사 확인 초대" });
         return;
       } catch (error) {
         if (error instanceof DOMException && error.name === "AbortError") return;
