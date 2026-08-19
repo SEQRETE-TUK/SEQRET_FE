@@ -454,7 +454,8 @@ function storedMoveInfoOverrides(jobId: string): MoveInfoOverrides {
 
 function ConsumerMoveTab({ completion, connection, editor, issues, moveJobs, onCapture, onEditorChange, onManualAdd, onNewMove, onOpen, onOpenCompletion, onOpenQuote, onViewChange, scope, view }: { completion: CompletionSummary | undefined; connection: Connection; editor: MoveInfoEditor | null; issues: FieldIssue[] | undefined; moveJobs: MockMoveSummary[] | undefined; onCapture: () => void; onEditorChange: (editor: MoveInfoEditor | null) => void; onManualAdd: () => void; onNewMove?: () => void; onOpen: (jobId: string) => void; onOpenCompletion: () => void; onOpenQuote: () => void; onViewChange: (view: ConsumerMoveView) => void; scope: ScopeReview | undefined; view: ConsumerMoveView }) {
   const queryClient = useQueryClient();
-  const selectedJob = moveJobs?.find((move) => move.job.id === connection.jobId)?.job;
+  const selectedMove = moveJobs?.find((move) => move.job.id === connection.jobId);
+  const selectedJob = selectedMove?.job;
   const initialOverrides = () => mockApiEnabled ? storedMoveInfoOverrides(connection.jobId) : {
     schedule: selectedJob?.scheduled_at ? dateTimeLocalValue(new Date(selectedJob.scheduled_at)) : null,
     stops: Object.fromEntries((["origin", "destination"] as const).map((kind) => [kind, defaultMoveStop(kind, scope, selectedJob)])),
@@ -479,7 +480,7 @@ function ConsumerMoveTab({ completion, connection, editor, issues, moveJobs, onC
   const canEdit = !scope?.proposal_id;
   if (view === "list") return <ConsumerMoveList moveJobs={moveJobs} onNewMove={onNewMove} onOpen={onOpen} />;
   if (view === "info" && editor) return <MoveInfo canEdit={canEdit} editor={editor} key={editor} onChange={changeInfoOverrides} onEditorChange={onEditorChange} scope={scope} value={infoOverrides} />;
-  return <><MoveTabs current={view} onChange={onViewChange} />{view === "info" ? <><MoveInfo canEdit={canEdit} editor={null} onChange={changeInfoOverrides} onEditorChange={onEditorChange} scope={scope} value={infoOverrides} />{updateMutation.error ? <ErrorToast message={apiErrorMessage(updateMutation.error)} /> : null}</> : null}{view === "items" ? <ConsumerInventory onCapture={onCapture} onManualAdd={onManualAdd} scope={scope} /> : null}{view === "agreement" ? <ConsumerAgreement completion={completion} connection={connection} fallbackLocationConditions={fallbackLocationConditions} issues={issues} key={connection.jobId} onOpenCompletion={onOpenCompletion} onOpenQuote={onOpenQuote} scope={scope} /> : null}</>;
+  return <><MoveTabs current={view} onChange={onViewChange} />{view === "info" ? <><MoveInfo canEdit={canEdit} editor={null} onChange={changeInfoOverrides} onEditorChange={onEditorChange} scope={scope} value={infoOverrides} />{updateMutation.error ? <ErrorToast message={apiErrorMessage(updateMutation.error)} /> : null}</> : null}{view === "items" ? <ConsumerInventory onCapture={onCapture} onManualAdd={onManualAdd} scope={scope} /> : null}{view === "agreement" ? <ConsumerAgreement completion={completion} connection={connection} fallbackItemCount={selectedMove?.item_count} fallbackLocationConditions={fallbackLocationConditions} issues={issues} key={connection.jobId} onOpenCompletion={onOpenCompletion} onOpenQuote={onOpenQuote} scope={scope} /> : null}</>;
 }
 
 function MoveTabs({ current, onChange }: { current: ConsumerMoveView; onChange: (view: ConsumerMoveView) => void }) {
@@ -609,7 +610,7 @@ function InventoryItemIcon({ name }: { name: string }) {
   return <MovingItemIcon name={name} />;
 }
 
-function ConsumerAgreement({ completion, connection, fallbackLocationConditions, issues, onOpenCompletion, onOpenQuote, scope }: { completion: CompletionSummary | undefined; connection: Connection; fallbackLocationConditions: ScopeLocationConditions[]; issues: FieldIssue[] | undefined; onOpenCompletion: () => void; onOpenQuote: () => void; scope: ScopeReview | undefined }) {
+function ConsumerAgreement({ completion, connection, fallbackItemCount, fallbackLocationConditions, issues, onOpenCompletion, onOpenQuote, scope }: { completion: CompletionSummary | undefined; connection: Connection; fallbackItemCount: number | undefined; fallbackLocationConditions: ScopeLocationConditions[]; issues: FieldIssue[] | undefined; onOpenCompletion: () => void; onOpenQuote: () => void; scope: ScopeReview | undefined }) {
   const queryClient = useQueryClient();
   const [issueOpen, setIssueOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -627,6 +628,7 @@ function ConsumerAgreement({ completion, connection, fallbackLocationConditions,
     mutationFn: ({ decision, note }: { decision: "approve" | "reject" | "request_clarification"; note?: string }) => decideChangeProposal(connection, issue!.change_proposal_id!, { decision, note }),
     onSuccess: async () => { setIssueOpen(false); await refresh(); },
   });
+  if (!scope && fallbackItemCount !== undefined) return <CompanyInvitationEmpty connectionCode={`MOVE-${connection.jobId.replaceAll("-", "").slice(0, 8).toUpperCase()}`} itemCount={fallbackItemCount} />;
   if (!scope) return <div className="px-[var(--content-gutter)] py-8 text-sm text-ink-600">확인서를 불러오는 중입니다.</div>;
   if (!scope.quote) return <CompanyInvitationEmpty connectionCode={scope.job.job_code} itemCount={scope.scope.item_count} key={connection.jobId} />;
   const quoteNeedsReview = scope.scope.status === "customer_review" && !completion?.completion_request;
