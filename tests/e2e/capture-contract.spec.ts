@@ -12,6 +12,46 @@ test("keeps the access secret out of browser storage", async ({ page }) => {
 
 });
 
+test("starts a new mock customer without the seeded move", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "고객으로 시작" }).click();
+  await page.getByRole("button", { name: "새 이사" }).click();
+  await page.getByRole("textbox", { name: "이름" }).fill("새 고객");
+  await page.getByRole("button", { name: "시작" }).click();
+
+  await expect(page.getByRole("heading", { name: /새 고객님/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "진행 중인 이사가 없어요" })).toBeVisible();
+});
+
+test("lists only the move created by a new mock customer", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "고객으로 시작" }).click();
+  await page.getByRole("button", { name: "새 이사" }).click();
+  await page.getByRole("textbox", { name: "이름" }).fill("목록 고객");
+  await page.getByRole("button", { name: "시작" }).click();
+  await page.getByRole("button", { name: /새 이사 시작하기/ }).click();
+  await page.getByRole("button", { name: "다음", exact: true }).click();
+  await page.getByRole("button", { name: "다음", exact: true }).click();
+  await page.getByRole("button", { name: "이사 초안 만들기" }).click();
+
+  await page.getByRole("button", { name: "이사 목록으로 돌아가기" }).click();
+  await expect(page.getByRole("tab", { name: "진행 중 1" })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "기록 0" })).toBeVisible();
+  await expect(page.getByText("서울 성동구 성수동 1가 → 서울 광진구 자양동 오피스텔")).toBeVisible();
+});
+
+test("lets a connected customer choose a new move or invite code", async ({ page }) => {
+  await page.goto("/consumer?tab=move&view=list");
+  await page.getByRole("button", { name: "+ 새 이사" }).click();
+
+  await expect(page.getByRole("dialog", { name: "이사를 시작해요" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "새 이사 시작하기" })).toBeVisible();
+  await page.getByRole("button", { name: "초대 코드로 불러오기" }).click();
+  await expect(page.getByLabel("초대 코드")).toHaveValue(customerAccessSecret);
+  await page.getByRole("button", { name: "내 이사 불러오기" }).click();
+  await expect(page.getByRole("tab", { name: "진행 중 3" })).toBeVisible();
+});
+
 test("builds the backend capture consent contract", async () => {
   expect(captureSessionCreatePayload("2026-08-17.v1", true)).toEqual({
     consent_policy_version: "2026-08-17.v1",

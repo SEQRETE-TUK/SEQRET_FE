@@ -74,6 +74,7 @@ interface MockState {
   scope: ScopeReview;
   scopeVersions: ScopeVersionSummary[];
   sessions: CaptureSession[];
+  customerAccessToken: string;
 }
 
 interface MockDispatchSetupInput {
@@ -352,6 +353,7 @@ function createState(jobId = JOB_ID, customerAccessToken = mockAccessSecrets.cus
     scope,
     scopeVersions,
     sessions,
+    customerAccessToken,
   };
 }
 
@@ -474,9 +476,9 @@ function replaceDraftScopeItems(state: MockState, items: AnalysisReviewItemInput
 
 const mockStates = new Map<string, MockState>([
   [JOB_ID, createState(JOB_ID)],
-  [MOCK_DRAFT_JOB_ID, createDraftState(MOCK_DRAFT_JOB_ID, "seqret_mock_customer_draft_000000000000000000000000")],
-  [MOCK_REVISION_JOB_ID, createRevisionState(MOCK_REVISION_JOB_ID, "seqret_mock_customer_revision_000000000000000000000000")],
-  ["bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", createCompletedState("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", "seqret_mock_customer_completed_000000000000000")],
+  [MOCK_DRAFT_JOB_ID, createDraftState(MOCK_DRAFT_JOB_ID, mockAccessSecrets.customer)],
+  [MOCK_REVISION_JOB_ID, createRevisionState(MOCK_REVISION_JOB_ID, mockAccessSecrets.customer)],
+  ["bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", createCompletedState("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", mockAccessSecrets.customer)],
 ]);
 
 function result<T>(value: T): Promise<T> {
@@ -537,11 +539,10 @@ function customerMoveSummary(state: MockState, customerDisplayName: string): Moc
   };
 }
 
-function customerMoveSummaries(customerDisplayName: string) {
-  return [JOB_ID, MOCK_DRAFT_JOB_ID, MOCK_REVISION_JOB_ID]
-    .map((jobId) => mockStates.get(jobId))
-    .filter((state): state is MockState => Boolean(state))
-    .map((state) => customerMoveSummary(state, customerDisplayName));
+function customerMoveSummaries(customerAccessToken: string) {
+  return [...mockStates.values()]
+    .filter((state) => state.customerAccessToken === customerAccessToken)
+    .map((state) => customerMoveSummary(state, state.actors[customerAccessToken]?.display_name ?? "고객"));
 }
 
 export async function mockApiRequest<T>(path: string, init: RequestInit, accessToken?: string): Promise<T> {
@@ -602,7 +603,7 @@ export async function mockApiRequest<T>(path: string, init: RequestInit, accessT
   if (!state.actors[accessToken] && authenticatedActor.role === "customer") state.actors[accessToken] = actor("customer", CUSTOMER_ID, authenticatedActor.display_name, state.job.id);
   if (path === "/api/v1/move-jobs" && method === "GET") {
     if (authenticatedActor.role !== "customer") throw new Error("고객 이사 목록은 고객만 확인할 수 있어요.");
-    return result({ moves: customerMoveSummaries(authenticatedActor.display_name) }) as Promise<T>;
+    return result({ moves: customerMoveSummaries(accessToken) }) as Promise<T>;
   }
   const jobPath = `/api/v1/move-jobs/${encodeURIComponent(state.job.id)}`;
   if (path === jobPath && method === "GET") return result(state.job) as Promise<T>;

@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAuth } from "@/features/auth/model/auth-context";
 import type { AuthSession } from "@/features/auth/model/auth-context";
 import {
@@ -41,7 +42,7 @@ import { ProviderIssueWorkbench } from "@/features/workflow/ui/provider-issue-wo
 import { ProviderQuoteEditor } from "@/features/workflow/ui/provider-quote-editor";
 import { InvitationPanel } from "@/features/workflow/ui/workflow-shell";
 
-type ProviderView = "jobs" | "issues" | "invite" | "notifications";
+type ProviderView = "jobs" | "issues" | "invite";
 type JobMode = "detail" | "quote";
 type JobFilter = "all" | "action" | "customer" | "confirmed";
 type ProviderLinkedJob = { session: AuthSession; scope: ScopeReview | undefined; completion: CompletionSummary | undefined };
@@ -91,8 +92,9 @@ function ProviderWebConsole({ connections, onConnect, onDisconnect, onSelect, se
   const [search, setSearch] = useState("");
   const [connectionOpen, setConnectionOpen] = useState(false);
   const [disconnectOpen, setDisconnectOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(searchParams.get("view") === "notifications");
   const viewParam = searchParams.get("view");
-  const view: ProviderView = viewParam === "issues" || viewParam === "invite" || viewParam === "notifications" ? viewParam : "jobs";
+  const view: ProviderView = viewParam === "issues" || viewParam === "invite" ? viewParam : "jobs";
   const jobMode: JobMode = searchParams.get("mode") === "quote" ? "quote" : "detail";
   const invitationPending = session?.actor.invitation?.status === "pending";
   const connection: Connection | null = session ? { accessToken: session.accessToken, jobId: session.actor.job_id } : null;
@@ -120,7 +122,17 @@ function ProviderWebConsole({ connections, onConnect, onDisconnect, onSelect, se
     next.delete("view");
     return next;
   });
-  const viewTitle = jobMode === "quote" ? "범위·견적" : view === "jobs" ? "작업" : view === "issues" ? "현장 이슈" : view === "notifications" ? "알림" : "기사·배차";
+  const handleNotificationsOpenChange = (open: boolean) => {
+    setNotificationsOpen(open);
+    if (!open && viewParam === "notifications") {
+      setSearchParams((current) => {
+        const next = new URLSearchParams(current);
+        next.delete("view");
+        return next;
+      }, { replace: true });
+    }
+  };
+  const viewTitle = jobMode === "quote" ? "범위·견적" : view === "jobs" ? "작업" : view === "issues" ? "현장 이슈" : "기사·배차";
   const activeJobHeader = scope?.job ?? linkedJobs.find((item) => item.session.actor.job_id === session?.actor.job_id)?.completion?.job;
   const viewContext = view === "jobs" && jobMode === "detail"
     ? `연결 ${connections.length}건`
@@ -156,7 +168,12 @@ function ProviderWebConsole({ connections, onConnect, onDisconnect, onSelect, se
           <div className="min-w-0"><p className="truncate text-ui-micro text-ink-500">{viewContext}</p><h1 className="mt-0.5 truncate text-ui-section">{viewTitle}</h1></div>
           <div className="flex items-center gap-2">
             {view === "jobs" && jobMode === "detail" ? <label className="hidden h-[var(--control-touch)] min-w-[17rem] items-center gap-2 rounded-[var(--radius-control)] border border-input bg-surface px-4 focus-within:border-primary-400 focus-within:ring-3 focus-within:ring-primary-100 lg:flex"><Search aria-hidden="true" className="text-ink-600" /><input aria-label="고객명, 주소 검색" autoComplete="off" className="min-w-0 flex-1 bg-transparent text-ui-control outline-none placeholder:text-ink-400" data-slot="input-proxy" name="providerSearch" onChange={(event) => setSearch(event.target.value)} placeholder="고객명, 주소 검색…" type="search" value={search} /></label> : null}
-            {session ? <Button aria-label={`알림 ${notificationsQuery.data?.length ?? 0}건`} className="relative px-3" onClick={() => changeView("notifications")} variant="outline"><Bell aria-hidden="true" />{notificationsQuery.data?.length ? <span className="min-w-4 text-ui-micro text-primary-700">{notificationsQuery.data.length}</span> : null}</Button> : null}
+            {session ? <Popover onOpenChange={handleNotificationsOpenChange} open={notificationsOpen || viewParam === "notifications"}>
+              <PopoverTrigger render={<Button aria-label={`알림 ${notificationsQuery.data?.length ?? 0}건`} className="relative px-3" variant="outline"><Bell aria-hidden="true" />{notificationsQuery.data?.length ? <span className="min-w-4 text-ui-micro text-primary-700">{notificationsQuery.data.length}</span> : null}</Button>} />
+              <PopoverContent aria-label="작업 알림">
+                <ProviderNotificationsPanel compact error={notificationsQuery.error} notifications={notificationsQuery.data} pending={notificationsQuery.isPending} />
+              </PopoverContent>
+            </Popover> : null}
             <Button aria-label="초대키 추가" className="px-3 xl:px-4" onClick={() => setConnectionOpen(true)} variant="outline"><Key aria-hidden="true" /><span className="hidden xl:inline">초대키 추가</span></Button>
           </div>
         </header>
@@ -166,7 +183,6 @@ function ProviderWebConsole({ connections, onConnect, onDisconnect, onSelect, se
           {view === "jobs" && jobMode === "quote" && connection ? <ProviderQuoteEditor key={connection.jobId} connection={connection} onBack={() => changeJobMode("detail")} scope={scope} /> : null}
           {view === "issues" ? connection ? <ProviderIssueWorkbench connection={connection} issues={issues} scope={scope} /> : <ProviderConnectionEmpty onConnect={() => setConnectionOpen(true)} /> : null}
           {view === "invite" ? session ? <OperationsPanel /> : <ProviderConnectionEmpty onConnect={() => setConnectionOpen(true)} /> : null}
-          {view === "notifications" ? <ProviderNotificationsPanel error={notificationsQuery.error} notifications={notificationsQuery.data} pending={notificationsQuery.isPending} /> : null}
         </div></main>
       </div>
       <nav aria-label="업체 모바일 메뉴" className="fixed inset-x-0 bottom-0 z-[var(--z-sticky)] grid grid-cols-3 border-t border-line bg-surface px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 md:hidden">
@@ -326,9 +342,11 @@ function JobDashboard({ issues, jobs: linkedJobs, onConnect, onIssue, onQuote, o
   );
 }
 
-function ProviderNotificationsPanel({ error, notifications, pending }: { error?: unknown; notifications?: Awaited<ReturnType<typeof listNotifications>>; pending: boolean }) {
+function ProviderNotificationsPanel({ compact = false, error, notifications, pending }: { compact?: boolean; error?: unknown; notifications?: Awaited<ReturnType<typeof listNotifications>>; pending: boolean }) {
   const items = [...(notifications ?? [])].sort((a, b) => b.created_at.localeCompare(a.created_at));
-  return <section className="ui-card mx-auto max-w-3xl overflow-hidden"><header className="border-b border-line px-6 py-5"><h2 className="text-ui-section">작업 알림</h2><p className="mt-1 text-ui-support text-ink-600">현재 선택한 작업에서 업체 확인이 필요한 변화를 보여드립니다.</p></header>{pending ? <p className="px-6 py-12 text-center text-sm text-ink-600">알림을 불러오는 중입니다.</p> : error ? <p className="m-6 rounded-xl bg-danger-bg p-4 text-sm font-bold text-danger-ink" role="alert">{apiErrorMessage(error)}</p> : items.length ? <div className="divide-y divide-line">{items.map((notification) => { const copy = notificationCopy[notification.event_type]; return <article className="flex gap-4 px-6 py-5" key={notification.id}><span className="grid size-11 shrink-0 place-items-center rounded-xl bg-primary-50 text-primary-700"><Bell aria-hidden="true" size="var(--icon-sm)" /></span><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center justify-between gap-2"><span className="text-ui-status text-primary-700">{copy.label}</span><time className="text-ui-micro text-ink-400" dateTime={notification.created_at}>{notificationDateFormatter.format(new Date(notification.created_at))}</time></div><h3 className="mt-1 text-ui-component">{copy.title}</h3><p className="mt-1 text-ui-support text-ink-600">{copy.description}</p></div></article>; })}</div> : <div className="px-6 py-12 text-center"><Bell aria-hidden="true" className="mx-auto text-ink-400" size="var(--icon-category)" /><p className="mt-3 font-extrabold">도착한 알림이 없습니다.</p></div>}</section>;
+  const spacing = compact ? "px-4 py-4" : "px-6 py-5";
+  const emptySpacing = compact ? "px-4 py-8" : "px-6 py-12";
+  return <section className={compact ? "overflow-hidden" : "ui-card mx-auto max-w-3xl overflow-hidden"}><header className={`border-b border-line ${spacing}`}><h2 className="text-ui-section">작업 알림</h2><p className="mt-1 text-ui-support text-ink-600">현재 선택한 작업에서 업체 확인이 필요한 변화를 보여드립니다.</p></header>{pending ? <p className={`${emptySpacing} text-center text-sm text-ink-600`}>알림을 불러오는 중입니다.</p> : error ? <p className={`${compact ? "m-4" : "m-6"} rounded-xl bg-danger-bg p-4 text-sm font-bold text-danger-ink`} role="alert">{apiErrorMessage(error)}</p> : items.length ? <div className="divide-y divide-line">{items.map((notification) => { const copy = notificationCopy[notification.event_type]; return <article className={`flex gap-4 ${spacing}`} key={notification.id}><span className="grid size-11 shrink-0 place-items-center rounded-xl bg-primary-50 text-primary-700"><Bell aria-hidden="true" size="var(--icon-sm)" /></span><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center justify-between gap-2"><span className="text-ui-status text-primary-700">{copy.label}</span><time className="text-ui-micro text-ink-400" dateTime={notification.created_at}>{notificationDateFormatter.format(new Date(notification.created_at))}</time></div><h3 className="mt-1 text-ui-component">{copy.title}</h3><p className="mt-1 text-ui-support text-ink-600">{copy.description}</p></div></article>; })}</div> : <div className={`${emptySpacing} text-center`}><Bell aria-hidden="true" className="mx-auto text-ink-400" size="var(--icon-category)" /><p className="mt-3 font-extrabold">도착한 알림이 없습니다.</p></div>}</section>;
 }
 
 function ProviderConnectionEmpty({ onConnect }: { onConnect: () => void }) {
