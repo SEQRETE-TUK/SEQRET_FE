@@ -121,8 +121,9 @@ export function EmptyState({ children }: { children: ReactNode }) {
 }
 
 export function InvitationPanel({ presentation = "page" }: { presentation?: "page" | "dialog" }) {
-  const { session, refreshActor } = useAuth();
+  const { session, clearSession, refreshActor } = useAuth();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [displayName, setDisplayName] = useState("");
   const [issued, setIssued] = useState<InvitationIssued | null>(null);
   const [copied, setCopied] = useState(false);
@@ -159,7 +160,14 @@ export function InvitationPanel({ presentation = "page" }: { presentation?: "pag
   const responseMutation = useMutation({
     mutationFn: (action: "accept" | "decline") => respondToInvitation(connection!, session!.actor.invitation!.id, action),
     onError: refreshOnConflict,
-    onSuccess: refresh,
+    onSuccess: async (_result, action) => {
+      if (action === "decline") {
+        clearSession();
+        navigate("/", { replace: true });
+        return;
+      }
+      await refresh();
+    },
   });
   const manageMutation = useMutation({
     mutationFn: ({ invitationId, action }: { invitationId: string; action: "revoke" | "reissue" }) => manageInvitation(connection!, invitationId, action),
@@ -176,16 +184,20 @@ export function InvitationPanel({ presentation = "page" }: { presentation?: "pag
   if (!session || !connection) return null;
 
   if (session.actor.invitation?.status === "pending") {
+    const actions = <>
+      <ApiNotice error={responseMutation.error} title="요청을 처리하지 못했어요" />
+      <div className="mt-6 grid grid-cols-2 gap-2">
+        <Button disabled={responseMutation.isPending} onClick={() => responseMutation.mutate("accept")}><Check /> 수락</Button>
+        <Button disabled={responseMutation.isPending} onClick={() => responseMutation.mutate("decline")} variant="outline"><X /> 거절</Button>
+      </div>
+    </>;
+    if (presentation === "dialog") return <fieldset className="contents" disabled={retryAfter > 0}>{actions}</fieldset>;
     return (
       <fieldset className="contents" disabled={retryAfter > 0}><Card className="border-primary-400 p-5">
         <p className="text-sm font-bold text-primary-700">{roleLabel[session.actor.role]} 초대</p>
-        <h2 className="mt-2 text-xl font-extrabold">작업 초대를 수락할까요?</h2>
-        <p className="mt-2 text-sm text-ink-600">수락하기 전에는 다른 업무 API를 사용할 수 없습니다.</p>
-        <ApiNotice error={responseMutation.error} title="초대를 처리하지 못했어요" />
-        <div className="mt-4 grid grid-cols-2 gap-2">
-          <Button disabled={responseMutation.isPending} onClick={() => responseMutation.mutate("accept")}><Check /> 수락</Button>
-          <Button disabled={responseMutation.isPending} onClick={() => responseMutation.mutate("decline")} variant="outline"><X /> 거절</Button>
-        </div>
+        <h2 className="mt-2 text-xl font-extrabold">고객이 보낸 이사 요청을 수락할까요?</h2>
+        <p className="mt-2 text-sm text-ink-600">수락하면 고객의 이사 정보와 견적 업무를 확인할 수 있습니다.</p>
+        {actions}
       </Card></fieldset>
     );
   }

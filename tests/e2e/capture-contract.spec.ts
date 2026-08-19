@@ -76,6 +76,28 @@ test("loads crew mock data only after entering an invite code", async ({ page })
   await expect(page.getByRole("heading", { name: /오늘 작업을 준비해요/ })).toBeVisible();
 });
 
+test("shows action errors as a transient bottom toast", async ({ page }) => {
+  await page.setViewportSize({ height: 844, width: 390 });
+  await page.goto("/");
+  await page.getByText("현장기사", { exact: true }).click();
+  await page.getByRole("button", { name: "현장기사로 시작" }).click();
+  await page.getByRole("button", { name: /연결 코드 입력하기/ }).click();
+  await page.getByRole("textbox", { name: "이사 연결 코드" }).fill("MOVE-INVALID");
+  await page.getByRole("button", { name: "내 작업에 연결" }).click();
+
+  const toast = page.locator('[role="alert"]');
+  await expect(toast).toHaveClass(/max-w-xs.*rounded-full.*bg-ink-900\/60.*text-\[14px\].*font-normal/);
+  await expect(toast).toContainText("네트워크 연결을 확인하고 다시 시도해 주세요");
+  const bounds = await toast.evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    return { bottom: window.innerHeight - rect.bottom, left: rect.left, right: rect.right, width: window.innerWidth };
+  });
+  expect(bounds.left).toBeGreaterThanOrEqual(16);
+  expect(bounds.right).toBeLessThanOrEqual(bounds.width - 16);
+  expect(bounds.bottom).toBeGreaterThanOrEqual(150);
+  await expect(toast).toBeHidden({ timeout: 3500 });
+});
+
 test("loads provider mock data only after adding an invite key", async ({ page }) => {
   await page.goto("/");
   await page.getByText("이사업체", { exact: true }).click();

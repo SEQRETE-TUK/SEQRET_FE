@@ -18,6 +18,7 @@ import { mockApiEnabled, mockConnectionCodes } from "@/api/mock-api";
 import { AgreementHistorySheet } from "@/components/layout/agreement-history-sheet";
 import { FilterChip, MoveJourneyProgress, StatusTag } from "@/components/layout/app-primitives";
 import { Button } from "@/components/ui/button";
+import { ErrorToast } from "@/components/ui/error-toast";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -142,10 +143,6 @@ function ProviderWebConsole({ connections, onConnect, onDisconnect, onSelect, se
     ? [mockConnectionCodes.main, mockConnectionCodes.draft, mockConnectionCodes.revision, mockConnectionCodes.completed][Math.min(connections.length, 3)]
     : "";
 
-  if (session && invitationPending) {
-    return <div className="min-h-dvh bg-canvas px-[var(--content-gutter)] py-[var(--space-lg)] text-ink-900"><main className="mx-auto max-w-xl" id="main-content"><p className="text-ui-control text-primary-700">SEQRET · 업체용</p><h1 className="mt-2 text-ui-step-title">먼저 작업 초대를 확인해 주세요</h1><p className="mt-2 text-ui-support text-ink-600">수락 전에는 고객의 이사 정보나 견적을 불러오지 않습니다.</p><div className="mt-6"><InvitationPanel /></div></main></div>;
-  }
-
   return (
     <div className="provider-console min-h-dvh bg-canvas pb-20 text-ink-900 md:grid md:grid-cols-[15rem_minmax(0,1fr)] md:pb-0">
       <aside className="sticky top-0 hidden h-dvh min-h-0 flex-col border-r border-line bg-surface px-4 py-5 md:flex">
@@ -193,6 +190,15 @@ function ProviderWebConsole({ connections, onConnect, onDisconnect, onSelect, se
       </nav>
       <ProviderConnectionDialog connect={onConnect} initialSecret={nextMockProviderSecret} key={visibleConnections.length} onOpenChange={setConnectionOpen} open={connectionOpen} />
       <ProviderDisconnectDialog onConfirm={onDisconnect} onOpenChange={setDisconnectOpen} open={disconnectOpen} />
+      <Dialog open={Boolean(session && invitationPending)}>
+        <DialogContent showClose={false}>
+          <DialogHeader>
+            <DialogTitle>고객이 보낸 이사 요청을 수락할까요?</DialogTitle>
+            <DialogDescription>수락하면 고객의 이사 정보와 견적 업무를 확인할 수 있습니다.</DialogDescription>
+          </DialogHeader>
+          <InvitationPanel presentation="dialog" />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -384,7 +390,7 @@ function ProviderConnectionDialog({ connect, initialSecret, onOpenChange, open }
       setPending(false);
     }
   };
-  return <Dialog onOpenChange={onOpenChange} open={open}><DialogContent><DialogHeader><DialogTitle>이사 연결 코드 추가</DialogTitle><DialogDescription>고객·기사와 공유하는 코드를 입력하면 작업을 추가합니다.</DialogDescription></DialogHeader><div className="mt-6"><Label htmlFor="provider-invite-code">이사 연결 코드</Label><Input autoCapitalize="characters" autoComplete="off" className="mt-2" id="provider-invite-code" name="providerInviteCode" onChange={(event) => setSecret(event.target.value)} placeholder="MOVE-XXXXXXXX" spellCheck={false} value={secret} />{error ? <p className="mt-3 text-ui-support text-danger-ink" role="alert">{error}</p> : null}</div><DialogFooter><Button className="w-full sm:w-auto" disabled={!secret.trim() || pending} onClick={submit} size="cta"><Key aria-hidden="true" />{pending ? "추가 중…" : "작업 추가"}</Button></DialogFooter></DialogContent></Dialog>;
+  return <Dialog onOpenChange={onOpenChange} open={open}><DialogContent><DialogHeader><DialogTitle>이사 연결 코드 추가</DialogTitle><DialogDescription>고객·기사와 공유하는 코드를 입력하면 작업을 추가합니다.</DialogDescription></DialogHeader><div className="mt-6"><Label htmlFor="provider-invite-code">이사 연결 코드</Label><Input autoCapitalize="characters" autoComplete="off" className="mt-2" id="provider-invite-code" name="providerInviteCode" onChange={(event) => setSecret(event.target.value)} placeholder="MOVE-XXXXXXXX" spellCheck={false} value={secret} />{error ? <ErrorToast message={error} /> : null}</div><DialogFooter><Button className="w-full sm:w-auto" disabled={!secret.trim() || pending} onClick={submit} size="cta"><Key aria-hidden="true" />{pending ? "추가 중…" : "작업 추가"}</Button></DialogFooter></DialogContent></Dialog>;
 }
 
 function ProviderDisconnectDialog({ onConfirm, onOpenChange, open }: { onConfirm: () => void; onOpenChange: (open: boolean) => void; open: boolean }) {

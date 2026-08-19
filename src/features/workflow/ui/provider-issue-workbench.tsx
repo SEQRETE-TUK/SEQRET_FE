@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { ListGroup, ListRow, StatusTag } from "@/components/layout/app-primitives";
 import { Button } from "@/components/ui/button";
+import { ErrorToast } from "@/components/ui/error-toast";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -98,7 +99,7 @@ function IssueDetail({ connection, issue, scope }: { connection: Connection; iss
           <Label className="mt-4 block" htmlFor="change-title">변경 작업</Label><Input className="mt-2" id="change-title" maxLength={100} onChange={(event) => setTitle(event.target.value)} value={title} />
           <Label className="mt-4 block" htmlFor="change-reason">고객에게 보일 사유</Label><Textarea className="mt-2 min-h-28" id="change-reason" maxLength={2000} onChange={(event) => setReason(event.target.value)} value={reason} />
           <div className="mt-5 space-y-3 text-sm"><p className="flex justify-between"><span>기존 금액 ({scope.scope.version_label})</span><strong>{money(scope.quote?.total_amount_krw)}</strong></p><MoneyInput label="추가/조정 금액" onChange={setAdjustment} value={adjustment} /><p className="flex items-center justify-between border-t border-line pt-4"><span className="font-extrabold">변경 후 금액</span><strong className="text-2xl text-primary-700">{money(resultingAmount)}</strong></p></div>
-          {createMutation.error ? <p className="mt-3 text-ui-support text-danger-ink" role="alert">{apiErrorMessage(createMutation.error)}</p> : null}
+          {createMutation.error ? <ErrorToast message={apiErrorMessage(createMutation.error)} /> : null}
           <Button className="mt-5 w-full" disabled={!title.trim() || !reason.trim() || resultingAmount < 0 || createMutation.isPending} onClick={() => createMutation.mutate()} size="cta"><Send aria-hidden="true" /> 고객에게 변경안 보내기</Button>
         </> : <div className="mt-4 space-y-4">
           <div className="border-y border-line py-4"><p className="text-ui-data text-ink-600">제안 작업</p><p className="mt-1 break-words text-ui-control">{proposal?.title ?? issue.title}</p><p className="mt-3 break-words text-ui-support text-ink-600">{proposal?.reason ?? "제안 내용을 불러오는 중…"}</p><p className="mt-4 flex justify-between gap-3 border-t border-line pt-4 text-ui-support"><span>변경 후 금액</span><strong className="text-primary-700">{money(resultingAmount)}</strong></p></div>
@@ -107,7 +108,7 @@ function IssueDetail({ connection, issue, scope }: { connection: Connection; iss
           {issue.status === "approved" ? <p className="rounded-xl bg-success-bg p-4 text-sm font-bold text-success-ink">고객 승인으로 새 실행 기준에 반영됐습니다.</p> : null}
           {issue.status === "rejected" ? <p className="rounded-xl bg-surface-muted p-4 text-sm font-bold text-ink-600">고객이 변경안을 승인하지 않았습니다. 기존 승인 범위를 유지합니다.</p> : null}
           {proposalQuery.error ? <p className="text-ui-support text-danger-ink" role="alert">{apiErrorMessage(proposalQuery.error)}</p> : null}
-          {explanationMutation.error ? <p className="text-ui-support text-danger-ink" role="alert">{apiErrorMessage(explanationMutation.error)}</p> : null}
+          {explanationMutation.error ? <ErrorToast message={apiErrorMessage(explanationMutation.error)} /> : null}
         </div>}
       </div>
     </div>

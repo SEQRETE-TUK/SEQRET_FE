@@ -3,6 +3,7 @@ import { ArrowLeftIcon as ArrowLeft, CheckCircleIcon as CheckCircle, ImageIcon a
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { ErrorToast } from "@/components/ui/error-toast";
 import { Input } from "@/components/ui/input";
 import { createScopeProposal, workflowKeys, type Connection, type ScopeContent, type ScopeLocationConditions, type ScopeReview } from "@/features/workflow/api/workflow-api";
 import { apiErrorMessage } from "@/features/workflow/api/workflow-api";
@@ -94,7 +95,7 @@ export function ProviderQuoteEditor({ connection, onBack, scope }: { connection:
         <div className="mt-4 flex items-end justify-between border-t border-line pt-4"><span className="font-extrabold">총 제안 금액</span><strong className="text-2xl text-primary-700">{money(total)}</strong></div>
         <div className="mt-6 border-t border-line pt-5"><h4 className="font-extrabold">실행 계획</h4><div className="mt-3 grid grid-cols-2 gap-3"><NumberField disabled={locked} label="차량 수" min={1} onChange={setVehicleCount} value={vehicleCount} /><NumberField disabled={locked} label="작업 인원" min={1} onChange={setWorkerCount} value={workerCount} /><NumberField disabled={locked} label="예상 시간(분)" min={30} onChange={setDuration} value={duration} /><label className="text-xs font-bold text-ink-600">차량 종류<Input className="mt-1" disabled={locked} onChange={(event) => setVehicleDescription(event.target.value)} value={vehicleDescription} /></label></div></div>
         {overlap ? <p className="mt-3 text-ui-support text-danger-ink" role="alert">“{overlap}” 항목이 포함·제외 작업에 동시에 있습니다.</p> : null}
-        {mutation.error ? <p className="mt-3 text-ui-support text-danger-ink" role="alert">{apiErrorMessage(mutation.error)}</p> : null}
+        {mutation.error ? <ErrorToast message={apiErrorMessage(mutation.error)} /> : null}
         <Button className="mt-5 w-full" disabled={invalid || mutation.isPending} onClick={() => mutation.mutate()} size="cta"><Send aria-hidden="true" /> {scope.scope.status === "revision_requested" ? "수정본 고객에게 보내기" : "고객에게 제안 보내기"}</Button>
         </>}
       </section>
