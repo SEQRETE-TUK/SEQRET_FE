@@ -122,7 +122,6 @@ export function CustomerOnboardingSheet({ onOpenChange, open }: { onOpenChange: 
       return;
     }
     try {
-      window.sessionStorage.setItem(moveDraftStorageKey, JSON.stringify({ schedule: scheduledAt, stops: { origin, destination } }));
       const nextSession = await onboard({
         title: "우리 집 이사",
         scheduled_at: new Date(scheduledAt).toISOString(),
@@ -132,6 +131,7 @@ export function CustomerOnboardingSheet({ onOpenChange, open }: { onOpenChange: 
           { kind: "destination", label: destination.address.trim(), room_zones: roomZones() },
         ],
       });
+      window.sessionStorage.setItem(`${moveDraftStorageKey}:${nextSession.actor.job_id}`, JSON.stringify({ schedule: scheduledAt, stops: { origin, destination } }));
       window.sessionStorage.removeItem(customerDisplayNameStorageKey);
       onOpenChange(false);
       navigate(`/consumer?tab=move&view=info&job=${encodeURIComponent(nextSession.actor.job_id)}`, { replace: true });

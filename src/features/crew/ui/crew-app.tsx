@@ -79,7 +79,7 @@ const crewHistoryRecords: CrewHistoryRecord[] = [
 
 export function CrewApp() {
   const { session } = useAuth();
-  return session?.actor.role === "field_worker" ? <ConnectedCrewApp session={session} /> : <Navigate replace to="/" />;
+  return session?.actor.role === "field_worker" ? <ConnectedCrewApp key={session.actor.job_id} session={session} /> : <Navigate replace to="/" />;
 }
 
 function ConnectedCrewApp({ session }: { session: AuthSession }) {

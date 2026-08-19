@@ -13,14 +13,25 @@ test("keeps the access secret out of browser storage", async ({ page }) => {
 
 });
 
-test("starts new customer onboarding without a guest app", async ({ page }) => {
+test("enters the customer home without a guest app", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "고객으로 시작" }).click();
   await page.getByRole("button", { name: "새 이사" }).click();
   await page.getByRole("textbox", { name: "이름" }).fill("새 고객");
   await page.getByRole("button", { name: "시작" }).click();
 
-  await expect(page.getByRole("heading", { name: "서비스 희망일" })).toBeVisible();
+  await expect(page).toHaveURL(/\/consumer$/);
+  await expect(page.getByRole("heading", { name: /새 고객님/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "진행 중인 이사가 없어요" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "더보기" })).toBeVisible();
+  await page.getByRole("button", { name: /60초 촬영으로/ }).click();
+  await expect(page.getByRole("dialog", { name: "이사를 시작해요" }).getByRole("button", { name: "새 이사 시작하기" })).toBeVisible();
+  await expect(page.getByRole("dialog", { name: "이사를 시작해요" }).getByRole("button", { name: "초대 코드로 불러오기" })).toBeVisible();
+  await page.getByRole("button", { name: "닫기" }).click();
+  await page.getByRole("button", { name: "내 이사" }).click();
+  await expect(page.getByRole("tab", { name: "진행 중 0" })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "기록 0" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "아직 이사 기록이 없어요" })).toBeVisible();
 });
 
 test("lists only the move created by a new mock customer", async ({ page }) => {
@@ -29,6 +40,9 @@ test("lists only the move created by a new mock customer", async ({ page }) => {
   await page.getByRole("button", { name: "새 이사" }).click();
   await page.getByRole("textbox", { name: "이름" }).fill("목록 고객");
   await page.getByRole("button", { name: "시작" }).click();
+  await page.getByRole("button", { name: "내 이사" }).click();
+  await page.getByRole("button", { name: "+ 새 이사" }).click();
+  await page.getByRole("dialog", { name: "이사를 시작해요" }).getByRole("button", { name: "새 이사 시작하기" }).click();
   await page.getByRole("button", { name: "다음", exact: true }).click();
   await page.getByRole("button", { name: "다음", exact: true }).click();
   await page.getByRole("button", { name: "이사 초안 만들기" }).click();
@@ -36,7 +50,14 @@ test("lists only the move created by a new mock customer", async ({ page }) => {
   await page.getByRole("button", { name: "이사 목록으로 돌아가기" }).click();
   await expect(page.getByRole("tab", { name: "진행 중 1" })).toBeVisible();
   await expect(page.getByRole("tab", { name: "기록 0" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "더보기" })).toBeVisible();
   await expect(page.getByText("서울 성동구 성수동 1가 → 서울 광진구 자양동 오피스텔")).toBeVisible();
+  await page.getByText("서울 성동구 성수동 1가 → 서울 광진구 자양동 오피스텔").click();
+  await page.getByRole("button", { name: "더보기" }).click();
+  await page.getByRole("button", { name: "이사 삭제" }).click();
+  await expect(page.getByRole("heading", { name: "아직 이사 기록이 없어요" })).toBeVisible();
+  await page.getByRole("button", { name: "더보기" }).click();
+  await expect(page.getByRole("heading", { name: "목록 고객" })).toBeVisible();
 });
 
 test("connects a field worker before entering the crew app", async ({ page }) => {

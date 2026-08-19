@@ -1,4 +1,5 @@
 import { ApiError, apiRequest, downloadApiFile, publicApiRequest } from "@/api/client";
+import { mockApiEnabled } from "@/api/mock-api";
 import { scopeProposalPayload } from "@/api/contract-payloads";
 
 export type ParticipantRole = "customer" | "company_manager" | "field_worker";
@@ -454,11 +455,13 @@ export function getMoveJob(connection: Connection) {
   return apiRequest<MoveJob>(jobPath(connection.jobId), { accessToken: connection.accessToken, method: "GET" });
 }
 
-export function listMoveJobs(connection: Connection) {
+export function listMockMoveJobs(connection: Connection) {
+  if (!mockApiEnabled) throw new Error("Move job listing is not part of the live API contract");
   return apiRequest<{ moves: MockMoveSummary[] }>("/api/v1/move-jobs", { accessToken: connection.accessToken, method: "GET" });
 }
 
-export function deleteMoveJob(connection: Connection) {
+export function deleteMockMoveJob(connection: Connection) {
+  if (!mockApiEnabled) throw new Error("Move job deletion is not part of the live API contract");
   return apiRequest<void>(jobPath(connection.jobId), { accessToken: connection.accessToken, method: "DELETE" });
 }
 
@@ -650,6 +653,8 @@ export function apiErrorMessage(error: unknown): string {
       return "요청한 작업을 찾을 수 없거나 접근이 종료됐어요.";
     case 409:
       return "다른 곳에서 상태가 변경됐어요. 최신 내용을 불러왔으니 다시 확인해 주세요.";
+    case 422:
+      return "입력한 내용을 다시 확인해 주세요.";
     case 429:
       return error.retryAfterSeconds === null
         ? "요청이 많아요. 잠시 후 다시 시도해 주세요."

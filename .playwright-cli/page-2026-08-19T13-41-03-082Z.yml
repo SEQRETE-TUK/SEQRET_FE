@@ -1,0 +1,33 @@
+- generic [ref=e2]:
+  - link "본문으로 건너뛰기" [ref=e8] [cursor=pointer]:
+    - /url: "#main-content"
+  - generic [ref=e61]:
+    - banner [ref=e62]:
+      - heading "홍길동님, 어떤 이사를 준비할까요?" [level=1] [ref=e63]: 홍길동님,어떤 이사를 준비할까요?
+    - main [ref=e64]:
+      - generic [ref=e65]:
+        - button "60초 촬영으로 준비를 시작해요 짐 목록과 작업조건 초안을 만들어요 새 이사 시작하기 휴대폰으로 이삿짐 상자를 촬영하는 모습" [ref=e67] [cursor=pointer]:
+          - generic [ref=e68]:
+            - strong [ref=e69]: 60초 촬영으로준비를 시작해요
+            - generic [ref=e70]: 짐 목록과 작업조건 초안을 만들어요
+            - generic [ref=e71]: 새 이사 시작하기
+          - img "휴대폰으로 이삿짐 상자를 촬영하는 모습" [ref=e74]
+        - generic [ref=e75]:
+          - heading "추가금이 생기는 순간" [level=2] [ref=e76]
+          - paragraph [ref=e77]: 미리 확인하면 당일 변경을 줄일 수 있어요
+          - generic [ref=e78]:
+            - article [ref=e79]:
+              - generic [ref=e82]:
+                - paragraph [ref=e83]: 작업조건 차이
+                - heading "엘리베이터·계단 조건이 달랐어요" [level=3] [ref=e84]
+            - article [ref=e85]:
+              - generic [ref=e88]:
+                - paragraph [ref=e89]: 짐 목록 차이
+                - heading "촬영 후 큰 짐이 추가됐어요" [level=3] [ref=e90]
+            - article [ref=e91]:
+              - generic [ref=e94]:
+                - paragraph [ref=e95]: 추가 작업
+                - heading "분해·설치 작업이 빠졌어요" [level=3] [ref=e96]
+    - navigation "주요 메뉴" [ref=e97]:
+      - button "홈" [ref=e98] [cursor=pointer]
+      - button "내 이사" [ref=e102] [cursor=pointer]

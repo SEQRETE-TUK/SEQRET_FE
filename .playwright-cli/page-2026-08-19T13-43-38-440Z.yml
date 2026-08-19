@@ -1,0 +1,19 @@
+- generic [ref=e2]:
+  - link "본문으로 건너뛰기" [ref=e3] [cursor=pointer]:
+    - /url: "#main-content"
+  - generic [ref=e9]:
+    - banner [ref=e10]:
+      - strong [ref=e11]: SEQRET
+      - generic [ref=e12]: Mock 모드
+    - main [ref=e13]:
+      - generic [ref=e14]:
+        - region [ref=e38]:
+          - heading "어떻게 시작할까요?" [level=1] [ref=e39]
+        - generic [ref=e40]:
+          - button "새 이사 이사 정보를 입력해 새로 시작해요" [ref=e41] [cursor=pointer]:
+            - generic [ref=e44]: 새 이사
+            - generic [ref=e45]: 이사 정보를 입력해새로 시작해요
+          - button "초대 코드 기존 이사 상황을 불러와요" [ref=e46] [cursor=pointer]:
+            - generic [ref=e49]: 초대 코드
+            - generic [ref=e50]: 기존 이사 상황을불러와요
+    - button "이전" [active] [ref=e51] [cursor=pointer]

@@ -25,8 +25,8 @@ export function MobilePageHeader({ className, description, left, onBack, right, 
   return <header className={cn("app-safe-header sticky top-0 z-[var(--z-sticky)] grid min-h-14 grid-cols-[48px_minmax(0,1fr)_48px] items-center bg-surface px-2", className)}><div className="flex min-w-0 items-center">{resolvedLeft}</div><div className="min-w-0 text-center"><h1 className="truncate text-ui-component font-extrabold leading-6 tracking-[var(--tracking-display)]">{title}</h1>{description ? <p className="mt-0.5 truncate text-xs leading-4 text-ink-600">{description}</p> : null}</div><div className="flex min-w-0 justify-end">{right}</div></header>;
 }
 
-export function MobileDetailHeader({ backLabel, onBack, onMore, title }: { backLabel: string; onBack: () => void; onMore: () => void; title: ReactNode }) {
-  return <MobilePageHeader className="sticky top-0 z-[var(--z-sticky)] border-b-0 bg-surface/98 backdrop-blur" left={<MobileHeaderButton ariaLabel={backLabel} onClick={onBack}><ArrowLeft aria-hidden="true" size="var(--icon-sm)" /></MobileHeaderButton>} right={<MobileHeaderButton ariaLabel="더보기" onClick={onMore}><MoreVertical aria-hidden="true" size="var(--icon-md)" weight="bold" /></MobileHeaderButton>} title={title} />;
+export function MobileDetailHeader({ backLabel, onBack, onMore, title }: { backLabel: string; onBack: () => void; onMore?: () => void; title: ReactNode }) {
+  return <MobilePageHeader className="sticky top-0 z-[var(--z-sticky)] border-b-0 bg-surface/98 backdrop-blur" left={<MobileHeaderButton ariaLabel={backLabel} onClick={onBack}><ArrowLeft aria-hidden="true" size="var(--icon-sm)" /></MobileHeaderButton>} right={onMore ? <MobileHeaderButton ariaLabel="더보기" onClick={onMore}><MoreVertical aria-hidden="true" size="var(--icon-md)" weight="bold" /></MobileHeaderButton> : null} title={title} />;
 }
 
 export function MobileDetailTabs<T extends string>({ current, items, label, onChange }: { current: T; items: Array<{ id: T; label: string }>; label: string; onChange: (id: T) => void }) {

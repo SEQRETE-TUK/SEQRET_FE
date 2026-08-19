@@ -10,7 +10,6 @@ import { MobileFrame } from "@/components/layout/mobile-frame";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { customerDisplayNameStorageKey, rolePath, useAuth } from "@/features/auth/model/auth-context";
-import { CustomerOnboardingSheet } from "@/features/auth/ui/customer-onboarding-sheet";
 import { apiErrorMessage, type ParticipantRole } from "@/features/workflow/api/workflow-api";
 import { cn } from "@/lib/utils";
 
@@ -23,14 +22,13 @@ const primaryRoles = roles;
 
 export function RoleEntry() {
   const navigate = useNavigate();
-  const { connect } = useAuth();
+  const { clearSession, connect } = useAuth();
   const [selected, setSelected] = useState<ParticipantRole>("customer");
   const [entryStep, setEntryStep] = useState<"role" | "choice" | "name" | "code">("role");
   const [displayName, setDisplayName] = useState("");
   const [accessCode, setAccessCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [connecting, setConnecting] = useState(false);
-  const [onboardingOpen, setOnboardingOpen] = useState(false);
   const selectedRole = roles.find((role) => role.id === selected)!;
 
   const chooseRole = (role: ParticipantRole) => {
@@ -60,6 +58,7 @@ export function RoleEntry() {
       if (!accessCode.trim() || connecting) return;
       setConnecting(true);
       setError(null);
+      window.sessionStorage.removeItem(customerDisplayNameStorageKey);
       try {
         await connect(accessCode, selected);
         navigate(rolePath(selected));
@@ -74,7 +73,8 @@ export function RoleEntry() {
       const name = displayName.trim();
       if (!name) return;
       window.sessionStorage.setItem(customerDisplayNameStorageKey, name);
-      setOnboardingOpen(true);
+      clearSession();
+      navigate(rolePath("customer"));
     }
   };
   const codeDescription = selected === "customer"
@@ -84,7 +84,6 @@ export function RoleEntry() {
       : "고객이 전달한 초대 코드를 확인한 뒤 담당 작업에 연결합니다.";
 
   return (
-    <>
     <div className="mobile-stage">
       <MobileFrame className="flex min-h-dvh flex-col bg-canvas">
         <header className="app-safe-header flex min-h-16 items-center justify-between gap-3 px-[var(--content-gutter)]">
@@ -117,7 +116,5 @@ export function RoleEntry() {
         </div>
       </MobileFrame>
     </div>
-    <CustomerOnboardingSheet onOpenChange={setOnboardingOpen} open={onboardingOpen} />
-    </>
   );
 }

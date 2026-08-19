@@ -1,6 +1,7 @@
 import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { mockApiEnabled } from "@/api/mock-api";
 import { MobileFrame } from "@/components/layout/mobile-frame";
 import { RouteLoading } from "@/components/layout/route-loading";
 import { useAuth } from "@/features/auth/model/auth-context";
@@ -22,7 +23,7 @@ function ConsumerDetailPage({ kind }: { kind: ConsumerDetailKind }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [params] = useSearchParams();
-  const jobId = params.get("job") ?? session?.actor.job_id ?? "";
+  const jobId = mockApiEnabled ? params.get("job") ?? session?.actor.job_id ?? "" : session?.actor.job_id ?? "";
   const connection: Connection | null = session && jobId ? { accessToken: session.accessToken, jobId } : null;
   const scopeQuery = useQuery({
     enabled: kind === "quote" && Boolean(connection),

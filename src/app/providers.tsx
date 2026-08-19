@@ -10,7 +10,7 @@ function shouldRetryQuery(failureCount: number, error: Error): boolean {
   }
 
   if (error instanceof ApiError) {
-    return error.status === 408 || error.status === 429 || error.status >= 500;
+    return error.status === 408 || error.status >= 500;
   }
 
   return true;

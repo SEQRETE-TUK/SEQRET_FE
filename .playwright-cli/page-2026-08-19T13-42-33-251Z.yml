@@ -1,0 +1,20 @@
+- generic [ref=e2]:
+  - link "본문으로 건너뛰기" [ref=e3] [cursor=pointer]:
+    - /url: "#main-content"
+  - generic [ref=e9]:
+    - banner [ref=e10]:
+      - strong [ref=e11]: SEQRET
+      - generic [ref=e12]: Mock 모드
+    - main [ref=e13]:
+      - generic [ref=e14]:
+        - region [ref=e39]:
+          - heading "초대 코드로 연결할게요" [level=1] [ref=e40]
+        - generic [ref=e41]:
+          - paragraph [ref=e42]: 고객이 전달한 초대 코드를 확인한 뒤 담당 작업에 연결합니다.
+          - generic [ref=e43]: 초대 코드
+          - textbox "초대 코드" [active] [ref=e44]:
+            - /placeholder: 초대 코드 입력
+            - text: seqret_mock_provider_0000000000000000000000000000
+    - generic [ref=e45]:
+      - button "이전" [ref=e46] [cursor=pointer]
+      - button "연결하기" [ref=e47] [cursor=pointer]

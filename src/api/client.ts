@@ -1,6 +1,7 @@
 import { mockApiEnabled, mockApiRequest } from "@/api/mock-api";
 
 const API_PREFIX = "/api/v1";
+const API_REQUEST_TIMEOUT_MS = 15_000;
 
 export interface ApiRequestOptions extends Omit<RequestInit, "headers"> {
   accessToken: string;
@@ -148,6 +149,9 @@ async function request<T>(
     credentials: "omit",
     headers,
     redirect: "error",
+    signal: requestInit.signal
+      ? AbortSignal.any([requestInit.signal, AbortSignal.timeout(API_REQUEST_TIMEOUT_MS)])
+      : AbortSignal.timeout(API_REQUEST_TIMEOUT_MS),
   });
   const responseBody = await parseResponseBody(response);
 
@@ -193,6 +197,7 @@ export async function downloadApiFile(
     credentials: "omit",
     headers: { Authorization: `Bearer ${normalizedToken}` },
     redirect: "error",
+    signal: AbortSignal.timeout(API_REQUEST_TIMEOUT_MS),
   });
   if (!response.ok) {
     throw new ApiError(

@@ -1,0 +1,23 @@
+- generic [ref=e2]:
+  - link "본문으로 건너뛰기" [ref=e3] [cursor=pointer]:
+    - /url: "#main-content"
+  - generic [ref=e9]:
+    - banner [ref=e10]:
+      - strong [ref=e11]: SEQRET
+      - generic [ref=e12]: Mock 모드
+    - main [ref=e13]:
+      - generic [ref=e14]:
+        - region [ref=e15]:
+          - heading "어떤 역할로 시작할까요?" [level=1] [ref=e16]
+        - group "연결 역할" [ref=e18]:
+          - generic [ref=e20]:
+            - generic [ref=e21] [cursor=pointer]:
+              - radio "고객" [ref=e22]
+              - strong [ref=e25]: 고객
+            - generic [ref=e26] [cursor=pointer]:
+              - radio "현장기사" [ref=e27]
+              - strong [ref=e30]: 현장기사
+            - generic [ref=e31] [cursor=pointer]:
+              - radio "이사업체" [checked] [active] [ref=e32]
+              - strong [ref=e35]: 이사업체
+    - button "이사업체로 시작" [ref=e38] [cursor=pointer]
