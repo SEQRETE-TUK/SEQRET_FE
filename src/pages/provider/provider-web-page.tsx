@@ -13,16 +13,15 @@ import {
 import { useMemo, useState, type ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
 
-import { mockAccessSecrets, mockApiEnabled, mockProviderDraftAccessSecret } from "@/api/mock-api";
+import { mockAccessSecrets, mockApiEnabled, mockProviderDraftAccessSecret, mockProviderRevisionAccessSecret } from "@/api/mock-api";
+import { AgreementHistorySheet } from "@/components/layout/agreement-history-sheet";
 import { FilterChip, MoveJourneyProgress, StatusTag } from "@/components/layout/app-primitives";
-import { AgreementOverview } from "@/components/layout/agreement-overview";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useAuth } from "@/features/auth/model/auth-context";
 import type { AuthSession } from "@/features/auth/model/auth-context";
-import { listScopeVersions, type ScopeVersionSummary } from "@/features/capture/api/capture-api";
 import {
   apiErrorMessage,
   getScopeReview,
@@ -80,7 +79,6 @@ function ProviderWebConsole({ connections, onConnect, onDisconnect, onSelect, se
   const canReadJob = Boolean(connection && !invitationPending);
   const scopeQuery = useQuery({ enabled: canReadJob, queryKey: workflowKeys.scope(connection?.jobId ?? "unconnected"), queryFn: () => getScopeReview(connection!), refetchInterval: mockApiEnabled ? 2_000 : false });
   const issueQuery = useQuery({ enabled: canReadJob, queryKey: workflowKeys.fieldIssues(connection?.jobId ?? "unconnected"), queryFn: () => listFieldIssues(connection!), refetchInterval: mockApiEnabled ? 2_000 : false });
-  const historyQuery = useQuery({ enabled: canReadJob, queryKey: [...workflowKeys.scope(connection?.jobId ?? "unconnected"), "versions"], queryFn: () => listScopeVersions(connection!) });
   const linkedScopeQueries = useQueries({ queries: connections.map((item) => ({ enabled: item.actor.invitation?.status !== "pending", queryKey: workflowKeys.scope(item.actor.job_id), queryFn: () => getScopeReview({ accessToken: item.accessToken, jobId: item.actor.job_id }) })) });
   const linkedJobs = connections.map((item, index) => ({ session: item, scope: linkedScopeQueries[index]?.data }));
   const scope = scopeQuery.data;
@@ -104,6 +102,9 @@ function ProviderWebConsole({ connections, onConnect, onDisconnect, onSelect, se
   const viewContext = view === "jobs" && jobMode === "detail"
     ? `연결 ${connections.length}건`
     : scope ? scope.job.customer_display_name ?? "고객" : "선택 작업 없음";
+  const nextMockProviderSecret = mockApiEnabled
+    ? [mockAccessSecrets.company_manager, mockProviderDraftAccessSecret, mockProviderRevisionAccessSecret][Math.min(connections.length, 2)]
+    : "";
 
   if (session && invitationPending) {
     return <div className="min-h-dvh bg-canvas px-[var(--content-gutter)] py-[var(--space-lg)] text-ink-900"><main className="mx-auto max-w-xl" id="main-content"><p className="text-ui-control text-primary-700">SEQRET · 업체용</p><h1 className="mt-2 text-ui-step-title">먼저 작업 초대를 확인해 주세요</h1><p className="mt-2 text-ui-support text-ink-600">수락 전에는 고객의 이사 정보나 견적을 불러오지 않습니다.</p><div className="mt-6"><InvitationPanel /></div></main></div>;
@@ -123,7 +124,7 @@ function ProviderWebConsole({ connections, onConnect, onDisconnect, onSelect, se
           </div> : null}
         </nav>
         <div className="mt-auto border-t border-line px-2 pt-4">
-          {session ? <Button className="w-full justify-start" onClick={onDisconnect} size="chip" variant="ghost"><SignOut aria-hidden="true" /> 연결 해제</Button> : <Button className="w-full justify-start" onClick={() => setConnectionOpen(true)} size="chip" variant="ghost"><Key aria-hidden="true" /> 초대 코드 입력</Button>}
+          {session ? <Button className="w-full justify-start" onClick={onDisconnect} size="chip" variant="ghost"><SignOut aria-hidden="true" /> 연결 해제</Button> : <Button className="w-full justify-start" onClick={() => setConnectionOpen(true)} size="chip" variant="ghost"><Key aria-hidden="true" /> 초대키 추가</Button>}
         </div>
       </aside>
 
@@ -132,12 +133,12 @@ function ProviderWebConsole({ connections, onConnect, onDisconnect, onSelect, se
           <div className="min-w-0"><p className="truncate text-ui-micro text-ink-500">{viewContext}</p><h1 className="mt-0.5 truncate text-ui-section">{viewTitle}</h1></div>
           <div className="flex items-center gap-2">
             {view === "jobs" && jobMode === "detail" ? <label className="hidden h-[var(--control-touch)] min-w-[17rem] items-center gap-2 rounded-[var(--radius-control)] border border-input bg-surface px-4 focus-within:border-primary-400 focus-within:ring-3 focus-within:ring-primary-100 lg:flex"><Search aria-hidden="true" className="text-ink-600" /><input aria-label="고객명, 주소 검색" autoComplete="off" className="min-w-0 flex-1 bg-transparent text-ui-control outline-none placeholder:text-ink-400" data-slot="input-proxy" name="providerSearch" onChange={(event) => setSearch(event.target.value)} placeholder="고객명, 주소 검색…" type="search" value={search} /></label> : null}
-            <Button aria-label="이사 연결" className="px-3 xl:px-4" onClick={() => setConnectionOpen(true)} variant="outline"><Key aria-hidden="true" /><span className="hidden xl:inline">이사 연결</span></Button>
+            <Button aria-label="초대키 추가" className="px-3 xl:px-4" onClick={() => setConnectionOpen(true)} variant="outline"><Key aria-hidden="true" /><span className="hidden xl:inline">초대키 추가</span></Button>
           </div>
         </header>
 
         <main className="min-w-0 p-4 sm:p-5 xl:p-7" id="main-content"><div className="mx-auto max-w-[var(--shell-wide)]">
-          {view === "jobs" && jobMode === "detail" ? <JobDashboard history={historyQuery.data ?? []} issues={issues} jobs={linkedJobs} onConnect={() => setConnectionOpen(true)} onIssue={() => changeView("issues")} onQuote={() => changeJobMode("quote")} onSearchChange={setSearch} onSelect={(next) => { onSelect(next); changeJobMode("detail"); }} scope={scope} search={search} selectedJobId={session?.actor.job_id ?? null} /> : null}
+          {view === "jobs" && jobMode === "detail" ? <JobDashboard issues={issues} jobs={linkedJobs} onConnect={() => setConnectionOpen(true)} onIssue={() => changeView("issues")} onQuote={() => changeJobMode("quote")} onSearchChange={setSearch} onSelect={(next) => { onSelect(next); changeJobMode("detail"); }} scope={scope} search={search} selectedJobId={session?.actor.job_id ?? null} /> : null}
           {view === "jobs" && jobMode === "quote" && connection ? <ProviderQuoteEditor key={connection.jobId} connection={connection} onBack={() => changeJobMode("detail")} scope={scope} /> : null}
           {view === "issues" ? connection ? <ProviderIssueWorkbench connection={connection} issues={issues} scope={scope} /> : <ProviderConnectionEmpty onConnect={() => setConnectionOpen(true)} /> : null}
           {view === "invite" ? session ? <OperationsPanel /> : <ProviderConnectionEmpty onConnect={() => setConnectionOpen(true)} /> : null}
@@ -148,12 +149,12 @@ function ProviderWebConsole({ connections, onConnect, onDisconnect, onSelect, se
         <ProviderMobileNav active={view === "issues"} badge={openIssues.length || undefined} icon={<WarningCircle aria-hidden="true" />} label="현장 이슈" onClick={() => changeView("issues")} />
         <ProviderMobileNav active={view === "invite"} icon={<UserPlus aria-hidden="true" />} label="기사·배차" onClick={() => changeView("invite")} />
       </nav>
-      <ProviderConnectionDialog connect={onConnect} onOpenChange={setConnectionOpen} open={connectionOpen} />
+      <ProviderConnectionDialog connect={onConnect} initialSecret={nextMockProviderSecret} key={connections.length} onOpenChange={setConnectionOpen} open={connectionOpen} />
     </div>
   );
 }
 
-function JobDashboard({ history, issues, jobs: linkedJobs, onConnect, onIssue, onQuote, onSearchChange, onSelect, scope, search, selectedJobId }: { history: ScopeVersionSummary[]; issues: FieldIssue[]; jobs: Array<{ session: AuthSession; scope: ScopeReview | undefined }>; onConnect: () => void; onIssue: () => void; onQuote: () => void; onSearchChange: (value: string) => void; onSelect: (session: AuthSession) => void; scope: ScopeReview | undefined; search: string; selectedJobId: string | null }) {
+function JobDashboard({ issues, jobs: linkedJobs, onConnect, onIssue, onQuote, onSearchChange, onSelect, scope, search, selectedJobId }: { issues: FieldIssue[]; jobs: Array<{ session: AuthSession; scope: ScopeReview | undefined }>; onConnect: () => void; onIssue: () => void; onQuote: () => void; onSearchChange: (value: string) => void; onSelect: (session: AuthSession) => void; scope: ScopeReview | undefined; search: string; selectedJobId: string | null }) {
   const [filter, setFilter] = useState<JobFilter>("all");
   const [historyOpen, setHistoryOpen] = useState(false);
   const allJobs = useMemo(() => {
@@ -256,57 +257,17 @@ function JobDashboard({ history, issues, jobs: linkedJobs, onConnect, onIssue, o
         </article>
       </section>}
 
-      {scope ? <ProviderHistoryDialog history={history} onOpenChange={setHistoryOpen} open={historyOpen} scope={scope} /> : null}
+      {scope ? <AgreementHistorySheet issue={undefined} onOpenChange={setHistoryOpen} open={historyOpen} presentation="dialog" scope={scope} /> : null}
     </div>
   );
 }
-function ProviderHistoryDialog({ history, onOpenChange, open, scope }: { history: ScopeVersionSummary[]; onOpenChange: (open: boolean) => void; open: boolean; scope: ScopeReview }) {
-  const [selectedVersionId, setSelectedVersionId] = useState<string | "list">(scope.scope.id);
-  const versions = [...history].sort((a, b) => b.sequence_number - a.sequence_number);
-  const showingList = selectedVersionId === "list";
-  const selectedVersion = versions.find((version) => version.id === selectedVersionId);
-  const selectedScope = selectedVersion ? scopeForHistoryVersion(scope, selectedVersion) : scope;
-  const close = () => { setSelectedVersionId(scope.scope.id); onOpenChange(false); };
-
-  return <Dialog onOpenChange={(nextOpen) => nextOpen ? onOpenChange(true) : close()} open={open}><DialogContent className={showingList ? "max-w-xl" : "max-w-2xl"}>
-    {showingList ? <>
-      <DialogHeader><DialogTitle>범위·합의 이력</DialogTitle><DialogDescription>저장된 확인서 버전과 양쪽의 확인 상태입니다.</DialogDescription></DialogHeader>
-      <div className="mt-6 space-y-3">
-        {versions.map((version) => { const current = version.id === scope.scope.id; return <button className={`block w-full rounded-[var(--radius-card)] border p-4 text-left transition-colors hover:bg-surface-muted ${current ? "border-primary-400 bg-primary-50/50" : "border-line"}`} key={version.id} onClick={() => setSelectedVersionId(version.id)} type="button"><div className="flex flex-wrap items-center justify-between gap-2"><strong>{current ? scope.scope.version_label : `v${version.sequence_number}`}{current ? " · 현재" : ""}</strong><time className="text-ui-data text-ink-600">{new Intl.DateTimeFormat("ko-KR", { month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(version.created_at))}</time></div><p className="mt-2 text-ui-support text-ink-600">항목 {version.content.items.length}개 · {version.locked_at ? "공동확정" : "검토 가능"}</p></button>; })}
-        {versions.length === 0 ? <p className="rounded-[var(--radius-card)] bg-surface-muted p-4 text-ui-support text-ink-600">버전 기록을 불러오는 중…</p> : null}
-        <article className="rounded-[var(--radius-card)] border border-line p-4"><strong>현재 확인 상태</strong><div className="mt-3 flex flex-wrap gap-2"><StatusTag tone={scope.company_confirmed_at ? "success" : "warning"}>업체 {scope.company_confirmed_at ? "확인" : "미확인"}</StatusTag><StatusTag tone={scope.customer_confirmed_at ? "success" : "warning"}>고객 {scope.customer_confirmed_at ? "확인" : "대기"}</StatusTag></div>{scope.revision_request ? <p className="mt-3 rounded-[var(--radius-control)] bg-warning-bg p-3 text-ui-support text-warning-ink">수정 요청 · {scope.revision_request.reason}</p> : null}</article>
-        {scope.approved_changes.map((change) => <article className="rounded-[var(--radius-card)] border border-line p-4" key={change.proposal_id}><span className="text-ui-micro text-primary-700">현장 변경 반영</span><strong className="mt-1 block break-words">{change.title}</strong><p className="mt-1 break-words text-ui-support text-ink-600">{change.reason}</p><p className="mt-3 text-ui-control">{money(change.quote.total_amount_krw)}</p></article>)}
-      </div>
-    </> : <>
-      <div className="flex items-start justify-between gap-3"><DialogHeader><DialogTitle>{selectedScope.scope.version_label} 확인서</DialogTitle><DialogDescription>해당 버전의 범위, 조건, 금액과 확인 상태입니다.</DialogDescription></DialogHeader><Button onClick={() => setSelectedVersionId("list")} size="chip" variant="ghost">전체 이력</Button></div>
-      <div className="mt-6"><AgreementOverview onOpenHistory={() => setSelectedVersionId("list")} scope={selectedScope} showCurrentStatus={selectedScope.scope.status === "customer_review" || selectedScope.scope.status === "confirmed"} showVersionHeader={false} /></div>
-    </>}
-  </DialogContent></Dialog>;
-}
-
-type HistoryScopeItem = ScopeReview["scope"]["room_groups"][number]["items"][number];
-
-function scopeForHistoryVersion(scope: ScopeReview, version: ScopeVersionSummary): ScopeReview {
-  if (version.id === scope.scope.id) return scope;
-  const versionItems = version.content.items;
-  const roomGroups = scope.scope.room_groups.map((group) => {
-    const items = versionItems.filter((item) => item.room_zone_id === group.room_zone_id).map((item) => {
-      const name = "name" in item ? item.name : item.description;
-      const reviewStatus: HistoryScopeItem["review_status"] = "review_status" in item && (item.review_status === "confirmed" || item.review_status === "review_required") ? item.review_status : "confirmed";
-      const source: HistoryScopeItem["source"] = "source" in item && (item.source === "ai" || item.source === "customer" || item.source === "company" || item.source === "field_change") ? item.source : "customer";
-      return { item_key: item.item_key, room_zone_id: item.room_zone_id, description: name, name, quantity: "quantity" in item ? item.quantity : null, unit: "unit" in item ? item.unit : null, work_note: "work_note" in item ? item.work_note ?? null : null, review_status: reviewStatus, source, review_required: false, source_media_asset_ids: [] };
-    });
-    return { ...group, item_count: items.length, review_required_count: 0, items };
-  }).filter((group) => group.items.length > 0);
-  return { ...scope, scope: { ...scope.scope, id: version.id, version_label: `v${version.sequence_number}`, locked_at: version.locked_at, status: version.locked_at ? "confirmed" : "company_review", item_count: versionItems.length, work_count: 0, exclusion_count: 0, review_required_count: 0, room_groups: roomGroups, location_conditions: version.content.schema_version === 2 ? version.content.location_conditions : [], included_works: [], exclusions: [] }, proposal_id: null, quote: null, execution_plan: null, proposal_reason: null, approved_changes: [], company_confirmed_at: version.locked_at ? scope.company_confirmed_at : null, customer_confirmed_at: version.locked_at ? scope.customer_confirmed_at : null, revision_request: null };
-}
 
 function ProviderConnectionEmpty({ onConnect }: { onConnect: () => void }) {
-  return <section className="py-10 text-center"><h3 className="text-ui-component">연결된 이사가 없어요</h3><p className="mt-2 text-ui-support text-ink-600">고객에게 받은 초대 코드로 이사 상태를 불러오세요.</p><Button className="mt-5" onClick={onConnect}><Key aria-hidden="true" /> 초대 코드 입력</Button></section>;
+  return <section className="py-10 text-center"><h3 className="text-ui-component">연결된 이사가 없어요</h3><p className="mt-2 text-ui-support text-ink-600">고객에게 받은 초대 코드로 이사 상태를 불러오세요.</p><Button className="mt-5" onClick={onConnect}><Key aria-hidden="true" /> 초대키 추가</Button></section>;
 }
 
-function ProviderConnectionDialog({ connect, onOpenChange, open }: { connect: ReturnType<typeof useAuth>["connect"]; onOpenChange: (open: boolean) => void; open: boolean }) {
-  const [secret, setSecret] = useState(mockApiEnabled ? mockAccessSecrets.company_manager : "");
+function ProviderConnectionDialog({ connect, initialSecret, onOpenChange, open }: { connect: ReturnType<typeof useAuth>["connect"]; initialSecret: string; onOpenChange: (open: boolean) => void; open: boolean }) {
+  const [secret, setSecret] = useState(initialSecret);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const submit = async () => {
@@ -315,7 +276,6 @@ function ProviderConnectionDialog({ connect, onOpenChange, open }: { connect: Re
     setError(null);
     try {
       await connect(secret, "company_manager");
-      if (mockApiEnabled) setSecret(mockProviderDraftAccessSecret);
       onOpenChange(false);
     } catch (caught) {
       setError(apiErrorMessage(caught));
@@ -323,7 +283,7 @@ function ProviderConnectionDialog({ connect, onOpenChange, open }: { connect: Re
       setPending(false);
     }
   };
-  return <Dialog onOpenChange={onOpenChange} open={open}><DialogContent><DialogHeader><DialogTitle>이사 연결</DialogTitle><DialogDescription>고객에게 받은 초대 코드를 입력하면 해당 이사의 상태를 불러옵니다.</DialogDescription></DialogHeader><div className="mt-6"><Label htmlFor="provider-invite-code">초대 코드</Label><Input autoCapitalize="none" autoComplete="off" className="mt-2" id="provider-invite-code" name="providerInviteCode" onChange={(event) => setSecret(event.target.value)} placeholder="초대 코드 붙여넣기…" spellCheck={false} type="password" value={secret} />{error ? <p className="mt-3 text-ui-support text-danger-ink" role="alert">{error}</p> : null}</div><DialogFooter><Button className="w-full sm:w-auto" disabled={!secret.trim() || pending} onClick={submit} size="cta"><Key aria-hidden="true" />{pending ? "불러오는 중…" : "이사 불러오기"}</Button></DialogFooter></DialogContent></Dialog>;
+  return <Dialog onOpenChange={onOpenChange} open={open}><DialogContent><DialogHeader><DialogTitle>초대키 추가</DialogTitle><DialogDescription>고객에게 받은 초대키를 입력하면 작업을 추가합니다.</DialogDescription></DialogHeader><div className="mt-6"><Label htmlFor="provider-invite-code">초대키</Label><Input autoCapitalize="none" autoComplete="off" className="mt-2" id="provider-invite-code" name="providerInviteCode" onChange={(event) => setSecret(event.target.value)} placeholder="초대키 붙여넣기…" spellCheck={false} type="password" value={secret} />{error ? <p className="mt-3 text-ui-support text-danger-ink" role="alert">{error}</p> : null}</div><DialogFooter><Button className="w-full sm:w-auto" disabled={!secret.trim() || pending} onClick={submit} size="cta"><Key aria-hidden="true" />{pending ? "추가 중…" : "작업 추가"}</Button></DialogFooter></DialogContent></Dialog>;
 }
 
 

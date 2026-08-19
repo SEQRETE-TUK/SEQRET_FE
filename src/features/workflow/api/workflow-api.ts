@@ -84,6 +84,7 @@ export interface MockMoveSummary {
   version_label: string;
   scope_status: ScopeReview["scope"]["status"];
   company_participation_status: ScopeReview["company_participation_status"];
+  completion_request_status: CompletionRequest["status"] | null;
   quote: QuoteSnapshot | null;
   item_count: number;
   adjustment_count: number;

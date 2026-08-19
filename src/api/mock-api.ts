@@ -32,10 +32,12 @@ export const mockAccessSecrets: Record<ParticipantRole, string> = {
   field_worker: "seqret_mock_worker_000000000000000000000000000000",
 };
 export const mockProviderDraftAccessSecret = "seqret_mock_provider_draft_000000000000000000000000000";
+export const mockProviderRevisionAccessSecret = "seqret_mock_provider_revision_00000000000000000000000000";
 
 export const mockJobId = "11111111-1111-4111-8111-111111111111";
 const JOB_ID = mockJobId;
 const MOCK_DRAFT_JOB_ID = "99999999-9999-4999-8999-999999999999";
+const MOCK_REVISION_JOB_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const CUSTOMER_ID = "22222222-2222-4222-8222-222222222222";
 const PROVIDER_ID = "33333333-3333-4333-8333-333333333333";
 const WORKER_ID = "44444444-4444-4444-8444-444444444444";
@@ -94,7 +96,7 @@ function actor(role: ParticipantRole, participantId: string, displayName: string
   };
 }
 
-function createState(jobId = JOB_ID, customerAccessToken = mockAccessSecrets.customer): MockState {
+function createState(jobId = JOB_ID, customerAccessToken = mockAccessSecrets.customer, includeCompletionRequest = false): MockState {
   const createdAt = now();
   const job: MoveJob = {
     id: jobId,
@@ -222,7 +224,7 @@ function createState(jobId = JOB_ID, customerAccessToken = mockAccessSecrets.cus
     confirmed_at: createdAt,
     notification_created: true,
   };
-  const completionRequest: CompletionRequest = {
+  const completionRequest: CompletionRequest | null = includeCompletionRequest ? {
     completion_request_id: "completion-request-1",
     client_reference: "mock-completion-request",
     completion_submission_id: "completion-submission-1",
@@ -234,29 +236,29 @@ function createState(jobId = JOB_ID, customerAccessToken = mockAccessSecrets.cus
     unrecorded_extra_charge: null,
     problem_report: null,
     notification_created: true,
-  };
+  } : null;
   const completion: CompletionSummary = {
     job: jobHeader,
     job_status: "active",
-    completion_submission_id: "completion-submission-1",
-    completed_at: createdAt,
-    final_amount_krw: quote.total_amount_krw,
-    duration_minutes: 420,
-    completion_media: [
+    completion_submission_id: includeCompletionRequest ? "completion-submission-1" : null,
+    completed_at: includeCompletionRequest ? createdAt : null,
+    final_amount_krw: includeCompletionRequest ? quote.total_amount_krw : null,
+    duration_minutes: includeCompletionRequest ? 420 : null,
+    completion_media: includeCompletionRequest ? [
       { media_asset_id: "mock-completion-1", room_zone_id: DESTINATION_ZONE_ID, room_zone_label: "도착지", content_type: "image/jpeg", read_url: "/room-after-evidence.png", expires_at: future() },
       { media_asset_id: "mock-completion-2", room_zone_id: DESTINATION_ZONE_ID, room_zone_label: "도착지", content_type: "image/jpeg", read_url: "/built-in-wardrobe-evidence.png", expires_at: future() },
-    ],
-    completion_media_count: 2,
+    ] : [],
+    completion_media_count: includeCompletionRequest ? 2 : 0,
     checklist: { completed_count: 3, total_count: completionCheckItems.length, items: completionCheckItems.map((item, index) => ({ ...item, confirmed: index < 3 })) },
-    onsite_confirmation_completed: true,
+    onsite_confirmation_completed: includeCompletionRequest,
     worker_shifts: [{ worker_id: WORKER_ID, display_name: "박현장", role_label: "팀장", started_at: createdAt, ended_at: createdAt, duration_minutes: 420 }],
     field_changes: [],
     quote,
     completion_request: completionRequest,
     approved_scope_version_id: SCOPE_ID,
     approved_scope_version_label: "v3",
-    documents: [{ key: "completion", name: "작업 완료 확인서", status: "ready" }],
-    archive_ready: true,
+    documents: includeCompletionRequest ? [{ key: "completion", name: "작업 완료 확인서", status: "ready" }] : [],
+    archive_ready: includeCompletionRequest,
     retention_until: future(),
     problem_report_count: 0,
   };
@@ -383,6 +385,28 @@ function createDraftState(jobId: string, customerAccessToken: string) {
   return draft;
 }
 
+function createRevisionState(jobId: string, customerAccessToken: string) {
+  const revision = createState(jobId, customerAccessToken, true);
+  const customerName = "박민준";
+  const revisionJob = { ...revision.scope.job, customer_display_name: customerName, destination_summary: "서울 송파구 문정동", job_code: "MOCK-2026-003", origin_summary: "서울 강남구 논현동", title: "반포 오피스텔 이사" };
+  revision.scope = {
+    ...revision.scope,
+    job: revisionJob,
+    scope: { ...revision.scope.scope, status: "revision_requested", version_label: "v3" },
+    collaboration_status: "revision_requested",
+    agreement_notice: "고객이 제안 내용을 확인하고 수정 요청을 보냈습니다.",
+    revision_request: { revision_request_id: "revision-request-mock-1", status: "requested", reason: "출발지 계단 운반 금액과 작업 인원을 다시 확인해 주세요.", requested_at: now() },
+  };
+  revision.job = { ...revision.job, title: revisionJob.title, participants: revision.job.participants.map((participant) => participant.role === "customer" ? { ...participant, display_name: customerName } : participant), locations: revision.job.locations.map((location, index) => ({ ...location, label: index === 0 ? revisionJob.origin_summary : revisionJob.destination_summary })) };
+  revision.completion = { ...revision.completion, job: revisionJob };
+  revision.dispatch = { ...revision.dispatch, job: { ...revisionJob, viewer_role: "company_manager" } };
+  revision.fieldBrief = { ...revision.fieldBrief, job: { ...revisionJob, viewer_role: "field_worker" } };
+  Object.values(revision.actors).filter((actor) => actor.role === "customer").forEach((actor) => { actor.display_name = customerName; });
+  const providerInvitation = revision.invitations.find((invitation) => invitation.role === "company_manager");
+  revision.actors[mockProviderRevisionAccessSecret] = { ...actor("company_manager", PROVIDER_ID, "안심이사 매니저", jobId), invitation: providerInvitation ?? null };
+  return revision;
+}
+
 function scopeItemsFromInput(items: AnalysisReviewItemInput) {
   const isV2 = "name" in items;
   const description = isV2 ? items.name : items.description;
@@ -419,6 +443,7 @@ function replaceDraftScopeItems(state: MockState, items: AnalysisReviewItemInput
 const mockStates = new Map<string, MockState>([
   [JOB_ID, createState(JOB_ID)],
   [MOCK_DRAFT_JOB_ID, createDraftState(MOCK_DRAFT_JOB_ID, "seqret_mock_customer_draft_000000000000000000000000")],
+  [MOCK_REVISION_JOB_ID, createRevisionState(MOCK_REVISION_JOB_ID, "seqret_mock_customer_revision_000000000000000000000000")],
 ]);
 
 function result<T>(value: T): Promise<T> {
@@ -435,6 +460,7 @@ function moveSummary(state: MockState): MockMoveSummary {
     version_label: state.scope.scope.version_label,
     scope_status: state.scope.scope.status,
     company_participation_status: state.scope.company_participation_status,
+    completion_request_status: state.completion.completion_request?.status ?? null,
     quote: state.scope.quote,
     item_count: state.scope.scope.item_count,
     adjustment_count: state.scope.quote?.adjustments.length ?? 0,
