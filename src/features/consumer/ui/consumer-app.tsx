@@ -628,8 +628,9 @@ function ConsumerAgreement({ completion, connection, fallbackItemCount, fallback
   const [historyOpen, setHistoryOpen] = useState(false);
   const refresh = () => Promise.all([queryClient.invalidateQueries({ queryKey: workflowKeys.root(connection.jobId) }), queryClient.invalidateQueries({ queryKey: workflowKeys.moves(connection.accessToken) })]);
   const issue = issues?.find((item) => item.status === "customer_review" && item.change_proposal_id);
+  const clarificationIssue = issues?.find((item) => item.status === "clarification_requested" && item.change_proposal_id);
   const resolvedIssue = issues?.find((item) => item.status === "approved" || item.status === "rejected");
-  const displayIssue = completion?.completion_request ? resolvedIssue : issue ?? issues?.find((item) => item.status !== "approved" && item.status !== "rejected");
+  const displayIssue = completion?.completion_request ? resolvedIssue : issue ?? clarificationIssue;
   const proposalId = displayIssue?.change_proposal_id;
   const proposalQuery = useQuery({
     enabled: Boolean(proposalId),
