@@ -613,7 +613,7 @@ function ConnectedCapture({
     workflow.manualScopeMutation.error;
   const initialVideoReady = Boolean(job && !workflow.jobQuery.isPending && !workflow.sessionsQuery.isPending && !workflow.consentPolicyQuery.isPending);
 
-  const startVideoUpload = (file: File, durationSeconds: number) => {
+  const startVideoUpload = (file: File) => {
     if (resumableVideoSession) {
       setLocalError(null);
       setVideoAnalysisSessionId(resumableVideoSession.id);
@@ -638,7 +638,7 @@ function ConnectedCapture({
       setVideoMode("loading");
     };
     const uploadAndAnalyze = (captureSessionId: string) => workflow.uploadMutation.mutate(
-      { captureSessionId, durationSeconds, file, roomZoneId },
+      { captureSessionId, file, roomZoneId },
       {
         onSuccess: () => {
           if (mockApiEnabled) {
@@ -670,9 +670,8 @@ function ConnectedCapture({
       setLocalError(error);
       return;
     }
-    let durationSeconds: number;
     try {
-      durationSeconds = await readVideoDuration(file);
+      await readVideoDuration(file);
     } catch (durationError) {
       setLocalError(
         durationError instanceof Error
@@ -685,7 +684,7 @@ function ConnectedCapture({
     setLocalError(null);
     setVideoAnalysisSessionId(null);
     setVideoMode("loading");
-    startVideoUpload(file, durationSeconds);
+    startVideoUpload(file);
   };
 
   useEffect(() => {

@@ -199,7 +199,6 @@ export interface CreateMediaUploadRequest extends AuthorizedRequest {
   captureSessionId: string;
   contentLength: number;
   contentType: SupportedCaptureContentType;
-  durationSeconds?: number;
   mediaPurpose?: MediaAsset["media_purpose"];
   roomZoneId: string;
 }
@@ -361,7 +360,6 @@ export async function createMediaUpload({
   captureSessionId,
   contentLength,
   contentType,
-  durationSeconds,
   jobId,
   mediaPurpose = "inventory",
   roomZoneId,
@@ -376,7 +374,6 @@ export async function createMediaUpload({
         media_purpose: mediaPurpose,
         content_type: contentType,
         content_length: contentLength,
-        ...(durationSeconds === undefined ? {} : { duration_seconds: durationSeconds }),
       }),
       headers: jsonHeaders(),
       method: "POST",
