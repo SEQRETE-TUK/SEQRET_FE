@@ -67,6 +67,7 @@ interface ConnectedCaptureProps {
   initialVideoFile?: File | null;
   onComplete: () => void;
   onDisconnect: () => void;
+  onResumeUnavailable?: () => void;
 }
 
 function VideoCaptureStage({
@@ -654,6 +655,7 @@ function ConnectedCapture({
   initialVideoFile,
   onComplete,
   onDisconnect,
+  onResumeUnavailable,
 }: ConnectedCaptureProps) {
   const workflow = useCaptureWorkflow(connection);
   const [localError, setLocalError] = useState<string | null>(null);
@@ -663,7 +665,7 @@ function ConnectedCapture({
   const [manualDraftItems, setManualDraftItems] = useState<
     AnalysisReviewDraftItem[]
   >([]);
-  const [videoMode, setVideoMode] = useState<"capture" | "loading" | "review" | null>(initialVideoFile ? "loading" : initialVideo ? "capture" : null);
+  const [videoMode, setVideoMode] = useState<"capture" | "loading" | "review" | null>(initialVideo ? "loading" : null);
   const [mockProcessingStep, setMockProcessingStep] = useState(0);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [videoAnalysisSessionId, setVideoAnalysisSessionId] = useState<string | null>(null);
@@ -1022,7 +1024,13 @@ function ConnectedCapture({
       !initialVideoReady
     ) return;
     initialVideoStarted.current = true;
-    if (!resumableVideoSession) return;
+    if (!resumableVideoSession) {
+      const redirectTimer = window.setTimeout(
+        () => (onResumeUnavailable ?? onDisconnect)(),
+        0,
+      );
+      return () => window.clearTimeout(redirectTimer);
+    }
     const resumeTimer = window.setTimeout(() => {
       setLocalError(null);
       setVideoAnalysisSessionId(resumableVideoSession.id);
@@ -1033,7 +1041,7 @@ function ConnectedCapture({
       setVideoMode("loading");
     }, 0);
     return () => window.clearTimeout(resumeTimer);
-  }, [initialVideo, initialVideoFile, initialVideoReady, resumableVideoSession]);
+  }, [initialVideo, initialVideoFile, initialVideoReady, onDisconnect, onResumeUnavailable, resumableVideoSession]);
 
   if (workflow.jobQuery.isPending || workflow.sessionsQuery.isPending) {
     return (
@@ -1829,6 +1837,7 @@ export function LiveCaptureFlow({
   initialVideoFile = null,
   onComplete,
   onExit,
+  onResumeUnavailable,
 }: {
   initialConnection?: CaptureConnection | null;
   initialManual?: boolean;
@@ -1836,6 +1845,7 @@ export function LiveCaptureFlow({
   initialVideoFile?: File | null;
   onComplete?: () => void;
   onExit?: () => void;
+  onResumeUnavailable?: () => void;
 } = {}) {
   const queryClient = useQueryClient();
   const [connection, setConnection] = useState<CaptureConnection | null>(
@@ -1863,6 +1873,7 @@ export function LiveCaptureFlow({
           key={connection.cacheScope}
           onComplete={onComplete ?? disconnect}
           onDisconnect={disconnect}
+          onResumeUnavailable={onResumeUnavailable}
         />
       ) : (
         <ConnectionForm

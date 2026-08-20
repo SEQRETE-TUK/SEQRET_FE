@@ -36,6 +36,7 @@ export function CapturePage() {
           navigate(inventoryHref, { replace: true });
         }}
         onExit={back}
+        onResumeUnavailable={() => navigate(inventoryHref, { replace: true })}
       />
     </div>
   );

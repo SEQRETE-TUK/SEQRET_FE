@@ -137,16 +137,16 @@ test("opens the native video picker from the inventory action", async ({ page })
   await expect(page.getByRole("heading", { name: "AI 분석 중" })).toBeVisible();
 });
 
-test("keeps direct video capture URLs available for session recovery", async ({ page }) => {
+test("redirects stale video capture URLs back to the inventory action", async ({ page }) => {
   await page.goto("/consumer");
   await expect(page.getByRole("heading", { name: /김서큐님/ })).toBeVisible();
   await page.evaluate(() => {
     history.pushState({}, "", "/consumer/capture?mode=video&job=11111111-1111-4111-8111-111111111111");
     window.dispatchEvent(new PopStateEvent("popstate"));
   });
-  await expect(page).toHaveURL(/\/consumer\/capture\?mode=video&job=/);
-  await expect(page.getByRole("heading", { name: "집 전체 촬영" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "AI 영상 촬영", exact: true })).toHaveCount(0);
+  await expect(page).toHaveURL(/\/consumer\?tab=move&view=items&job=/);
+  await expect(page.getByRole("button", { name: "AI 영상 촬영", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "침실 촬영" })).toHaveCount(0);
 });
 
 test("shows the shared code instead of delete after a quote is accepted", async ({ page }) => {
