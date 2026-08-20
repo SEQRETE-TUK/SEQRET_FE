@@ -36,6 +36,7 @@ import {
   captureFileError,
   isValidAccessSecret,
   isValidJobId,
+  readVideoDuration,
   type AnalysisReview,
   type CaptureAnalysis,
 } from "@/features/capture/api/capture-api";
@@ -612,7 +613,7 @@ function ConnectedCapture({
     workflow.manualScopeMutation.error;
   const initialVideoReady = Boolean(job && !workflow.jobQuery.isPending && !workflow.sessionsQuery.isPending && !workflow.consentPolicyQuery.isPending);
 
-  const startVideoUpload = (file: File) => {
+  const startVideoUpload = (file: File, durationSeconds: number) => {
     if (resumableVideoSession) {
       setLocalError(null);
       setVideoAnalysisSessionId(resumableVideoSession.id);
@@ -637,7 +638,7 @@ function ConnectedCapture({
       setVideoMode("loading");
     };
     const uploadAndAnalyze = (captureSessionId: string) => workflow.uploadMutation.mutate(
-      { captureSessionId, file, roomZoneId },
+      { captureSessionId, durationSeconds, file, roomZoneId },
       {
         onSuccess: () => {
           if (mockApiEnabled) {
@@ -663,17 +664,28 @@ function ConnectedCapture({
     }
   };
 
-  const prepareVideo = (file: File) => {
+  const prepareVideo = async (file: File) => {
     const error = captureFileError(file);
     if (error) {
       setLocalError(error);
+      return;
+    }
+    let durationSeconds: number;
+    try {
+      durationSeconds = await readVideoDuration(file);
+    } catch (durationError) {
+      setLocalError(
+        durationError instanceof Error
+          ? durationError.message
+          : friendlyError(durationError),
+      );
       return;
     }
     setVideoSubmitPendingSessionId(null);
     setLocalError(null);
     setVideoAnalysisSessionId(null);
     setVideoMode("loading");
-    startVideoUpload(file);
+    startVideoUpload(file, durationSeconds);
   };
 
   useEffect(() => {
@@ -756,7 +768,7 @@ function ConnectedCapture({
   }, [sessions, videoAnalysisRequested, videoMode, videoSubmitPendingSessionId, workflow]);
 
   useEffect(() => {
-    prepareVideoRef.current = prepareVideo;
+    prepareVideoRef.current = (file) => void prepareVideo(file);
   });
 
   useEffect(() => {
@@ -913,7 +925,7 @@ function ConnectedCapture({
     appendReviewOnNextLoad.current = true;
     setLocalError(null);
     setLocalNotice(null);
-    prepareVideo(file);
+    void prepareVideo(file);
   };
 
   const changeReviewItem = (

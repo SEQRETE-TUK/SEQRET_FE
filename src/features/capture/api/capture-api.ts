@@ -199,6 +199,7 @@ export interface CreateMediaUploadRequest extends AuthorizedRequest {
   captureSessionId: string;
   contentLength: number;
   contentType: SupportedCaptureContentType;
+  durationSeconds?: number;
   mediaPurpose?: MediaAsset["media_purpose"];
   roomZoneId: string;
 }
@@ -229,6 +230,7 @@ const UUID_PATTERN =
 const ACCESS_SECRET_PATTERN = /^[A-Za-z0-9_-]{40,100}$/;
 const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
 const MAX_VIDEO_BYTES = 200 * 1024 * 1024;
+const MAX_VIDEO_DURATION_SECONDS = 2 * 60;
 
 function pathSegment(value: string): string {
   return encodeURIComponent(value);
@@ -268,6 +270,30 @@ export function captureFileError(file: File): string | null {
       : "사진은 20MB 이하로 선택해 주세요.";
   }
   return null;
+}
+
+export async function readVideoDuration(file: File): Promise<number> {
+  const video = document.createElement("video");
+  const objectUrl = URL.createObjectURL(file);
+  video.preload = "metadata";
+  try {
+    const duration = await new Promise<number>((resolve, reject) => {
+      video.onloadedmetadata = () => resolve(video.duration);
+      video.onerror = () => reject(new Error("영상 길이를 확인할 수 없어요. 다시 촬영해 주세요."));
+      video.src = objectUrl;
+      video.load();
+    });
+    if (!Number.isFinite(duration) || duration <= 0) {
+      throw new Error("영상 길이를 확인할 수 없어요. 다시 촬영해 주세요.");
+    }
+    if (duration > MAX_VIDEO_DURATION_SECONDS) {
+      throw new Error("영상은 2분 이내로 촬영해 주세요.");
+    }
+    return duration;
+  } finally {
+    video.removeAttribute("src");
+    URL.revokeObjectURL(objectUrl);
+  }
 }
 
 export function asSupportedContentType(file: File): SupportedCaptureContentType {
@@ -335,6 +361,7 @@ export async function createMediaUpload({
   captureSessionId,
   contentLength,
   contentType,
+  durationSeconds,
   jobId,
   mediaPurpose = "inventory",
   roomZoneId,
@@ -349,6 +376,7 @@ export async function createMediaUpload({
         media_purpose: mediaPurpose,
         content_type: contentType,
         content_length: contentLength,
+        ...(durationSeconds === undefined ? {} : { duration_seconds: durationSeconds }),
       }),
       headers: jsonHeaders(),
       method: "POST",

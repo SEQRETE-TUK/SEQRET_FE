@@ -126,6 +126,18 @@ test("lets a connected customer choose a new move or invite code", async ({ page
 });
 
 test("opens the native video picker from the inventory action", async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(HTMLMediaElement.prototype, "duration", {
+      configurable: true,
+      get: () => 60,
+    });
+    Object.defineProperty(HTMLMediaElement.prototype, "load", {
+      configurable: true,
+      value(this: HTMLMediaElement) {
+        queueMicrotask(() => this.dispatchEvent(new Event("loadedmetadata")));
+      },
+    });
+  });
   await page.goto("/consumer?tab=move&view=items");
   const captureButton = page.getByRole("button", { name: "AI 영상 촬영", exact: true });
   await expect(captureButton).toBeVisible();
@@ -143,6 +155,29 @@ test("opens the native video picker from the inventory action", async ({ page })
   await expect(page.getByRole("heading", { name: /AI가 짐 \d+개를 발견했어요/ })).toBeVisible();
   await expect(page.getByRole("img", { name: "분석한 영상 미리보기" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "AI 초안을 확인해 주세요" })).toHaveCount(0);
+});
+
+test("rejects a video longer than two minutes before upload", async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(HTMLMediaElement.prototype, "duration", {
+      configurable: true,
+      get: () => 121,
+    });
+    Object.defineProperty(HTMLMediaElement.prototype, "load", {
+      configurable: true,
+      value(this: HTMLMediaElement) {
+        queueMicrotask(() => this.dispatchEvent(new Event("loadedmetadata")));
+      },
+    });
+  });
+  await page.goto("/consumer?tab=move&view=items");
+  const fileChooserPromise = page.waitForEvent("filechooser");
+  await page.getByRole("button", { name: "AI 영상 촬영", exact: true }).click();
+  const fileChooser = await fileChooserPromise;
+  await fileChooser.setFiles({ name: "long.mp4", mimeType: "video/mp4", buffer: Buffer.from("mock-video") });
+
+  await expect(page.getByText("영상은 2분 이내로 촬영해 주세요.")).toBeVisible();
+  await expect(page.getByText("촬영 영상을 업로드하고 있어요")).toHaveCount(0);
 });
 
 test("reuses a video session while its analysis is active", () => {

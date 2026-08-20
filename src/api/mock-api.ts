@@ -828,6 +828,7 @@ export async function mockApiRequest<T>(path: string, init: RequestInit, accessT
     state.analysisReview.items = input.items.map((item) => ({ ...scopeItemsFromInput(item), scope_source: "customer" as const, source: "customer" as const, confidence: null }));
     state.analysisReview.review_completed_at = now();
     state.analysisReview.review_scope_version_id = SCOPE_ID;
+    state.analysisReview.video_preview = null;
     return result(state.analysisReview) as Promise<T>;
   }
   if (path === `${jobPath}/scope-versions` && method === "GET") return result(state.scopeVersions) as Promise<T>;

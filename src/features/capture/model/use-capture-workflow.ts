@@ -30,6 +30,7 @@ export interface CaptureConnection {
 
 interface StartUploadInput {
   captureSessionId: string;
+  durationSeconds?: number;
   file: File;
   roomZoneId: string;
 }
@@ -129,6 +130,7 @@ export function useCaptureWorkflow(connection: CaptureConnection) {
           captureSessionId: input.captureSessionId,
           contentLength: input.file.size,
           contentType: asSupportedContentType(input.file),
+          durationSeconds: input.durationSeconds,
           roomZoneId: input.roomZoneId,
         });
         resumable = {
