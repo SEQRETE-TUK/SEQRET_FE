@@ -8,7 +8,7 @@ import {
 import {
   WarningStatusIcon as AlertTriangle,
 } from "@/components/icons";
-import type { FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,11 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import type { AnalysisReview } from "@/features/capture/api/capture-api";
+import { FilterChip } from "@/components/layout/app-primitives";
+import {
+  movingItemCategoryForName,
+  type MovingItemCategory,
+} from "@/components/moving-item-assets";
 
 export interface AnalysisReviewDraftItem {
   itemKey: string;
@@ -31,7 +36,7 @@ interface AnalysisReviewPanelProps {
   canAdd: boolean;
   draftItems: AnalysisReviewDraftItem[];
   hasUnsavedChanges: boolean;
-  onAdd: () => void;
+  onAdd: (description?: string) => void;
   onChange: (itemKey: string, changes: Partial<AnalysisReviewDraftItem>) => void;
   onRemove: (itemKey: string) => void;
   onRestoreRemoved: () => void;
@@ -108,11 +113,32 @@ export function AnalysisReviewPanel({
   removedItemDescription,
   review,
 }: AnalysisReviewPanelProps) {
+  const [categoryFilter, setCategoryFilter] = useState<"전체" | MovingItemCategory>("전체");
   const completed = review.review_scope_version_id !== null;
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     onSubmit();
   };
+  const categoryCounts = (Object.keys(manualCategoryTone) as ManualCategory[]).reduce(
+    (counts, category) => {
+      counts[category] = draftItems.filter((item) =>
+        movingItemCategoryForName(item.name || item.description) === category,
+      ).length;
+      return counts;
+    },
+    {} as Record<ManualCategory, number>,
+  );
+  const visibleDraftItems = draftItems.filter(
+    (item) =>
+      categoryFilter === "전체" ||
+      movingItemCategoryForName(item.name || item.description) === categoryFilter,
+  );
+  const selectedCatalog = manualCatalog.filter(
+    (item) => categoryFilter === "전체" || item.category === categoryFilter,
+  );
+  const selectedLabels = new Set(
+    draftItems.map((item) => (item.name || item.description).trim()).filter(Boolean),
+  );
 
   return (
     <form id={ANALYSIS_REVIEW_FORM_ID} onSubmit={submit}>
@@ -150,6 +176,21 @@ export function AnalysisReviewPanel({
               </li>
             ))}
           </ul>
+
+          <div className="mt-4 flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="짐 분류">
+            <FilterChip active={categoryFilter === "전체"} onClick={() => setCategoryFilter("전체")}>
+              전체 {draftItems.length}
+            </FilterChip>
+            {(Object.keys(manualCategoryTone) as ManualCategory[]).map((category) => (
+              <FilterChip
+                active={categoryFilter === category}
+                key={category}
+                onClick={() => setCategoryFilter(category)}
+              >
+                {category} {categoryCounts[category]}
+              </FilterChip>
+            ))}
+          </div>
         </div>
 
         <div className="divide-y divide-line border-b border-line">
@@ -183,7 +224,7 @@ export function AnalysisReviewPanel({
             </div>
           )}
 
-          {draftItems.map((draft, index) => {
+          {visibleDraftItems.map((draft, index) => {
             const source = review.items.find((item) => item.item_key === draft.itemKey);
             return (
               <article className="py-5" key={draft.itemKey}>
@@ -193,6 +234,9 @@ export function AnalysisReviewPanel({
                       {source?.source === "customer" || !source ? "직접 추가" : "AI 제안"}
                     </Badge>
                     {source?.review_required && <Badge variant="warning">확인 필요</Badge>}
+                    <Badge variant="neutral">
+                      {movingItemCategoryForName(draft.name || draft.description)}
+                    </Badge>
                     {source?.confidence !== null && source?.confidence !== undefined && (
                       <Badge variant="neutral">신뢰도 {Math.round(source.confidence * 100)}%</Badge>
                     )}
@@ -274,10 +318,33 @@ export function AnalysisReviewPanel({
           })}
 
           {!completed && (
+            <div className="border-t border-line bg-canvas px-4 py-4">
+              <p className="text-sm font-bold text-ink-600">분류에서 짐을 바로 추가할 수 있어요</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {selectedCatalog.map(({ label }) => {
+                  const selected = selectedLabels.has(label);
+                  return (
+                    <Button
+                      disabled={!canAdd || selected}
+                      key={label}
+                      onClick={() => onAdd(label)}
+                      size="chip"
+                      type="button"
+                      variant="outline"
+                    >
+                      <Plus aria-hidden="true" size="var(--icon-xs)" /> {label}
+                    </Button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {!completed && (
             <Button
               className="my-4 w-full"
               disabled={!canAdd}
-              onClick={onAdd}
+              onClick={() => onAdd()}
               size="chip"
               type="button"
               variant="secondary"

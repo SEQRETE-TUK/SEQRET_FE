@@ -51,6 +51,10 @@ import {
 import { ApiError, SignedUploadError } from "@/api/client";
 import { mockAccessSecrets, mockApiEnabled, mockJobId } from "@/api/mock-api";
 import { MovingItemIcon } from "@/components/moving-item-icon";
+import {
+  movingItemCategoryForName,
+  type MovingItemCategory,
+} from "@/components/moving-item-assets";
 
 interface ConnectionFormProps {
   onConnect: (jobId: string, accessToken: string) => void;
@@ -81,7 +85,7 @@ function VideoCaptureStage({
   pending: boolean;
 }) {
   const [resultQuantities, setResultQuantities] = useState<Record<string, number>>({ boxes: 4 });
-  const [resultFilter, setResultFilter] = useState<"all" | "review">("all");
+  const [resultFilter, setResultFilter] = useState<"all" | MovingItemCategory>("all");
   const detectedItems = [
     { key: "bed", name: "침대", review: false },
     { key: "desk", name: "책상", review: false },
@@ -93,7 +97,18 @@ function VideoCaptureStage({
   ] as const;
   const quantityFor = (key: string) => resultQuantities[key] ?? 1;
   const updateResultQuantity = (key: string, quantity: number) => setResultQuantities((current) => ({ ...current, [key]: Math.max(0, quantity) }));
-  const visibleItems = detectedItems.filter((item) => quantityFor(item.key) > 0 && (resultFilter === "all" || item.review));
+  const categoryCounts = (Object.keys({ 가구: true, 가전: true, 기타: true }) as MovingItemCategory[]).reduce(
+    (counts, category) => {
+      counts[category] = detectedItems.filter((item) => movingItemCategoryForName(item.name) === category).length;
+      return counts;
+    },
+    {} as Record<MovingItemCategory, number>,
+  );
+  const visibleItems = detectedItems.filter(
+    (item) =>
+      quantityFor(item.key) > 0 &&
+      (resultFilter === "all" || movingItemCategoryForName(item.name) === resultFilter),
+  );
 
   if (fileUrl !== null)
     return (
@@ -103,7 +118,7 @@ function VideoCaptureStage({
             <button aria-label="다시 촬영" className="app-safe-header absolute left-4 top-3 z-10 grid size-10 place-items-center rounded-full bg-ink-900/65" onClick={onBack} type="button"><ArrowLeft aria-hidden="true" size="var(--icon-sm)" /></button>
             {fileUrl === "mock" ? (
               <img
-                alt="촬영한 침실 영상 미리보기"
+                alt="촬영한 집 전체 영상 미리보기"
                 className="aspect-[4/3] w-full object-cover"
                 height="240"
                 src="/room-after-evidence.png"
@@ -125,9 +140,14 @@ function VideoCaptureStage({
           </figure>
           <div className="relative -mt-6 rounded-t-[var(--radius-feature)] bg-canvas px-5 pt-5">
           <div aria-hidden="true" className="mx-auto mb-4 h-1 w-12 rounded-full bg-ink-300" />
-          <h1 className="text-center text-ui-section font-black">AI가 짐 8개를 발견했어요</h1>
-          <p className="mt-2 text-center text-sm text-ink-600">AI가 확실한 것만 골랐어요.</p>
-          <div className="mt-6 flex gap-2" role="tablist" aria-label="AI 인식 결과 필터"><FilterChip active={resultFilter === "all"} onClick={() => setResultFilter("all")}>전체 8</FilterChip><FilterChip active={resultFilter === "review"} onClick={() => setResultFilter("review")}>확인 필요 2</FilterChip></div>
+          <h1 className="text-center text-ui-section font-black">AI가 짐 {detectedItems.length}개를 발견했어요</h1>
+          <p className="mt-2 text-center text-sm text-ink-600">방과 상관없이 짐 종류별로 정리했어요.</p>
+          <div className="mt-6 flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="AI 인식 결과 분류">
+            <FilterChip active={resultFilter === "all"} onClick={() => setResultFilter("all")}>전체 {detectedItems.length}</FilterChip>
+            {(Object.keys(categoryCounts) as MovingItemCategory[]).map((category) => (
+              <FilterChip active={resultFilter === category} key={category} onClick={() => setResultFilter(category)}>{category} {categoryCounts[category]}</FilterChip>
+            ))}
+          </div>
           <section className="mt-3 space-y-2">{visibleItems.map((item) => { const quantity = quantityFor(item.key); return <InventoryQuantityRow icon={<MovingItemIcon name={item.name} />} key={item.key} name={item.name} onDecrease={() => updateResultQuantity(item.key, quantity - 1)} onIncrease={() => updateResultQuantity(item.key, quantity + 1)} onRemove={() => updateResultQuantity(item.key, 0)} quantity={quantity} reviewRequired={item.review} />; })}</section>
           </div>
         </main>
@@ -143,7 +163,7 @@ function VideoCaptureStage({
             ) : (
               <Check aria-hidden="true" />
             )}
-            확인한 짐 8개 반영
+            확인한 짐 {detectedItems.filter((item) => quantityFor(item.key) > 0).length}개 반영
           </Button>
           <Button className="mt-2 w-full" onClick={onBack} size="cta" variant="ghost"><RotateCcw aria-hidden="true" />다시 촬영</Button>
         </div>
@@ -153,7 +173,7 @@ function VideoCaptureStage({
   return (
     <div className="relative min-h-dvh overflow-hidden bg-ink-900 text-white">
       <img
-        alt="촬영할 침실"
+        alt="집 전체 촬영"
         className="absolute inset-0 h-full w-full object-cover opacity-75"
         height="844"
         src="/room-after-evidence.png"
@@ -172,7 +192,7 @@ function VideoCaptureStage({
         >
           <X aria-hidden="true" size="var(--icon-md)" />
         </button>
-        <h1 className="text-center text-xl font-black">침실 촬영</h1>
+        <h1 className="text-center text-xl font-black">집 전체 촬영</h1>
         <span className="grid size-11 place-items-center rounded-full bg-ink-900/60">
           <Camera aria-hidden="true" size="var(--icon-sm)" />
         </span>
@@ -185,10 +205,10 @@ function VideoCaptureStage({
               className="mr-2 inline text-success"
               size="var(--icon-sm)"
             />
-            침대와 큰 가구를 천천히 보여주세요
+            침실·주방·거실의 큰 짐을 천천히 보여주세요
           </p>
           <p className="w-fit rounded-full bg-surface/88 px-4 py-2 text-sm font-bold text-ink-900">
-            오른쪽 벽과 이동 동선도 담아주세요
+            방 이름과 상관없이 짐이 잘 보이게 촬영해 주세요
           </p>
         </div>
         <div className="mt-8 text-center">
@@ -233,24 +253,35 @@ function VideoCaptureStage({
 
 const videoProcessingSteps = [
   { title: "촬영 영상을 업로드하고 있어요", description: "영상이 안전하게 전송되고 있어요." },
-  { title: "AI가 짐 목록을 만들고 있어요", description: "영상 속 짐과 구역을 확인하고 있어요." },
+  { title: "AI가 짐 목록을 만들고 있어요", description: "영상 속 짐을 가구·가전·기타로 나누고 있어요." },
   { title: "검토할 초안을 준비하고 있어요", description: "잠시 후 확인할 수 있어요." },
 ] as const;
 
-function VideoProcessingStage({ onBack, step }: { onBack: () => void; step: number }) {
+function VideoProcessingStage({ error, onBack, step }: { error?: string | null; onBack: () => void; step: number }) {
   const activeStep = Math.min(step, videoProcessingSteps.length - 1);
   return <div className="flex min-h-dvh flex-col bg-canvas text-ink-900">
     <MobilePageHeader onBack={onBack} title="AI 분석 중" />
     <main className="flex flex-1 flex-col justify-center px-6 pb-20">
-      <span className="mx-auto grid size-20 place-items-center rounded-full bg-primary-50 text-primary-700"><LoaderCircle aria-hidden="true" className="demo-spin" size="var(--icon-category)" /></span>
-      <h1 className="mt-7 text-center text-ui-section font-black">촬영 내용을 정리하고 있어요</h1>
-      <p className="mt-2 text-center text-ui-support text-ink-600">화면을 닫아도 업로드된 촬영은 보존돼요.</p>
-      <ol className="mt-8 space-y-3">
-        {videoProcessingSteps.map((item, index) => <li className={`flex items-center gap-3 rounded-2xl border px-4 py-3 ${index < activeStep ? "border-success bg-success-bg" : index === activeStep ? "border-primary-100 bg-primary-50" : "border-line bg-surface"}`} key={item.title}>
-          <span className={`grid size-8 shrink-0 place-items-center rounded-full text-sm font-black ${index < activeStep ? "bg-success text-white" : index === activeStep ? "bg-primary-600 text-white" : "bg-surface-muted text-ink-400"}`}>{index < activeStep ? <Check aria-hidden="true" size="var(--icon-xs)" weight="bold" /> : index + 1}</span>
-          <span><strong className="block text-ui-data">{item.title}</strong><span className="mt-0.5 block text-ui-micro text-ink-600">{item.description}</span></span>
-        </li>)}
-      </ol>
+      {error ? (
+        <Card className="border-danger bg-danger-bg p-5 text-center">
+          <AlertTriangle aria-hidden="true" className="mx-auto text-danger-ink" size="var(--icon-category)" />
+          <h1 className="mt-4 text-ui-section font-black">영상 분석을 시작하지 못했어요</h1>
+          <p className="mt-2 text-ui-support leading-5 text-danger-ink">{error}</p>
+          <Button className="mt-5 w-full" onClick={onBack} size="cta">촬영 화면으로 돌아가기</Button>
+        </Card>
+      ) : (
+        <>
+          <span className="mx-auto grid size-20 place-items-center rounded-full bg-primary-50 text-primary-700"><LoaderCircle aria-hidden="true" className="demo-spin" size="var(--icon-category)" /></span>
+          <h1 className="mt-7 text-center text-ui-section font-black">촬영 내용을 정리하고 있어요</h1>
+          <p className="mt-2 text-center text-ui-support text-ink-600">화면을 닫아도 업로드된 촬영은 보존돼요.</p>
+          <ol className="mt-8 space-y-3">
+            {videoProcessingSteps.map((item, index) => <li className={`flex items-center gap-3 rounded-2xl border px-4 py-3 ${index < activeStep ? "border-success bg-success-bg" : index === activeStep ? "border-primary-100 bg-primary-50" : "border-line bg-surface"}`} key={item.title}>
+              <span className={`grid size-8 shrink-0 place-items-center rounded-full text-sm font-black ${index < activeStep ? "bg-success text-white" : index === activeStep ? "bg-primary-600 text-white" : "bg-surface-muted text-ink-400"}`}>{index < activeStep ? <Check aria-hidden="true" size="var(--icon-xs)" weight="bold" /> : index + 1}</span>
+              <span><strong className="block text-ui-data">{item.title}</strong><span className="mt-0.5 block text-ui-micro text-ink-600">{item.description}</span></span>
+            </li>)}
+          </ol>
+        </>
+      )}
     </main>
   </div>;
 }
@@ -637,6 +668,7 @@ function ConnectedCapture({
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [videoAnalysisSessionId, setVideoAnalysisSessionId] = useState<string | null>(null);
   const [videoAnalysisRequested, setVideoAnalysisRequested] = useState(false);
+  const [videoSubmitPendingSessionId, setVideoSubmitPendingSessionId] = useState<string | null>(null);
   const initialVideoStarted = useRef(false);
   const prepareVideoRef = useRef<(file: File) => void>(() => undefined);
   const [recoveringReview, setRecoveringReview] = useState(false);
@@ -644,6 +676,8 @@ function ConnectedCapture({
     useState<RemovedReviewItem | null>(null);
   const [reviewDraftState, setReviewDraftState] =
     useState<ReviewDraftState | null>(null);
+  const appendReviewOnNextLoad = useRef(false);
+  const previousReviewDraftItems = useRef<AnalysisReviewDraftItem[]>([]);
   const job = workflow.jobQuery.data;
   const sessions = workflow.sessionsQuery.data;
   const session = sessions?.[0] ?? null;
@@ -696,6 +730,25 @@ function ConnectedCapture({
           unit: item.unit,
           workNote: item.work_note,
         })) ?? []);
+  useEffect(() => {
+    if (!review || !appendReviewOnNextLoad.current) return;
+    const merged = [...previousReviewDraftItems.current];
+    const existingKeys = new Set(merged.map((item) => item.itemKey));
+    review.items.forEach((item) => {
+      if (existingKeys.has(item.item_key)) return;
+      merged.push({
+        itemKey: item.item_key,
+        roomZoneId: item.room_zone_id,
+        description: item.description,
+        name: item.name,
+        quantity: item.quantity,
+        unit: item.unit,
+        workNote: item.work_note,
+      });
+    });
+    setReviewDraftState({ key: reviewKey, items: merged });
+    appendReviewOnNextLoad.current = false;
+  }, [review, reviewKey]);
   const reviewCompleted =
     review?.review_scope_version_id !== null && review !== undefined;
   const latestScopeVersion = [...(workflow.scopeVersionsQuery.data ?? [])]
@@ -759,7 +812,9 @@ function ConnectedCapture({
       ? 0
       : videoAnalysis?.status === "running"
         ? 2
-        : videoAnalysis || workflow.submitMutation.isPending
+        : videoAnalysis?.status === "completed"
+          ? 2
+          : videoAnalysis || workflow.submitMutation.isPending
           ? 1
           : 0;
   const requestError =
@@ -776,19 +831,26 @@ function ConnectedCapture({
     const roomZoneId = zones[0]?.id;
     if (!roomZoneId || (!session && !workflow.consentPolicyQuery.data)) {
       setLocalError("촬영 준비가 끝나지 않았어요. 잠시 후 다시 시도해 주세요.");
-      setVideoMode(null);
+      setVideoMode("loading");
       return;
     }
     setVideoAnalysisRequested(true);
-    const fail = () => {
+    const fail = (error: unknown) => {
       setVideoAnalysisRequested(false);
-      setVideoAnalysisSessionId(null);
-      setVideoMode(null);
+      setVideoSubmitPendingSessionId(null);
+      setLocalError(friendlyError(error));
+      setVideoMode("loading");
     };
     const uploadAndAnalyze = (captureSessionId: string) => workflow.uploadMutation.mutate(
       { captureSessionId, file, roomZoneId },
       {
-        onSuccess: () => workflow.submitMutation.mutate(captureSessionId, { onError: fail }),
+        onSuccess: () => {
+          if (mockApiEnabled) {
+            workflow.submitMutation.mutate(captureSessionId, { onError: fail });
+          } else {
+            setVideoSubmitPendingSessionId(captureSessionId);
+          }
+        },
         onError: fail,
       },
     );
@@ -861,15 +923,28 @@ function ConnectedCapture({
     if (videoAnalysis.status === "completed" || videoAnalysis.status === "failed") {
       const completionTimer = window.setTimeout(() => {
         setVideoAnalysisRequested(false);
-        setVideoAnalysisSessionId(null);
-        setVideoMode(null);
         if (videoAnalysis.status === "completed") {
-          setLocalNotice("촬영 영상을 분석해 검토할 초안을 만들었어요.");
+          void (async () => {
+            try {
+              const refreshed = await workflow.refreshReview();
+              if (!refreshed.isError) {
+                setLocalNotice("촬영 영상을 분석해 검토할 초안을 만들었어요.");
+                setVideoAnalysisSessionId(null);
+                setVideoMode(null);
+              } else {
+                setLocalError(friendlyError(refreshed.error));
+              }
+            } catch (error) {
+              setLocalError(friendlyError(error));
+            }
+          })();
+        } else {
+          setLocalError("AI 분석에 실패했어요. 촬영 화면으로 돌아가 다시 시도해 주세요.");
         }
       }, 0);
       return () => window.clearTimeout(completionTimer);
     }
-  }, [videoAnalysis, videoAnalysisRequested, videoMode]);
+  }, [videoAnalysis, videoAnalysisRequested, videoMode, workflow]);
 
   useEffect(() => {
     prepareVideoRef.current = prepareVideo;
@@ -1008,7 +1083,7 @@ function ConnectedCapture({
     setReviewDraftState({ key: reviewKey, items });
   };
 
-  const addReviewItem = () => {
+  const addReviewItem = (description = "") => {
     const firstZone = review?.zones[0];
     if (!firstZone || reviewDraftItems.length >= MAX_REVIEW_ITEMS) return;
     setLocalNotice(null);
@@ -1017,13 +1092,22 @@ function ConnectedCapture({
       {
         itemKey: `customer-${crypto.randomUUID()}`,
         roomZoneId: firstZone.room_zone_id,
-        description: "",
-        name: review.scope_schema_version === 2 ? "" : undefined,
+        description,
+        name: review.scope_schema_version === 2 ? description : undefined,
         quantity: review.scope_schema_version === 2 ? 1 : undefined,
         unit: review.scope_schema_version === 2 ? "개" : undefined,
         workNote: null,
       },
     ]);
+  };
+
+  const startAdditionalVideo = () => {
+    if (reviewCompleted || busy || !review) return;
+    previousReviewDraftItems.current = reviewDraftItems;
+    appendReviewOnNextLoad.current = true;
+    setLocalError(null);
+    setLocalNotice(null);
+    setVideoMode("capture");
   };
 
   const changeReviewItem = (
@@ -1145,21 +1229,51 @@ function ConnectedCapture({
     if (!review || reviewCompleted || workflow.reviewMutation.isPending) return;
     const roomZoneId = review.zones[0]?.room_zone_id;
     if (!roomZoneId) return;
+    const existingItems = reviewDraftItems.filter((item) => item.description.trim().length > 0);
+    const existingKeys = new Set(existingItems.map((item) => item.itemKey));
+    const videoItems = detectedItems.map((item) => {
+      const itemKey = `video-${item.key}-${crypto.randomUUID()}`;
+      return review.scope_schema_version === 2
+        ? { item_key: itemKey, room_zone_id: roomZoneId, name: item.name, quantity: item.quantity, unit: "개", work_note: null }
+        : { item_key: itemKey, room_zone_id: roomZoneId, description: item.quantity > 1 ? `${item.name} ${item.quantity}개` : item.name };
+    });
     workflow.reviewMutation.mutate(
       {
         sourceScopeVersionId: review.source_scope_version_id,
         scopeSchemaVersion: review.scope_schema_version,
         locationConditions: review.location_conditions,
         items: review.scope_schema_version === 2
-          ? detectedItems.map((item) => ({ item_key: `mock-${item.key}`, room_zone_id: roomZoneId, name: item.name, quantity: item.quantity, unit: "개", work_note: null }))
-          : detectedItems.map((item) => ({ item_key: `mock-${item.key}`, room_zone_id: roomZoneId, description: item.quantity > 1 ? `${item.name} ${item.quantity}개` : item.name })),
+          ? [
+              ...existingItems.map((item) => ({ item_key: item.itemKey, room_zone_id: item.roomZoneId, name: item.name!.trim(), quantity: item.quantity!, unit: item.unit!.trim(), work_note: item.workNote?.trim() || null })),
+              ...videoItems.filter((item) => !existingKeys.has(item.item_key)),
+            ]
+          : [
+              ...existingItems.map((item) => ({ item_key: item.itemKey, room_zone_id: item.roomZoneId, description: item.description.trim() })),
+              ...videoItems.filter((item) => !existingKeys.has(item.item_key)),
+            ],
       },
       { onSuccess: onComplete },
     );
   };
 
   if (videoMode === "loading") {
-    return <VideoProcessingStage onBack={onDisconnect} step={videoProcessingStep} />;
+    return (
+      <VideoProcessingStage
+        error={localError}
+        onBack={() => {
+          if (appendReviewOnNextLoad.current) {
+            appendReviewOnNextLoad.current = false;
+            previousReviewDraftItems.current = [];
+            setVideoAnalysisRequested(false);
+            setVideoAnalysisSessionId(null);
+            setVideoMode(null);
+          } else {
+            onDisconnect();
+          }
+        }}
+        step={videoProcessingStep}
+      />
+    );
   }
 
   if (videoMode)
@@ -1167,7 +1281,15 @@ function ConnectedCapture({
       <VideoCaptureStage
         fileUrl={videoMode === "review" ? videoUrl : null}
         onBack={() => {
-          if (videoMode === "capture") onDisconnect();
+          if (videoMode === "capture") {
+            if (appendReviewOnNextLoad.current) {
+              appendReviewOnNextLoad.current = false;
+              previousReviewDraftItems.current = [];
+              setVideoMode(null);
+            } else {
+              onDisconnect();
+            }
+          }
           else {
             if (videoUrl && videoUrl !== "mock") URL.revokeObjectURL(videoUrl);
             setVideoAnalysisRequested(false);
@@ -1377,23 +1499,30 @@ function ConnectedCapture({
           review &&
           !workflow.reviewQuery.isError &&
           !recoveringReview && (
-            <AnalysisReviewPanel
-              canAdd={reviewDraftItems.length < MAX_REVIEW_ITEMS}
-              draftItems={reviewDraftItems}
-              hasUnsavedChanges={reviewDirty}
-              onAdd={addReviewItem}
-              onChange={changeReviewItem}
-              onRemove={removeReviewItem}
-              onRestoreRemoved={restoreRemovedReviewItem}
-              onSubmit={completeReview}
-              removedItemDescription={
-                activeRemovedReviewItem
-                  ? activeRemovedReviewItem.item.description.trim() ||
-                    "설명 없는 직접 추가 항목"
-                  : null
-              }
-              review={review}
-            />
+            <>
+              {!reviewCompleted && (
+                <Button className="mt-5 w-full" disabled={busy} onClick={startAdditionalVideo} size="cta" variant="outline">
+                  <Video aria-hidden="true" size="var(--icon-sm)" /> 다른 공간 영상 추가
+                </Button>
+              )}
+              <AnalysisReviewPanel
+                canAdd={reviewDraftItems.length < MAX_REVIEW_ITEMS}
+                draftItems={reviewDraftItems}
+                hasUnsavedChanges={reviewDirty}
+                onAdd={addReviewItem}
+                onChange={changeReviewItem}
+                onRemove={removeReviewItem}
+                onRestoreRemoved={restoreRemovedReviewItem}
+                onSubmit={completeReview}
+                removedItemDescription={
+                  activeRemovedReviewItem
+                    ? activeRemovedReviewItem.item.description.trim() ||
+                      "설명 없는 직접 추가 항목"
+                    : null
+                }
+                review={review}
+              />
+            </>
           )}
 
         {workflow.resumableUpload && workflow.uploadMutation.isError && (
