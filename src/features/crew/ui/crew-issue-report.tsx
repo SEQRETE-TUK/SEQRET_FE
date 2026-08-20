@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   CameraIcon as Camera,
   CaretRightIcon as CaretRight,
@@ -31,6 +31,7 @@ import {
   apiErrorMessage,
   checkIn,
   createFieldIssue,
+  getFieldIssueEvidenceReadUrl,
   getMoveJob,
   shouldRecoverState,
   workflowKeys,
@@ -129,6 +130,18 @@ export function CrewIssueReport({ brief, connection, issues }: {
     reported_at: "2026-08-18T09:18:00+09:00",
   }] : [];
   const selectedIssue = sentIssues.find((issue) => issue.field_issue_id === selectedIssueId);
+  const evidenceReadQueries = useQueries({
+    queries: sentIssues.map((issue) => {
+      const evidenceId = issue.evidence_media_asset_ids[0] ?? null;
+      return {
+        enabled: Boolean(evidenceId && !mockApiEnabled),
+        queryKey: workflowKeys.fieldIssueEvidence(connection.jobId, issue.field_issue_id, evidenceId ?? "none"),
+        queryFn: () => getFieldIssueEvidenceReadUrl(connection, issue.field_issue_id, evidenceId!),
+      };
+    }),
+  });
+  const selectedIssueIndex = selectedIssue ? sentIssues.findIndex((issue) => issue.field_issue_id === selectedIssue.field_issue_id) : -1;
+  const selectedEvidenceReadQuery = selectedIssueIndex >= 0 ? evidenceReadQueries[selectedIssueIndex] : undefined;
   const selectedDescription = selectedIssue && "description" in selectedIssue ? selectedIssue.description : "현장 사실과 증거를 함께 제출한 보고입니다.";
 
   if (!checkedIn) {
@@ -148,8 +161,8 @@ export function CrewIssueReport({ brief, connection, issues }: {
 
   return <div className="space-y-5 px-[var(--content-gutter)] pb-28 pt-4">
     <section className="ui-card p-5 text-center"><span className="mx-auto grid size-16 place-items-center rounded-full bg-primary-50 text-primary-700"><ClipboardText aria-hidden="true" size="var(--icon-category)" weight="duotone" /></span><h2 className="mt-4 text-ui-section font-black">승인본과 다른 점이 있나요?</h2><p className="mt-2 text-sm leading-6 text-ink-600">현장 사실과 사진을 업체에 보내면 업체가 변경 범위와 금액을 제안해요.</p><Button className="mt-5 w-full" onClick={() => setFormOpen(true)} size="cta"><Camera aria-hidden="true" /> 새 현장 보고</Button></section>
-      <section><h2 className="text-ui-section font-black">내가 보낸 보고 <span className="text-primary-700">{sentIssues.length}건</span></h2><div className="mt-3 ui-card overflow-hidden">{sentIssues.map((issue) => <button aria-label={`${issue.title} 상세 보기`} className="flex min-h-20 w-full items-center gap-3 border-b border-line px-4 text-left last:border-b-0 hover:bg-surface-muted" key={issue.field_issue_id} onClick={() => setSelectedIssueId(issue.field_issue_id)} type="button">{mockApiEnabled ? <img alt={`${issue.title} 현장 증거`} className="size-11 shrink-0 rounded-xl object-cover" src="/elevator-outage-evidence.png" /> : <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-warning-bg text-warning-ink"><WarningCircle aria-hidden="true" size="var(--icon-md)" /></span>}<span className="min-w-0 flex-1"><strong className="block truncate text-ui-support">{issue.title}</strong><span className="mt-1 block text-xs text-ink-600">증거 {issue.evidence_media_asset_ids.length}건 · {new Intl.DateTimeFormat("ko-KR", { hour: "numeric", minute: "2-digit" }).format(new Date(issue.reported_at))}</span></span><span className="shrink-0 text-xs font-extrabold text-primary-700">{issueStatusLabel(issue.status)}</span><CaretRight aria-hidden="true" className="shrink-0 text-ink-400" size="var(--icon-sm)" /></button>)}</div></section>
-      {selectedIssue ? <Sheet onOpenChange={(open) => { if (!open) setSelectedIssueId(null); }} open><SheetContent className="!bg-ink-900 [&>button]:bg-ink-900/70 [&>button]:text-white [&>button]:hover:bg-ink-900/90">{mockApiEnabled ? <img alt={`${selectedIssue.title} 현장 증거`} className="aspect-[16/10] w-full object-cover" src="/elevator-outage-evidence.png" /> : <div className="grid aspect-[16/10] place-items-center px-6 text-center text-sm text-white/80">서버가 증거 열람 URL을 제공하면 이곳에 표시됩니다.</div>}<div className="bg-surface px-4 pt-5"><SheetHeader className="px-0 pb-4 pr-0"><SheetTitle>{selectedIssue.title}</SheetTitle><SheetDescription>{issueStatusLabel(selectedIssue.status)} · 증거 {selectedIssue.evidence_media_asset_ids.length}건</SheetDescription></SheetHeader><p className="pb-6 text-sm leading-6 text-ink-600">{selectedDescription}</p></div></SheetContent></Sheet> : null}
+      <section><h2 className="text-ui-section font-black">내가 보낸 보고 <span className="text-primary-700">{sentIssues.length}건</span></h2><div className="mt-3 ui-card overflow-hidden">{sentIssues.map((issue, index) => { const evidenceQuery = evidenceReadQueries[index]; return <button aria-label={`${issue.title} 상세 보기`} className="flex min-h-20 w-full items-center gap-3 border-b border-line px-4 text-left last:border-b-0 hover:bg-surface-muted" key={issue.field_issue_id} onClick={() => setSelectedIssueId(issue.field_issue_id)} type="button">{mockApiEnabled ? <img alt={`${issue.title} 현장 증거`} className="size-11 shrink-0 rounded-xl object-cover" src="/elevator-outage-evidence.png" /> : evidenceQuery?.data?.content_type.startsWith("image/") ? <img alt={`${issue.title} 현장 증거`} className="size-11 shrink-0 rounded-xl object-cover" src={evidenceQuery.data.read_url} /> : <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-warning-bg text-warning-ink"><WarningCircle aria-hidden="true" size="var(--icon-md)" /></span>}<span className="min-w-0 flex-1"><strong className="block truncate text-ui-support">{issue.title}</strong><span className="mt-1 block text-xs text-ink-600">증거 {issue.evidence_media_asset_ids.length}건 · {new Intl.DateTimeFormat("ko-KR", { hour: "numeric", minute: "2-digit" }).format(new Date(issue.reported_at))}</span></span><span className="shrink-0 text-xs font-extrabold text-primary-700">{issueStatusLabel(issue.status)}</span><CaretRight aria-hidden="true" className="shrink-0 text-ink-400" size="var(--icon-sm)" /></button>; })}</div></section>
+      {selectedIssue ? <Sheet onOpenChange={(open) => { if (!open) setSelectedIssueId(null); }} open><SheetContent className="!bg-ink-900 [&>button]:bg-ink-900/70 [&>button]:text-white [&>button]:hover:bg-ink-900/90">{mockApiEnabled ? <img alt={`${selectedIssue.title} 현장 증거`} className="aspect-[16/10] w-full object-cover" src="/elevator-outage-evidence.png" /> : selectedEvidenceReadQuery?.data?.content_type.startsWith("image/") ? <img alt={`${selectedIssue.title} 현장 증거`} className="aspect-[16/10] w-full object-cover" src={selectedEvidenceReadQuery.data.read_url} /> : selectedEvidenceReadQuery?.isPending ? <div className="grid aspect-[16/10] place-items-center px-6 text-center text-sm text-white/80">증거 사진을 불러오는 중이에요.</div> : <div className="grid aspect-[16/10] place-items-center px-6 text-center text-sm text-white/80">증거 사진을 불러오지 못했어요.</div>}<div className="bg-surface px-4 pt-5"><SheetHeader className="px-0 pb-4 pr-0"><SheetTitle>{selectedIssue.title}</SheetTitle><SheetDescription>{issueStatusLabel(selectedIssue.status)} · 증거 {selectedIssue.evidence_media_asset_ids.length}건</SheetDescription></SheetHeader><p className="pb-6 text-sm leading-6 text-ink-600">{selectedDescription}</p></div></SheetContent></Sheet> : null}
     {submitted ? <p className="flex items-center gap-2 rounded-xl bg-success-bg p-4 text-sm font-extrabold text-success-ink"><CheckCircle aria-hidden="true" weight="fill" /> 업체에 현장 이슈를 전송했습니다.</p> : null}
     <InfoCallout icon={<WarningCircle aria-hidden="true" />}>기사는 현장 사실만 보고하며 금액을 입력하지 않아요.</InfoCallout>
   </div>;

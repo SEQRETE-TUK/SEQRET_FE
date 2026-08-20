@@ -1,4 +1,4 @@
-import { ApiError, apiRequest, downloadApiFile, publicApiRequest } from "@/api/client";
+import { ApiError, SignedUploadError, apiRequest, downloadApiFile, publicApiRequest } from "@/api/client";
 import { mockApiEnabled } from "@/api/mock-api";
 import { scopeProposalPayload } from "@/api/contract-payloads";
 
@@ -232,6 +232,14 @@ export interface FieldIssue {
   change_proposal_id: string | null;
 }
 
+export interface FieldIssueEvidenceRead {
+  media_asset_id: string;
+  room_zone_id: string;
+  content_type: string;
+  read_url: string;
+  expires_at: string;
+}
+
 export interface ChangeProposal {
   job: JobHeader;
   proposal_id: string;
@@ -461,6 +469,7 @@ export const workflowKeys = {
   invitations: (jobId: string) => ["workflow", jobId, "invitations"] as const,
   scope: (jobId: string) => ["workflow", jobId, "scope"] as const,
   fieldIssues: (jobId: string) => ["workflow", jobId, "field-issues"] as const,
+  fieldIssueEvidence: (jobId: string, fieldIssueId: string, mediaAssetId: string) => ["workflow", jobId, "field-issue-evidence", fieldIssueId, mediaAssetId] as const,
   proposal: (jobId: string, proposalId: string) => ["workflow", jobId, "proposal", proposalId] as const,
   dispatch: (jobId: string) => ["workflow", jobId, "dispatch"] as const,
   brief: (jobId: string) => ["workflow", jobId, "field-brief"] as const,
@@ -593,6 +602,13 @@ export function listFieldIssues(connection: Connection) {
   return apiRequest<FieldIssue[]>(`${jobPath(connection.jobId)}/field-issues`, { accessToken: connection.accessToken, method: "GET" });
 }
 
+export function getFieldIssueEvidenceReadUrl(connection: Connection, fieldIssueId: string, mediaAssetId: string) {
+  return apiRequest<FieldIssueEvidenceRead>(`${jobPath(connection.jobId)}/field-issues/${segment(fieldIssueId)}/evidence/${segment(mediaAssetId)}/read-url`, {
+    accessToken: connection.accessToken,
+    method: "GET",
+  });
+}
+
 export function createFieldIssue(connection: Connection, input: {
   client_reference: string;
   base_scope_version_id: string;
@@ -695,6 +711,9 @@ export function downloadCompletionArchive(connection: Connection) {
 }
 
 export function apiErrorMessage(error: unknown): string {
+  if (error instanceof SignedUploadError) {
+    return "사진 저장에 실패했어요. 잠시 후 다시 시도해 주세요.";
+  }
   if (!(error instanceof ApiError)) {
     return "네트워크 연결을 확인하고 다시 시도해 주세요.";
   }

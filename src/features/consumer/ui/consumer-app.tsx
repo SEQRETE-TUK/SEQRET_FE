@@ -55,6 +55,7 @@ import {
   confirmScopeReview,
   decideChangeProposal,
   decideCompletionRequest,
+  getFieldIssueEvidenceReadUrl,
   getCompletionSummary,
   getChangeProposal,
   getScopeReview,
@@ -305,7 +306,7 @@ function ConnectedConsumerApp() {
     </MobileAppShell>
     <CustomerMoveStartSheet connect={connect} onConnected={() => setMoveView("list")} onNewMove={() => { setMoveStartOpen(false); setOnboardingOpen(true); }} onOpenChange={setMoveStartOpen} open={moveStartOpen} />
     <CustomerOnboardingSheet onOpenChange={setOnboardingOpen} open={onboardingOpen} />
-    <MoveActionsSheet canDelete={Boolean(scopeQuery.data && !scopeQuery.data.proposal_id)} error={deleteMutation.error} onDelete={() => deleteMutation.mutate(selectedJobId)} onOpenChange={setMoveActionsOpen} open={moveActionsOpen} pending={deleteMutation.isPending} />
+    <MoveActionsSheet canDelete={Boolean(scopeQuery.data && !scopeQuery.data.proposal_id)} connectionCode={scopeQuery.data?.job.job_code} error={deleteMutation.error} onDelete={() => deleteMutation.mutate(selectedJobId)} onOpenChange={setMoveActionsOpen} open={moveActionsOpen} pending={deleteMutation.isPending} showCode={scopeQuery.data?.scope.status === "confirmed"} />
     </>
   );
 }
@@ -369,8 +370,19 @@ function CustomerMoveStartSheet({ connect, onConnected, onNewMove, onOpenChange,
   return <Sheet onOpenChange={close} open={open}><SheetContent><SheetHeader><SheetTitle>이사를 시작해요</SheetTitle><SheetDescription>새로 시작하거나 이사 연결 코드로 기존 이사를 불러올 수 있어요.</SheetDescription></SheetHeader>{mode === "choice" ? <div className="grid gap-3 px-4 pb-5 sm:grid-cols-2"><Button aria-label="새 이사 시작하기" className="h-auto min-h-0 flex-col items-stretch justify-start gap-0 rounded-[var(--radius-feature)] border-line bg-surface p-3 text-left shadow-[var(--shadow-card)] hover:border-primary-300 hover:bg-surface" onClick={onNewMove} size="cta" type="button" variant="outline"><span className="grid h-24 place-items-center overflow-hidden rounded-[var(--radius-card)] p-2"><img alt="" aria-hidden="true" className="size-16 object-contain" decoding="async" src="/moving-items/moving-box.png" /></span><span className="mt-3 block text-ui-component font-black text-ink-900">새 이사 시작</span><span className="mt-1 block text-ui-data font-normal leading-5 text-ink-600">이사 정보를 입력해<br />새로 시작해요</span></Button><Button aria-label="이사 연결 코드로 불러오기" className="h-auto min-h-0 flex-col items-stretch justify-start gap-0 rounded-[var(--radius-feature)] border-line bg-surface p-3 text-left shadow-[var(--shadow-card)] hover:border-primary-300 hover:bg-surface" onClick={chooseCode} size="cta" type="button" variant="outline"><span className="grid h-24 place-items-center overflow-hidden rounded-[var(--radius-card)] p-2"><img alt="" aria-hidden="true" className="size-16 object-contain" decoding="async" src="/moving-items/sofa.png" /></span><span className="mt-3 block text-ui-component font-black text-ink-900">연결 코드 입력</span><span className="mt-1 block text-ui-data font-normal leading-5 text-ink-600">기존 이사 상황을<br />불러와요</span></Button></div> : <div className="px-5 pb-2"><Label htmlFor="customer-move-invite-code">이사 연결 코드</Label><Input autoCapitalize="characters" autoComplete="one-time-code" autoFocus className="mt-2" id="customer-move-invite-code" onChange={(event) => setSecret(event.target.value)} placeholder="MOVE-XXXXXXXX" spellCheck={false} value={secret} />{error ? <ErrorToast message={error} /> : null}<SheetFooter className="grid grid-cols-[92px_minmax(0,1fr)] gap-2"><Button onClick={() => { setError(null); setMode("choice"); }} variant="secondary">이전</Button><Button disabled={!secret.trim() || pending} onClick={() => { void submit(); }}><Key aria-hidden="true" />{pending ? "연결 중" : "내 이사 불러오기"}</Button></SheetFooter></div>}</SheetContent></Sheet>;
 }
 
-function MoveActionsSheet({ canDelete, error, onDelete, onOpenChange, open, pending }: { canDelete: boolean; error: unknown; onDelete: () => void; onOpenChange: (open: boolean) => void; open: boolean; pending: boolean }) {
-  return <Sheet onOpenChange={onOpenChange} open={open}><SheetContent><SheetHeader><SheetTitle>이사를 삭제할까요?</SheetTitle><SheetDescription>{canDelete ? "견적서를 받기 전인 이사만 삭제할 수 있어요." : "이미 견적서를 받아 삭제할 수 없어요."}</SheetDescription></SheetHeader>{error ? <ErrorToast message={apiErrorMessage(error)} /> : null}<SheetFooter className="grid grid-cols-2 gap-2"><SheetClose render={<Button variant="secondary" />}>계속 사용</SheetClose><Button disabled={!canDelete || pending} onClick={onDelete} variant="destructive"><Trash aria-hidden="true" />{pending ? "삭제하는 중" : "이사 삭제"}</Button></SheetFooter></SheetContent></Sheet>;
+function MoveActionsSheet({ canDelete, connectionCode, error, onDelete, onOpenChange, open, pending, showCode }: { canDelete: boolean; connectionCode?: string; error: unknown; onDelete: () => void; onOpenChange: (open: boolean) => void; open: boolean; pending: boolean; showCode: boolean }) {
+  const [copied, setCopied] = useState(false);
+  const copyCode = async () => {
+    if (!connectionCode) return;
+    try {
+      await navigator.clipboard.writeText(connectionCode);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // Clipboard permissions are handled by the browser.
+    }
+  };
+  return <Sheet onOpenChange={onOpenChange} open={open}><SheetContent><SheetHeader><SheetTitle>{showCode ? "이사 연결 코드" : "이사를 삭제할까요?"}</SheetTitle><SheetDescription>{showCode ? "이 코드를 고객·업체·기사에게 공유하면 같은 이사에 다시 연결할 수 있어요." : canDelete ? "견적서를 받기 전인 이사만 삭제할 수 있어요." : "이미 견적서를 받아 삭제할 수 없어요."}</SheetDescription></SheetHeader>{showCode ? <><div className="mx-5 mt-2 rounded-[var(--radius-card)] border border-line bg-primary-50 px-4 py-5 text-center"><span className="text-sm text-ink-600">이사 연결 코드</span><strong className="mt-2 block font-mono text-xl tracking-wide text-primary-800">{connectionCode ?? "코드 준비 중"}</strong></div><SheetFooter><Button className="w-full" disabled={!connectionCode} onClick={() => void copyCode()}><Copy aria-hidden="true" />{copied ? "복사됨" : "코드 복사"}</Button></SheetFooter></> : <SheetFooter className="grid grid-cols-2 gap-2"><SheetClose render={<Button variant="secondary" />}>계속 사용</SheetClose><Button disabled={!canDelete || pending} onClick={onDelete} variant="destructive"><Trash aria-hidden="true" />{pending ? "삭제하는 중" : "이사 삭제"}</Button></SheetFooter>}{error ? <ErrorToast message={apiErrorMessage(error)} /> : null}</SheetContent></Sheet>;
 }
 
 function MoveListSafeArea() {
@@ -624,6 +636,12 @@ function ConsumerAgreement({ completion, connection, fallbackItemCount, fallback
     queryKey: [...workflowKeys.root(connection.jobId), "change-proposal", proposalId],
     queryFn: () => getChangeProposal(connection, proposalId!),
   });
+  const evidenceId = displayIssue?.evidence_media_asset_ids[0] ?? null;
+  const fieldEvidenceQuery = useQuery({
+    enabled: Boolean(displayIssue && evidenceId && !proposalId),
+    queryKey: workflowKeys.fieldIssueEvidence(connection.jobId, displayIssue?.field_issue_id ?? "none", evidenceId ?? "none"),
+    queryFn: () => getFieldIssueEvidenceReadUrl(connection, displayIssue!.field_issue_id, evidenceId!),
+  });
   const decisionMutation = useMutation({
     mutationFn: ({ decision, note }: { decision: "approve" | "reject" | "request_clarification"; note?: string }) => decideChangeProposal(connection, issue!.change_proposal_id!, { decision, note }),
     onSuccess: async () => { setIssueOpen(false); await refresh(); },
@@ -639,7 +657,7 @@ function ConsumerAgreement({ completion, connection, fallbackItemCount, fallback
         {completion?.completion_request ? <CompletionReportCard completion={completion} onOpen={onOpenCompletion} /> : null}
         {displayIssue ? <FieldReportCard companyName={scope.job.company_display_name} issue={displayIssue} onOpen={() => setIssueOpen(true)} /> : null}
       </AgreementOverview>}
-      {displayIssue ? <FieldChangeSheet error={decisionMutation.error} issue={displayIssue} loading={proposalQuery.isLoading} onDecision={(decision, note) => decisionMutation.mutate({ decision, note })} onOpenChange={setIssueOpen} open={issueOpen} pending={decisionMutation.isPending} proposal={proposalQuery.data} readOnly={!issue} /> : null}
+      {displayIssue ? <FieldChangeSheet error={decisionMutation.error} evidence={proposalQuery.data?.evidence_media ?? (fieldEvidenceQuery.data ? [fieldEvidenceQuery.data] : [])} issue={displayIssue} loading={proposalQuery.isLoading || fieldEvidenceQuery.isPending} onDecision={(decision, note) => decisionMutation.mutate({ decision, note })} onOpenChange={setIssueOpen} open={issueOpen} pending={decisionMutation.isPending} proposal={proposalQuery.data} readOnly={!issue} /> : null}
       <AgreementHistorySheet fallbackLocationConditions={fallbackLocationConditions} issue={resolvedIssue} onOpenChange={setHistoryOpen} open={historyOpen} scope={scope} />
     </div>
   );
@@ -657,8 +675,9 @@ function FieldReportCard({ companyName, issue, onOpen }: { companyName: string |
   return <section className="ui-card p-3"><span className={`inline-flex rounded-full border px-2.5 py-0.5 text-ui-status ${resolved ? "border-success text-success" : "border-warning text-warning-ink"}`}>{statusLabel}</span><h2 className="mt-1.5 text-lg font-black">현장 보고 <b className="text-primary-700">1건</b>이 도착했어요</h2><p className="mt-0.5 text-ui-data text-ink-600">{issue.title}</p><p className="mt-1 line-clamp-2 text-xs text-ink-400">{issue.description}</p><div className="mt-2 flex items-center justify-between gap-3 text-ui-micro text-ink-400"><span className="min-w-0 truncate">현장기사 보고 · {companyName ?? "이사업체"} 기록</span><span className={`shrink-0 font-bold ${resolved ? "text-success" : "text-warning-ink"}`}>{responseLabel}</span></div><button className="mt-2 flex min-h-11 w-full items-center justify-between rounded-[var(--radius-control)] border border-line px-4 text-ui-data hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring" onClick={onOpen} type="button">보고 내용 확인 <CaretRight aria-hidden="true" size="var(--icon-sm)" /></button></section>;
 }
 
-function FieldChangeSheet({ error, issue, loading, onDecision, onOpenChange, open, pending, proposal, readOnly }: {
+function FieldChangeSheet({ error, evidence, issue, loading, onDecision, onOpenChange, open, pending, proposal, readOnly }: {
   error: Error | null;
+  evidence: ScopeReview["media_previews"];
   issue: FieldIssue;
   loading: boolean;
   onDecision: (decision: "approve" | "request_clarification", note?: string) => void;
@@ -673,14 +692,14 @@ function FieldChangeSheet({ error, issue, loading, onDecision, onOpenChange, ope
   const adjustment = proposal?.quote.adjustments.at(-1)?.amount_krw ?? 0;
   const total = proposal?.quote.total_amount_krw ?? 0;
   const previous = total - adjustment;
-  const evidenceUrl = proposal?.evidence_media[0]?.read_url ?? null;
+  const evidenceUrl = evidence[0]?.read_url ?? null;
   const reportedAt = fullDateFormatter.format(new Date(issue.reported_at));
   return <Sheet open={open} onOpenChange={onOpenChange}><SheetContent className="!transition-none [&>button]:top-[max(10px,env(safe-area-inset-top))] [&>button]:bg-ink-900/70 [&>button]:text-white [&>button]:hover:bg-ink-900/80" presentation="page">
     <SheetTitle className="sr-only">현장 변경 확인</SheetTitle><SheetDescription className="sr-only">{issue.title} · 현장기사 보고</SheetDescription>
-    {loading ? <div className="grid min-h-dvh place-items-center text-sm text-ink-600">변경안을 불러오는 중입니다.</div> : <div>
+     {loading ? <div className="grid min-h-dvh place-items-center text-sm text-ink-600">현장 증거를 불러오는 중입니다.</div> : <div>
       <figure className="relative grid h-[320px] place-items-center bg-ink-900 text-center text-sm text-white/80">
         {evidenceUrl ? <img alt={`${issue.title} 현장 증거`} className="h-full w-full object-cover" height="420" src={evidenceUrl} width="480" /> : <p className="px-6">서버에서 열람 가능한 증거 사진을 아직 제공하지 않았어요.</p>}
-        {proposal?.evidence_media.length ? <span className="absolute right-4 bottom-12 rounded-full bg-ink-900/70 px-2.5 py-1 text-ui-control text-white">1 / {proposal.evidence_media.length}</span> : null}
+        {evidence.length ? <span className="absolute right-4 bottom-12 rounded-full bg-ink-900/70 px-2.5 py-1 text-ui-control text-white">1 / {evidence.length}</span> : null}
       </figure>
       <div className="relative -mt-10 min-h-[calc(100dvh-300px)] rounded-t-[var(--radius-feature)] bg-surface px-5 pb-4 pt-8">
         <h3 className="text-left text-lg leading-7 font-black tracking-[var(--tracking-display)]">{proposal?.title ?? issue.title}</h3>

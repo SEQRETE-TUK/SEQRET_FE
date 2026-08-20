@@ -123,6 +123,20 @@ test("lets a connected customer choose a new move or invite code", async ({ page
   await expect(page.getByRole("tab", { name: "진행 중 3" })).toBeVisible();
 });
 
+test("shows the shared code instead of delete after a quote is accepted", async ({ page }) => {
+  await page.goto("/consumer?tab=move&view=list");
+  await page.getByText("성수동 아파트 → 자양동 오피스텔").click();
+  await page.getByRole("tab", { name: "확인서" }).click();
+  await page.getByRole("button", { name: "견적서 확인" }).click();
+  await page.getByRole("button", { name: "이대로 확인" }).click();
+  await expect(page).toHaveURL(/\/consumer\?tab=move&view=agreement/);
+  await page.getByRole("button", { name: "더보기" }).click();
+
+  await expect(page.getByRole("heading", { name: "이사 연결 코드" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "코드 복사" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "이사 삭제" })).toHaveCount(0);
+});
+
 test("builds the backend capture consent contract", async () => {
   expect(captureSessionCreatePayload("2026-08-17.v1", true)).toEqual({
     consent_policy_version: "2026-08-17.v1",

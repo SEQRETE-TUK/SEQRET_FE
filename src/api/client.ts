@@ -2,6 +2,7 @@ import { mockApiEnabled, mockApiRequest } from "@/api/mock-api";
 
 const API_PREFIX = "/api/v1";
 const API_REQUEST_TIMEOUT_MS = 15_000;
+const SIGNED_UPLOAD_PROXY_PATH = "/__seqret_signed_upload";
 
 export interface ApiRequestOptions extends Omit<RequestInit, "headers"> {
   accessToken?: string;
@@ -226,10 +227,11 @@ export async function uploadToSignedUrl({
   uploadUrl,
 }: SignedUploadRequest): Promise<void> {
   if (mockApiEnabled && uploadUrl.startsWith("mock-upload://")) return;
-  const response = await fetch(uploadUrl, {
+  const useLocalProxy = import.meta.env.DEV && typeof window !== "undefined" && ["localhost", "127.0.0.1"].includes(window.location.hostname);
+  const response = await fetch(useLocalProxy ? SIGNED_UPLOAD_PROXY_PATH : uploadUrl, {
     body,
     credentials: "omit",
-    headers: uploadHeaders,
+    headers: useLocalProxy ? { ...uploadHeaders, "x-seqret-upload-url": uploadUrl } : uploadHeaders,
     method: "PUT",
     redirect: "error",
     signal,

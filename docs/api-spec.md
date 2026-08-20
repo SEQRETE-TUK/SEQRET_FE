@@ -153,7 +153,8 @@ AI 초안에는 항목 출처, confidence와 확인 필요 여부가 포함된�
 | Method | Path | 인증 | 설명 |
 | --- | --- | --- | --- |
 | `POST` | `/api/v1/move-jobs/{job_id}/field-issues` | 업체·현장기사 | 범위 밖 작업·파손 위험·현장 장애와 증거 보고 |
-| `GET` | `/api/v1/move-jobs/{job_id}/field-issues` | 업체·현장기사 | 이슈와 변경 제안 처리 상태 조회 |
+| `GET` | `/api/v1/move-jobs/{job_id}/field-issues` | 고객·업체·현장기사 | 이슈와 변경 제안 처리 상태 조회 |
+| `GET` | `/api/v1/move-jobs/{job_id}/field-issues/{field_issue_id}/evidence/{media_asset_id}/read-url` | 고객·업체·현장기사 | READY 현장 증거의 제한 시간 read URL 발급 |
 | `POST` | `/api/v1/move-jobs/{job_id}/change-proposals` | 업체 | 현장 이슈를 변경 범위·원화 견적 제안으로 전환 |
 | `GET` | `/api/v1/move-jobs/{job_id}/change-proposals/{proposal_id}` | 소비자·업체 | 사유·증거·기존 범위·견적·결정 기록 조회 |
 | `POST` | `/api/v1/move-jobs/{job_id}/change-proposals/{proposal_id}/decision` | 소비자 | 승인·거절·설명 요청 |

@@ -59,19 +59,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const connect = useCallback(async (secret: string, expectedRole?: ParticipantRole) => {
     const role = expectedRole ?? "customer";
+    if (!mockApiEnabled && workspaceActive.current && session && session.actor.role !== role) {
+      await deleteWorkspaceSession();
+      workspaceActive.current = false;
+      setWorkspaceCsrfToken(null);
+      replaceSession(null);
+    }
     const workspace = await connectMove(secret, role);
     const next = applyWorkspace(workspace);
     if (!next) throw new Error("이사 연결 정보를 확인해 주세요.");
     return next;
-  }, [applyWorkspace]);
+  }, [applyWorkspace, replaceSession, session]);
 
   const onboard = useCallback(async (input: CustomerOnboardingInput) => {
+    if (!mockApiEnabled && workspaceActive.current) {
+      await deleteWorkspaceSession().catch(() => undefined);
+      workspaceActive.current = false;
+      setWorkspaceCsrfToken(null);
+      replaceSession(null);
+    }
     const result = await onboardCustomer(input);
     const workspace = await connectMove(result.connection_code, "customer");
     const next = applyWorkspace(workspace, result.job.id);
     if (!next) throw new Error("새 이사 연결 정보를 확인해 주세요.");
     return next;
-  }, [applyWorkspace]);
+  }, [applyWorkspace, replaceSession]);
 
   const clearSession = useCallback(() => {
     if (workspaceActive.current) void deleteWorkspaceSession().catch(() => undefined);
