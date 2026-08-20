@@ -46,7 +46,12 @@ test("replaces the entered customer name with the connected move name", async ({
   await page.getByRole("button", { name: "시작" }).click();
   await page.getByRole("button", { name: /60초 촬영으로/ }).click();
   await page.getByRole("button", { name: "이사 연결 코드로 불러오기" }).click();
-  await page.getByRole("button", { name: "내 이사 불러오기" }).click();
+  await page.getByRole("button", { name: "다음" }).click();
+  await expect(page.getByRole("heading", { name: "김서큐님의 이사를 불러올까요?" })).toBeVisible();
+  await page.getByRole("button", { name: "이전" }).click();
+  await expect(page.getByLabel("이사 연결 코드")).toHaveValue(moveConnectionCode);
+  await page.getByRole("button", { name: "다음" }).click();
+  await page.getByRole("button", { name: "시작", exact: true }).click();
   await page.getByRole("button", { name: "홈" }).click();
 
   await expect(page.getByRole("heading", { name: /김서큐님/ })).toBeVisible();
@@ -133,7 +138,9 @@ test("lets a connected customer choose a new move or invite code", async ({ page
   await expect(page.getByRole("button", { name: "새 이사 시작하기" })).toBeVisible();
   await page.getByRole("button", { name: "이사 연결 코드로 불러오기" }).click();
   await expect(page.getByLabel("이사 연결 코드")).toHaveValue(moveConnectionCode);
-  await page.getByRole("button", { name: "내 이사 불러오기" }).click();
+  await page.getByRole("button", { name: "다음" }).click();
+  await expect(page.getByRole("heading", { name: "김서큐님의 이사를 불러올까요?" })).toBeVisible();
+  await page.getByRole("button", { name: "시작", exact: true }).click();
   await expect(page.getByRole("tab", { name: "진행 중 3" })).toBeVisible();
 });
 

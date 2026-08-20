@@ -592,6 +592,14 @@ export async function mockApiRequest<T>(path: string, init: RequestInit, accessT
     state.fieldBrief.job.job_code = connectionCode;
     return result({ job: state.job, customer_access_link: accessLink("customer", CUSTOMER_ID, customerAccessToken, jobId), connection_code: connectionCode } as CustomerOnboardingResult) as Promise<T>;
   }
+  if (path === "/api/v1/connections/preview" && method === "POST") {
+    const input = jsonBody<{ connection_code: string; role: ParticipantRole }>(init);
+    const connectionCode = input.connection_code.trim().toUpperCase();
+    const state = [...mockStates.values()].find((candidate) => moveConnectionCode(candidate.job.id) === connectionCode);
+    const participant = state?.job.participants.find((candidate) => candidate.role === input.role);
+    if (!participant) throw new Error("Mock 이사 연결 코드를 확인해 주세요.");
+    return result({ role: input.role, display_name: participant.display_name }) as Promise<T>;
+  }
   if (path === "/api/v1/connections" && method === "POST") {
     const input = jsonBody<{ connection_code: string; role: ParticipantRole }>(init);
     const connectionCode = input.connection_code.trim().toUpperCase();

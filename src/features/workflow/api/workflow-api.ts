@@ -451,6 +451,11 @@ export interface WorkspaceSession {
   }>;
 }
 
+export interface MoveConnectionPreview {
+  role: ParticipantRole;
+  display_name: string;
+}
+
 const jsonHeaders = { "Content-Type": "application/json" };
 const segment = (value: string) => encodeURIComponent(value);
 const jobPath = (jobId: string) => `/api/v1/move-jobs/${segment(jobId)}`;
@@ -491,6 +496,14 @@ export function getActorSelf(accessToken: string) {
 
 export function connectMove(connectionCode: string, role: ParticipantRole) {
   return publicApiRequest<WorkspaceSession>("/api/v1/connections", {
+    body: JSON.stringify({ connection_code: connectionCode.trim(), role }),
+    headers: jsonHeaders,
+    method: "POST",
+  });
+}
+
+export function previewMoveConnection(connectionCode: string, role: ParticipantRole) {
+  return publicApiRequest<MoveConnectionPreview>("/api/v1/connections/preview", {
     body: JSON.stringify({ connection_code: connectionCode.trim(), role }),
     headers: jsonHeaders,
     method: "POST",
