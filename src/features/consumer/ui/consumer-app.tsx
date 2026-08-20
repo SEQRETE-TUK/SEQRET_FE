@@ -30,7 +30,7 @@ import {
   TruckIcon as Truck,
   WarningCircleIcon as WarningCircle,
 } from "@phosphor-icons/react";
-import { useRef, useState, type ReactNode } from "react";
+import { useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { mockApiEnabled, mockConnectionCodes } from "@/api/mock-api";
@@ -146,11 +146,11 @@ function defaultMoveStop(kind: MoveStopKind, scope: ScopeReview | undefined, job
   return {
     address: location?.label ?? (kind === "origin" ? scope?.job.origin_summary ?? "" : scope?.job.destination_summary ?? ""),
     detailAddress: accessNoteValue(conditions?.access_note ?? null, "상세 주소"),
-    elevator: conditions?.elevator === "unavailable" ? "없음" : "있음",
+    elevator: conditions ? conditions.elevator === "unavailable" ? "없음" : "있음" : "없음",
     floor,
     ladder: accessNoteValue(conditions?.access_note ?? null, "사다리차") === "사용" ? "사용" : "사용 안 함",
     memo: accessNoteValue(conditions?.access_note ?? null, "메모"),
-    parking: conditions?.parking_access === "available" ? "가능" : "불가능",
+    parking: conditions ? conditions.parking_access === "available" ? "가능" : "불가능" : "가능",
     residenceType: conditions ? residenceFromApi[conditions.residence_type] : "아파트",
   };
 }
@@ -406,7 +406,7 @@ function CustomerMoveStartSheet({ connect, onConnected, onNewMove, onOpenChange,
               <span className="mt-1 block text-ui-data font-normal leading-5 text-ink-600">이사 정보를 입력해<br />새로 시작해요</span>
             </Button>
             <Button aria-label="이사 연결 코드로 불러오기" className="h-auto min-h-0 flex-col items-stretch justify-start gap-0 rounded-[var(--radius-feature)] border-line bg-surface p-3 text-left shadow-[var(--shadow-card)] hover:border-primary-300 hover:bg-surface" onClick={chooseCode} size="cta" type="button" variant="outline">
-              <span className="grid h-24 place-items-center overflow-hidden rounded-[var(--radius-card)] p-2"><img alt="" aria-hidden="true" className="size-16 object-contain" decoding="async" src="/moving-items/sofa.png" /></span>
+              <span className="grid h-24 place-items-center overflow-hidden rounded-[var(--radius-card)] p-2"><img alt="" aria-hidden="true" className="size-16 object-contain" decoding="async" src="/moving-items/secured-letter.png" /></span>
               <span className="mt-3 block text-ui-component font-black text-ink-900">연결 코드 입력</span>
               <span className="mt-1 block text-ui-data font-normal leading-5 text-ink-600">기존 이사 상황을<br />불러와요</span>
             </Button>
@@ -585,10 +585,27 @@ function MoveInfo({ canEdit, editor, onChange, onEditorChange, scope, value }: {
   if (editor) return <MoveStopPage draft={stopDraft} onDraftChange={setStopDraft} onSave={saveStop} />;
 
   return (
-    <div className="space-y-2.5 px-[var(--content-gutter)] pb-28 pt-3">
-      <InfoCard title="이사 일정"><div className="flex items-center gap-3"><Calendar aria-hidden="true" className="shrink-0" size="var(--icon-category)" /><span className="min-w-0 flex-1 text-ui-body leading-5">{scheduledAt ? fullDateFormatter.format(scheduledAt) : "일정을 입력해 주세요"}</span>{dDay !== null ? <span className="whitespace-nowrap rounded-lg bg-primary-50 px-2 py-1.5 text-ui-data text-primary-700">D-{dDay}</span> : null}{canEdit ? <button className="min-h-11 whitespace-nowrap px-1 text-ui-control text-primary-700" onClick={() => onEditorChange("schedule")} type="button">수정</button> : null}</div></InfoCard>
-      <InfoCard title="이동 경로"><div className="relative pl-12"><span aria-hidden="true" className="absolute top-[14px] bottom-[14px] left-[12px] w-0.5 bg-primary-600" /><RoutePoint label="출발지" onEdit={canEdit ? () => onEditorChange("origin") : undefined} stop={getStop("origin")} /><RoutePoint destination label="도착지" onEdit={canEdit ? () => onEditorChange("destination") : undefined} stop={getStop("destination")} /></div></InfoCard>
-      <aside className="flex items-center gap-3 rounded-2xl bg-surface-muted px-4 py-3 text-sm text-ink-600"><TrendUp aria-hidden="true" size="var(--icon-sm)" /> {canEdit ? "견적이 확정되기 전까지 기본정보를 수정할 수 있어요." : "견적이 생성되어 기본정보가 잠겼어요."}</aside>
+    <div className="space-y-2 bg-canvas pb-28 pt-2">
+      <section className="bg-surface px-[var(--content-gutter)] py-5">
+        <h2 className="text-ui-section font-black">이사 일정</h2>
+        <div className="mt-4 flex items-center gap-3">
+          <span className="grid size-12 shrink-0 place-items-center rounded-[var(--radius-control)] border border-primary-400 bg-primary-50 text-primary-700">
+            <Calendar aria-hidden="true" size="var(--icon-md)" weight="bold" />
+          </span>
+          <span className="min-w-0 flex-1 text-ui-body font-bold leading-6">{scheduledAt ? fullDateFormatter.format(scheduledAt) : "일정을 입력해 주세요"}</span>
+          {dDay !== null ? <span className="whitespace-nowrap rounded-lg bg-primary-50 px-2 py-1.5 text-ui-data text-primary-700">D-{dDay}</span> : null}
+          {canEdit ? <button aria-label="이사 일정 수정" className="grid size-11 shrink-0 place-items-center rounded-full text-primary-700" onClick={() => onEditorChange("schedule")} type="button"><CaretRight aria-hidden="true" size="var(--icon-sm)" weight="bold" /></button> : null}
+        </div>
+      </section>
+      <section className="bg-surface px-[var(--content-gutter)] py-5">
+        <h2 className="text-ui-section font-black">이동 경로</h2>
+        <div className="relative mt-4">
+          <span aria-hidden="true" className="absolute bottom-6 left-[23px] top-6 w-px bg-primary-500" />
+          <RoutePoint label="출발지" onEdit={canEdit ? () => onEditorChange("origin") : undefined} stop={getStop("origin")} />
+          <RoutePoint destination label="도착지" onEdit={canEdit ? () => onEditorChange("destination") : undefined} stop={getStop("destination")} />
+        </div>
+      </section>
+      <aside className="mx-[var(--content-gutter)] flex items-center gap-3 rounded-2xl bg-surface-muted px-4 py-3 text-sm text-ink-600"><TrendUp aria-hidden="true" size="var(--icon-sm)" /> {canEdit ? "견적이 확정되기 전까지 기본정보를 수정할 수 있어요." : "견적이 생성되어 기본정보가 잠겼어요."}</aside>
     </div>
   );
 }
@@ -642,11 +659,26 @@ function ScheduleEditor({ onChange, value }: { onChange: (value: string) => void
   </div>;
 }
 
-function InfoCard({ children, title }: { children: ReactNode; title: string }) { return <section className="ui-card p-3 shadow-[var(--shadow-card)]"><h2 className="mb-2.5 text-base font-black">{title}</h2>{children}</section>; }
-
 function RoutePoint({ destination = false, label, onEdit, stop }: { destination?: boolean; label: string; onEdit?: () => void; stop: MoveStopDraft }) {
-  const conditions = [stop.residenceType, stop.floor, `엘리베이터 ${stop.elevator}`, `사다리차 ${stop.ladder}`, `주차 ${stop.parking}`].filter(Boolean);
-  return <div className={destination ? "relative mt-6" : "relative"}><span aria-hidden="true" className="absolute top-1 -left-[46px] size-5 rounded-full border-[5px] border-primary-600 bg-surface" /><div className="flex items-start gap-2"><div className="min-w-0 flex-1"><p className="text-ui-data text-primary-700">{label}</p><strong className="mt-0.5 block text-ui-support">{stop.address || `${label}를 입력해 주세요`}</strong>{stop.detailAddress ? <span className="mt-0.5 block text-xs text-ink-600">{stop.detailAddress}</span> : null}</div>{onEdit ? <button className="min-h-11 whitespace-nowrap px-1 text-ui-control text-primary-700" onClick={onEdit} type="button">수정</button> : null}</div><div className="mt-1.5 flex flex-wrap gap-1.5">{conditions.map((condition) => <span className="rounded-full bg-surface-muted px-2.5 py-0.5 text-ui-micro text-ink-600" key={condition}>{condition}</span>)}</div></div>;
+  const conditions = [
+    { active: stop.elevator === "있음", label: `엘리베이터 ${stop.elevator}` },
+    { active: stop.ladder === "사용", label: `사다리차 ${stop.ladder}` },
+    { active: stop.parking === "가능", label: `주차 ${stop.parking}` },
+  ];
+  const Icon = destination ? Package : Truck;
+  return <div className={destination ? "relative mt-7" : "relative"}>
+    <button className="relative z-10 flex min-h-12 w-full items-center gap-3 text-left disabled:cursor-default" disabled={!onEdit} onClick={onEdit} type="button">
+      <span className="grid size-12 shrink-0 place-items-center rounded-[var(--radius-control)] border border-primary-400 bg-surface text-primary-700"><Icon aria-hidden="true" size="var(--icon-md)" weight="fill" /></span>
+      <span className="min-w-0 flex-1 text-ui-component font-black">{label}</span>
+      {onEdit ? <CaretRight aria-hidden="true" className="shrink-0 text-ink-400" size="var(--icon-sm)" weight="bold" /> : null}
+    </button>
+    <div className="ml-[60px] mt-3 rounded-[var(--radius-feature)] border border-line bg-surface px-4 py-4">
+      <strong className="block break-keep text-ui-component font-black leading-6">{stop.address || `${label}를 입력해 주세요`}</strong>
+      {stop.detailAddress ? <span className="mt-1 block text-sm leading-5 text-ink-600">{stop.detailAddress}</span> : null}
+      <p className="mt-3 text-sm font-semibold text-ink-600">{[stop.floor, stop.residenceType].filter(Boolean).join(" · ")}</p>
+      <div className="mt-3 flex flex-wrap gap-1.5">{conditions.map((condition) => <span className={condition.active ? "rounded-lg bg-primary-50 px-2.5 py-1 text-ui-micro font-bold text-primary-700" : "rounded-lg bg-surface-muted px-2.5 py-1 text-ui-micro font-bold text-ink-600"} key={condition.label}>{condition.label}</span>)}</div>
+    </div>
+  </div>;
 }
 
 function MoveStopPage({ draft, onDraftChange, onSave }: { draft: MoveStopDraft | null; onDraftChange: (draft: MoveStopDraft) => void; onSave: () => void }) {

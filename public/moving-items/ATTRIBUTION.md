@@ -11,6 +11,7 @@ Source collections:
 - [Freepik Cabinet Generic Isometric icon](https://www.freepik.com/icon/cabinet_6543765)
 - [Freepik 2000+ Isometric Icons Set](https://smashingstocks.com/downloads/2000-isometric-icons-set/)
 - [Flaticon Smashing Stocks Isometric icons](https://www.flaticon.com/free-icon/bed_6543683)
+- [Freepik Secured letter Generic Isometric icon](https://www.freepik.com/icon/secured-letter_6056690)
 
 Prevention card icons:
 

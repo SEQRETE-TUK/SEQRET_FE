@@ -63,12 +63,12 @@ function createStop(kind: Exclude<Step, "schedule">): StopDraft {
   return {
     address: mockApiEnabled ? (kind === "origin" ? "서울 성동구 성수동 1가" : "서울 광진구 자양동 오피스텔") : "",
     detailAddress: mockApiEnabled ? (kind === "origin" ? "301호" : "502호") : "",
-    elevator: kind === "origin" ? "없음" : "있음",
-    floor: kind === "origin" ? "3층" : "5층 이상",
+    elevator: "없음",
+    floor: "1층",
     ladder: "사용 안 함",
     memo: "",
-    parking: kind === "origin" ? "가능" : "불가능",
-    residenceType: kind === "origin" ? "아파트" : "오피스텔",
+    parking: "가능",
+    residenceType: "아파트",
   };
 }
 

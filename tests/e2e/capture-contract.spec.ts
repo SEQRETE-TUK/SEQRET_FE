@@ -72,9 +72,21 @@ test("lists only the move created by a new mock customer", async ({ page }) => {
   await page.getByRole("button", { name: "시작" }).click();
   await page.getByRole("button", { name: "내 이사" }).click();
   await page.getByRole("button", { name: "새 이사", exact: true }).click();
-  await page.getByRole("dialog", { name: "이사를 시작해요" }).getByRole("button", { name: "새 이사 시작하기" }).click();
+  const moveStartDialog = page.getByRole("dialog", { name: "이사를 시작해요" });
+  await expect(moveStartDialog.getByRole("button", { name: "이사 연결 코드로 불러오기" }).locator("img")).toHaveAttribute("src", "/moving-items/secured-letter.png");
+  await moveStartDialog.getByRole("button", { name: "새 이사 시작하기" }).click();
   await page.getByRole("button", { name: "다음", exact: true }).click();
+  await expect(page.getByRole("radio", { exact: true, name: "1층" })).toBeChecked();
+  await expect(page.getByRole("radio", { exact: true, name: "사용 안 함" })).toBeChecked();
+  await expect(page.getByRole("radio", { exact: true, name: "없음" })).toBeChecked();
+  await expect(page.getByRole("radio", { exact: true, name: "가능" })).toBeChecked();
+  await expect(page.getByRole("radio", { exact: true, name: "아파트" })).toBeChecked();
   await page.getByRole("button", { name: "다음", exact: true }).click();
+  await expect(page.getByRole("radio", { exact: true, name: "1층" })).toBeChecked();
+  await expect(page.getByRole("radio", { exact: true, name: "사용 안 함" })).toBeChecked();
+  await expect(page.getByRole("radio", { exact: true, name: "없음" })).toBeChecked();
+  await expect(page.getByRole("radio", { exact: true, name: "가능" })).toBeChecked();
+  await expect(page.getByRole("radio", { exact: true, name: "아파트" })).toBeChecked();
   await page.getByRole("button", { name: "이사 초안 만들기" }).click();
 
   await page.getByRole("button", { name: "이사 목록으로 돌아가기" }).click();

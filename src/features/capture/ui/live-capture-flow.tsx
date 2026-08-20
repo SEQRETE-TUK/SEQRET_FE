@@ -32,6 +32,7 @@ import { movingItemCatalog } from "@/features/capture/model/moving-item-catalog"
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { SheetFooter } from "@/components/ui/sheet";
 import {
   captureFileError,
   isValidAccessSecret,
@@ -1240,7 +1241,7 @@ function ConnectedCapture({
       </main>
 
       {manualMode && !manualValid ? null : (
-        <div className="app-fixed-action sticky bottom-0 bg-surface/95 px-6 pt-4 backdrop-blur">
+        <SheetFooter className="bg-surface/95 pt-4 backdrop-blur">
           {manualMode ? (
             workflow.manualScopeMutation.isSuccess ? null : (
               <div><Button className="w-full" disabled={!manualValid || workflow.manualScopeMutation.isPending} form={MANUAL_SCOPE_FORM_ID} size="cta" type="submit">
@@ -1250,9 +1251,7 @@ function ConnectedCapture({
                     className="demo-spin"
                     size="var(--icon-sm)"
                   />
-                ) : (
-                  <Check aria-hidden="true" size="var(--icon-sm)" />
-                )}
+                ) : null}
                 {manualValid
                   ? `선택한 짐 ${manualDraftItems.length}개 저장`
                   : "짐을 선택해 주세요"}
@@ -1328,7 +1327,7 @@ function ConnectedCapture({
                   : "업로드 URL과 secret은 브라우저에 저장하지 않아요."}
             </p>
           ) : null}
-        </div>
+        </SheetFooter>
       )}
     </div>
   );
