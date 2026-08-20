@@ -25,7 +25,6 @@ function SheetContent({ className, children, nested = false, presentation = "she
           )}
           {...props}
         >
-          {presentation === "sheet" ? <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-line md:hidden" aria-hidden="true" /> : null}
           {children}
           {showClose ? <Dialog.Close
               className={cn(

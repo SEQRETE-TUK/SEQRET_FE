@@ -23,6 +23,10 @@ test("enters the customer home without a guest app", async ({ page }) => {
   await expect(page).toHaveURL(/\/consumer$/);
   await expect(page.getByRole("heading", { name: /새 고객님/ })).toBeVisible();
   await expect(page.getByRole("heading", { name: "진행 중인 이사가 없어요" })).toBeVisible();
+  await page.getByRole("button", { name: "알림 확인" }).click();
+  await expect(page.getByRole("heading", { name: "알림", exact: true })).toBeVisible();
+  await expect(page.getByText("알림이 없어요")).toBeVisible();
+  await page.getByRole("button", { name: "홈으로 돌아가기" }).click();
   await expect(page.getByRole("button", { name: "더보기" })).toBeVisible();
   await page.getByRole("button", { name: /60초 촬영으로/ }).click();
   await expect(page.getByRole("dialog", { name: "이사를 시작해요" }).getByRole("button", { name: "새 이사 시작하기" })).toBeVisible();

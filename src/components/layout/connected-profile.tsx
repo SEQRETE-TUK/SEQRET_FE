@@ -93,7 +93,7 @@ export function ConnectedProfile({
         <SheetTrigger className="mt-7 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-[var(--radius-input)] border border-line bg-surface px-5 text-ui-support font-bold text-danger-ink">
           <LogOut aria-hidden="true" className="size-5" /> 이 기기에서 연결 해제
         </SheetTrigger>
-        <SheetContent>
+        <SheetContent showClose={false}>
           <SheetHeader>
             <SheetTitle>이 기기에서 연결을 해제할까요?</SheetTitle>
             <SheetDescription>{connected ? "현재 기기의 연결만 지워집니다. 이사 연결 코드로 다시 들어올 수 있어요." : "현재 기기에 입력한 이름과 시작 상태가 지워집니다."}</SheetDescription>

@@ -209,16 +209,17 @@ function NewCustomerApp() {
   const [onboardingOpen, setOnboardingOpen] = useState(false);
   const [moveStartOpen, setMoveStartOpen] = useState(false);
   const requestedTab = params.get("tab") as ConsumerTab | null;
-  const tab: ConsumerTab = requestedTab === "move" || requestedTab === "more" ? requestedTab : "home";
+  const tab: ConsumerTab = requestedTab === "move" || requestedTab === "more" || requestedTab === "notifications" ? requestedTab : "home";
   const customerName = window.sessionStorage.getItem(customerDisplayNameStorageKey)?.trim() || "고객";
   const setTab = (next: ConsumerTab) => setParams(next === "home" ? {} : { tab: next, ...(next === "move" ? { view: "list" } : {}) }, { replace: true });
   const disconnect = () => { window.sessionStorage.removeItem(customerDisplayNameStorageKey); navigate("/"); };
 
   return <>
-    <MobileAppShell current={tab} eyebrow={`고객 · ${customerName}`} header={tab === "home" ? <HomeHeader customerName={customerName} /> : tab === "move" ? <MoveListSafeArea /> : false} items={tabs} onChange={setTab} title={tab === "home" ? "홈" : tab === "move" ? "내 이사" : "더보기"}>
+    <MobileAppShell current={tab} eyebrow={`고객 · ${customerName}`} header={tab === "home" ? <HomeHeader customerName={customerName} onBell={() => setTab("notifications")} /> : tab === "move" ? <MoveListSafeArea /> : tab === "notifications" ? <NotificationsHeader onBack={() => setTab("home")} /> : false} items={tabs} onChange={setTab} title={tab === "home" ? "홈" : tab === "move" ? "내 이사" : tab === "notifications" ? "알림" : "더보기"}>
       {tab === "home" ? <EmptyCustomerHome onStart={() => setMoveStartOpen(true)} /> : null}
       {tab === "move" ? <EmptyMoveList onNewMove={() => setMoveStartOpen(true)} /> : null}
       {tab === "more" ? <ConnectedProfile connected={false} displayName={customerName} onDisconnect={disconnect} roleLabel="고객" /> : null}
+      {tab === "notifications" ? <CustomerNotifications /> : null}
     </MobileAppShell>
     <CustomerMoveStartSheet connect={connect} onConnected={() => setParams({ tab: "move", view: "list" }, { replace: true })} onNewMove={() => { setMoveStartOpen(false); setOnboardingOpen(true); }} onOpenChange={setMoveStartOpen} open={moveStartOpen} />
     <CustomerOnboardingSheet onOpenChange={setOnboardingOpen} open={onboardingOpen} />
@@ -389,7 +390,50 @@ function CustomerMoveStartSheet({ connect, onConnected, onNewMove, onOpenChange,
     }
   };
 
-  return <Sheet onOpenChange={close} open={open}><SheetContent><SheetHeader><SheetTitle>{mode === "confirm" ? `${customerName}님의 이사를 불러올까요?` : "이사를 시작해요"}</SheetTitle><SheetDescription>{mode === "choice" ? "새로 시작하거나 이사 연결 코드로 기존 이사를 불러올 수 있어요." : mode === "code" ? "공유받은 이사 연결 코드를 입력해 주세요." : "시작하면 연결된 이사의 이름과 정보를 사용합니다."}</SheetDescription></SheetHeader>{mode === "choice" ? <div className="grid gap-3 px-4 pb-5 sm:grid-cols-2"><Button aria-label="새 이사 시작하기" className="h-auto min-h-0 flex-col items-stretch justify-start gap-0 rounded-[var(--radius-feature)] border-line bg-surface p-3 text-left shadow-[var(--shadow-card)] hover:border-primary-300 hover:bg-surface" onClick={onNewMove} size="cta" type="button" variant="outline"><span className="grid h-24 place-items-center overflow-hidden rounded-[var(--radius-card)] p-2"><img alt="" aria-hidden="true" className="size-16 object-contain" decoding="async" src="/moving-items/moving-box.png" /></span><span className="mt-3 block text-ui-component font-black text-ink-900">새 이사 시작</span><span className="mt-1 block text-ui-data font-normal leading-5 text-ink-600">이사 정보를 입력해<br />새로 시작해요</span></Button><Button aria-label="이사 연결 코드로 불러오기" className="h-auto min-h-0 flex-col items-stretch justify-start gap-0 rounded-[var(--radius-feature)] border-line bg-surface p-3 text-left shadow-[var(--shadow-card)] hover:border-primary-300 hover:bg-surface" onClick={chooseCode} size="cta" type="button" variant="outline"><span className="grid h-24 place-items-center overflow-hidden rounded-[var(--radius-card)] p-2"><img alt="" aria-hidden="true" className="size-16 object-contain" decoding="async" src="/moving-items/sofa.png" /></span><span className="mt-3 block text-ui-component font-black text-ink-900">연결 코드 입력</span><span className="mt-1 block text-ui-data font-normal leading-5 text-ink-600">기존 이사 상황을<br />불러와요</span></Button></div> : mode === "code" ? <div className="px-5 pb-2"><Label htmlFor="customer-move-invite-code">이사 연결 코드</Label><Input autoCapitalize="characters" autoComplete="one-time-code" autoFocus className="mt-2" id="customer-move-invite-code" onChange={(event) => setSecret(event.target.value)} placeholder="MOVE-XXXXXXXX" spellCheck={false} value={secret} />{error ? <ErrorToast message={error} /> : null}<SheetFooter className="grid grid-cols-[92px_minmax(0,1fr)] gap-2"><Button onClick={() => { setError(null); setMode("choice"); }} variant="secondary">이전</Button><Button disabled={!secret.trim() || pending} onClick={() => { void preview(); }}>{pending ? "확인 중…" : "다음"}</Button></SheetFooter></div> : <div className="px-5 pb-2">{error ? <ErrorToast message={error} /> : null}<SheetFooter className="grid grid-cols-[92px_minmax(0,1fr)] gap-2"><Button onClick={() => { setError(null); setMode("code"); }} variant="secondary">이전</Button><Button disabled={pending} onClick={() => { void submit(); }}>{pending ? "연결 중…" : "시작"}</Button></SheetFooter></div>}</SheetContent></Sheet>;
+  return (
+    <Sheet onOpenChange={close} open={open}>
+      <SheetContent>
+        <SheetHeader>
+          <SheetTitle>{mode === "confirm" ? `${customerName}님의 이사를 불러올까요?` : "이사를 시작해요"}</SheetTitle>
+          <SheetDescription>{mode === "choice" ? "새로 시작하거나 이사 연결 코드로 기존 이사를 불러올 수 있어요." : mode === "code" ? "공유받은 이사 연결 코드를 입력해 주세요." : "시작하면 연결된 이사의 이름과 정보를 사용합니다."}</SheetDescription>
+        </SheetHeader>
+        {mode === "choice" ? (
+          <div className="grid grid-cols-2 gap-3 px-4 pb-5">
+            <Button aria-label="새 이사 시작하기" className="h-auto min-h-0 flex-col items-stretch justify-start gap-0 rounded-[var(--radius-feature)] border-line bg-surface p-3 text-left shadow-[var(--shadow-card)] hover:border-primary-300 hover:bg-surface" onClick={onNewMove} size="cta" type="button" variant="outline">
+              <span className="grid h-24 place-items-center overflow-hidden rounded-[var(--radius-card)] p-2"><img alt="" aria-hidden="true" className="size-16 object-contain" decoding="async" src="/moving-items/moving-box.png" /></span>
+              <span className="mt-3 block text-ui-component font-black text-ink-900">새 이사 시작</span>
+              <span className="mt-1 block text-ui-data font-normal leading-5 text-ink-600">이사 정보를 입력해<br />새로 시작해요</span>
+            </Button>
+            <Button aria-label="이사 연결 코드로 불러오기" className="h-auto min-h-0 flex-col items-stretch justify-start gap-0 rounded-[var(--radius-feature)] border-line bg-surface p-3 text-left shadow-[var(--shadow-card)] hover:border-primary-300 hover:bg-surface" onClick={chooseCode} size="cta" type="button" variant="outline">
+              <span className="grid h-24 place-items-center overflow-hidden rounded-[var(--radius-card)] p-2"><img alt="" aria-hidden="true" className="size-16 object-contain" decoding="async" src="/moving-items/sofa.png" /></span>
+              <span className="mt-3 block text-ui-component font-black text-ink-900">연결 코드 입력</span>
+              <span className="mt-1 block text-ui-data font-normal leading-5 text-ink-600">기존 이사 상황을<br />불러와요</span>
+            </Button>
+          </div>
+        ) : mode === "code" ? (
+          <>
+            <div className="px-5 pb-2">
+              <Label htmlFor="customer-move-invite-code">이사 연결 코드</Label>
+              <Input autoCapitalize="characters" autoComplete="one-time-code" autoFocus className="mt-2" id="customer-move-invite-code" onChange={(event) => setSecret(event.target.value)} placeholder="MOVE-XXXXXXXX" spellCheck={false} value={secret} />
+              {error ? <ErrorToast message={error} /> : null}
+            </div>
+            <SheetFooter className="grid grid-cols-[92px_minmax(0,1fr)] gap-2">
+              <Button onClick={() => { setError(null); setMode("choice"); }} variant="secondary">이전</Button>
+              <Button disabled={!secret.trim() || pending} onClick={() => { void preview(); }}>{pending ? "확인 중…" : "다음"}</Button>
+            </SheetFooter>
+          </>
+        ) : (
+          <>
+            <div className="px-5 pb-2">{error ? <ErrorToast message={error} /> : null}</div>
+            <SheetFooter className="grid grid-cols-[92px_minmax(0,1fr)] gap-2">
+              <Button onClick={() => { setError(null); setMode("code"); }} variant="secondary">이전</Button>
+              <Button disabled={pending} onClick={() => { void submit(); }}>{pending ? "연결 중…" : "시작"}</Button>
+            </SheetFooter>
+          </>
+        )}
+      </SheetContent>
+    </Sheet>
+  );
 }
 
 function MoveActionsSheet({ canDelete, connectionCode, error, onDelete, onOpenChange, open, pending, showCode }: { canDelete: boolean; connectionCode?: string; error: unknown; onDelete: () => void; onOpenChange: (open: boolean) => void; open: boolean; pending: boolean; showCode: boolean }) {
