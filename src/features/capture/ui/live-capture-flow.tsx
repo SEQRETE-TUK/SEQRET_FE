@@ -19,7 +19,7 @@ import {
   InfoStatusIcon as Info,
   SecurityStatusIcon as ShieldCheck,
 } from "@/components/icons";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 
 import { MobileFrame } from "@/components/layout/mobile-frame";
 import { MobileHeaderButton, MobilePageHeader } from "@/components/layout/mobile-app-shell";
@@ -60,6 +60,7 @@ interface ConnectedCaptureProps {
   connection: CaptureConnection;
   initialManual: boolean;
   initialVideo: boolean;
+  initialVideoFile?: File | null;
   onComplete: () => void;
   onDisconnect: () => void;
 }
@@ -619,6 +620,7 @@ function ConnectedCapture({
   connection,
   initialManual,
   initialVideo,
+  initialVideoFile,
   onComplete,
   onDisconnect,
 }: ConnectedCaptureProps) {
@@ -630,13 +632,13 @@ function ConnectedCapture({
   const [manualDraftItems, setManualDraftItems] = useState<
     AnalysisReviewDraftItem[]
   >([]);
-  const [videoMode, setVideoMode] = useState<"capture" | "loading" | "review" | null>(
-    initialVideo ? "capture" : null,
-  );
+  const [videoMode, setVideoMode] = useState<"capture" | "loading" | "review" | null>(initialVideoFile ? "loading" : initialVideo ? "capture" : null);
   const [mockProcessingStep, setMockProcessingStep] = useState(0);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [videoAnalysisSessionId, setVideoAnalysisSessionId] = useState<string | null>(null);
   const [videoAnalysisRequested, setVideoAnalysisRequested] = useState(false);
+  const initialVideoStarted = useRef(false);
+  const prepareVideoRef = useRef<(file: File) => void>(() => undefined);
   const [recoveringReview, setRecoveringReview] = useState(false);
   const [removedReviewItem, setRemovedReviewItem] =
     useState<RemovedReviewItem | null>(null);
@@ -768,6 +770,63 @@ function ConnectedCapture({
     workflow.submitMutation.error ??
     workflow.reviewMutation.error ??
     workflow.manualScopeMutation.error;
+  const initialVideoReady = Boolean(job && !workflow.jobQuery.isPending && !workflow.sessionsQuery.isPending && !workflow.consentPolicyQuery.isPending);
+
+  const startVideoUpload = (file: File) => {
+    const roomZoneId = zones[0]?.id;
+    if (!roomZoneId || (!session && !workflow.consentPolicyQuery.data)) {
+      setLocalError("촬영 준비가 끝나지 않았어요. 잠시 후 다시 시도해 주세요.");
+      setVideoMode(null);
+      return;
+    }
+    setVideoAnalysisRequested(true);
+    const fail = () => {
+      setVideoAnalysisRequested(false);
+      setVideoAnalysisSessionId(null);
+      setVideoMode(null);
+    };
+    const uploadAndAnalyze = (captureSessionId: string) => workflow.uploadMutation.mutate(
+      { captureSessionId, file, roomZoneId },
+      {
+        onSuccess: () => workflow.submitMutation.mutate(captureSessionId, { onError: fail }),
+        onError: fail,
+      },
+    );
+    if (!session || analysis) {
+      workflow.createSessionMutation.mutate(undefined, {
+        onSuccess: (created) => {
+          setVideoAnalysisSessionId(created.id);
+          uploadAndAnalyze(created.id);
+        },
+        onError: fail,
+      });
+    } else {
+      setVideoAnalysisSessionId(session.id);
+      uploadAndAnalyze(session.id);
+    }
+  };
+
+  const prepareVideo = (file: File) => {
+    const error = captureFileError(file);
+    if (error) {
+      setLocalError(error);
+      return;
+    }
+    if (videoUrl && videoUrl !== "mock") URL.revokeObjectURL(videoUrl);
+    setLocalError(null);
+    if (mockApiEnabled) {
+      setVideoAnalysisRequested(false);
+      setVideoAnalysisSessionId(null);
+      setMockProcessingStep(0);
+      setVideoUrl(URL.createObjectURL(file));
+      setVideoMode("loading");
+      return;
+    }
+    setVideoAnalysisSessionId(null);
+    setVideoUrl(null);
+    setVideoMode("loading");
+    startVideoUpload(file);
+  };
 
   useEffect(() => {
     if (!reviewDirty) return;
@@ -811,6 +870,16 @@ function ConnectedCapture({
       return () => window.clearTimeout(completionTimer);
     }
   }, [videoAnalysis, videoAnalysisRequested, videoMode]);
+
+  useEffect(() => {
+    prepareVideoRef.current = prepareVideo;
+  });
+
+  useEffect(() => {
+    if (!initialVideoFile || initialVideoStarted.current || !initialVideoReady) return;
+    initialVideoStarted.current = true;
+    prepareVideoRef.current(initialVideoFile);
+  }, [initialVideoFile, initialVideoReady]);
 
   if (workflow.jobQuery.isPending || workflow.sessionsQuery.isPending) {
     return (
@@ -1070,62 +1139,6 @@ function ConnectedCapture({
         onSuccess: onComplete,
       },
     );
-  };
-
-  const startVideoUpload = (file: File) => {
-    const roomZoneId = zones[0]?.id;
-    if (!roomZoneId || (!session && !workflow.consentPolicyQuery.data)) {
-      setLocalError("촬영 준비가 끝나지 않았어요. 잠시 후 다시 시도해 주세요.");
-      setVideoMode(null);
-      return;
-    }
-    setVideoAnalysisRequested(true);
-    const fail = () => {
-      setVideoAnalysisRequested(false);
-      setVideoAnalysisSessionId(null);
-      setVideoMode(null);
-    };
-    const uploadAndAnalyze = (captureSessionId: string) => workflow.uploadMutation.mutate(
-      { captureSessionId, file, roomZoneId },
-      {
-        onSuccess: () => workflow.submitMutation.mutate(captureSessionId, { onError: fail }),
-        onError: fail,
-      },
-    );
-    if (!session || analysis) {
-      workflow.createSessionMutation.mutate(undefined, {
-        onSuccess: (created) => {
-          setVideoAnalysisSessionId(created.id);
-          uploadAndAnalyze(created.id);
-        },
-        onError: fail,
-      });
-    } else {
-      setVideoAnalysisSessionId(session.id);
-      uploadAndAnalyze(session.id);
-    }
-  };
-
-  const prepareVideo = (file: File) => {
-    const error = captureFileError(file);
-    if (error) {
-      setLocalError(error);
-      return;
-    }
-    if (videoUrl && videoUrl !== "mock") URL.revokeObjectURL(videoUrl);
-    setLocalError(null);
-    if (mockApiEnabled) {
-      setVideoAnalysisRequested(false);
-      setVideoAnalysisSessionId(null);
-      setMockProcessingStep(0);
-      setVideoUrl(URL.createObjectURL(file));
-      setVideoMode("loading");
-      return;
-    }
-    setVideoAnalysisSessionId(null);
-    setVideoUrl(null);
-    setVideoMode("loading");
-    startVideoUpload(file);
   };
 
   const applyVideo = (detectedItems: { key: string; name: string; quantity: number }[]) => {
@@ -1601,12 +1614,14 @@ export function LiveCaptureFlow({
   initialConnection = null,
   initialManual = false,
   initialVideo = false,
+  initialVideoFile = null,
   onComplete,
   onExit,
 }: {
   initialConnection?: CaptureConnection | null;
   initialManual?: boolean;
   initialVideo?: boolean;
+  initialVideoFile?: File | null;
   onComplete?: () => void;
   onExit?: () => void;
 } = {}) {
@@ -1632,6 +1647,7 @@ export function LiveCaptureFlow({
           connection={connection}
           initialManual={initialManual}
           initialVideo={initialVideo}
+          initialVideoFile={initialVideoFile}
           key={connection.cacheScope}
           onComplete={onComplete ?? disconnect}
           onDisconnect={disconnect}

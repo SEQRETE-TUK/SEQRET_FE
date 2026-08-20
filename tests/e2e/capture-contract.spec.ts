@@ -123,6 +123,20 @@ test("lets a connected customer choose a new move or invite code", async ({ page
   await expect(page.getByRole("tab", { name: "진행 중 3" })).toBeVisible();
 });
 
+test("opens the native video picker from the inventory action", async ({ page }) => {
+  await page.goto("/consumer?tab=move&view=items");
+  const captureButton = page.getByRole("button", { name: "AI 영상 촬영" });
+  await expect(captureButton).toBeVisible();
+
+  const fileChooserPromise = page.waitForEvent("filechooser");
+  await captureButton.click();
+  const fileChooser = await fileChooserPromise;
+  expect(fileChooser.isMultiple()).toBe(false);
+  await fileChooser.setFiles({ name: "move.mp4", mimeType: "video/mp4", buffer: Buffer.from("mock-video") });
+  await expect(page).toHaveURL(/\/consumer\/capture\?mode=video&job=/);
+  await expect(page.getByRole("heading", { name: "AI 분석 중" })).toBeVisible();
+});
+
 test("shows the shared code instead of delete after a quote is accepted", async ({ page }) => {
   await page.goto("/consumer?tab=move&view=list");
   await page.getByText("성수동 아파트 → 자양동 오피스텔").click();

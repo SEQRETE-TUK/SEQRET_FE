@@ -28,7 +28,7 @@ import {
   TruckIcon as Truck,
   WarningCircleIcon as WarningCircle,
 } from "@phosphor-icons/react";
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { mockApiEnabled, mockConnectionCodes } from "@/api/mock-api";
@@ -300,7 +300,7 @@ function ConnectedConsumerApp() {
     <>
     <MobileAppShell current={tab} eyebrow={`고객 · ${activeCustomerName}`} header={header} items={tabs} onChange={setTab} onProfile={() => setTab("more")} showNav={tab !== "move" || moveView === "list"} title={tab === "home" ? "홈" : tab === "move" ? "내 이사" : "더보기"}>
       {tab === "home" ? <HomeTab completion={completionQuery.data} onOpenAgreement={openAgreement} onOpenMove={() => openMove()} onStartMove={() => setMoveStartOpen(true)} scope={scopeQuery.data} /> : null}
-      {tab === "move" ? <ConsumerMoveTab completion={completionQuery.data} connection={connection} editor={moveInfoEditor} issues={issuesQuery.data} key={`${selectedJobId}:${moveListQuery.data ? "loaded" : "loading"}`} moveJobs={moveListQuery.data?.moves} onCapture={() => navigate(`/consumer/capture?mode=video&job=${encodeURIComponent(selectedJobId)}`)} onEditorChange={setMoveInfoEditor} onManualAdd={() => navigate(`/consumer/capture?mode=manual&job=${encodeURIComponent(selectedJobId)}`)} onNewMove={() => setMoveStartOpen(true)} onOpen={(jobId) => openMove(jobId)} onOpenCompletion={() => navigate(`/consumer/completion?job=${encodeURIComponent(selectedJobId)}`)} onOpenQuote={() => navigate(`/consumer/quote?job=${encodeURIComponent(selectedJobId)}`)} onViewChange={setMoveView} scope={scopeQuery.data} view={moveView} /> : null}
+      {tab === "move" ? <ConsumerMoveTab completion={completionQuery.data} connection={connection} editor={moveInfoEditor} issues={issuesQuery.data} key={`${selectedJobId}:${moveListQuery.data ? "loaded" : "loading"}`} moveJobs={moveListQuery.data?.moves} onCapture={(file) => navigate(`/consumer/capture?mode=video&job=${encodeURIComponent(selectedJobId)}`, { state: { videoFile: file } })} onEditorChange={setMoveInfoEditor} onManualAdd={() => navigate(`/consumer/capture?mode=manual&job=${encodeURIComponent(selectedJobId)}`)} onNewMove={() => setMoveStartOpen(true)} onOpen={(jobId) => openMove(jobId)} onOpenCompletion={() => navigate(`/consumer/completion?job=${encodeURIComponent(selectedJobId)}`)} onOpenQuote={() => navigate(`/consumer/quote?job=${encodeURIComponent(selectedJobId)}`)} onViewChange={setMoveView} scope={scopeQuery.data} view={moveView} /> : null}
       {tab === "notifications" ? <CustomerNotifications error={notificationsQuery.error} notifications={notificationsQuery.data} pending={notificationsQuery.isPending} /> : null}
       {tab === "more" ? <ConnectedProfile displayName={activeCustomerName} expiresAt={session!.actor.expires_at} onDisconnect={disconnect} permissions={session!.actor.permissions} roleLabel="고객" /> : null}
     </MobileAppShell>
@@ -464,7 +464,7 @@ function storedMoveInfoOverrides(jobId: string): MoveInfoOverrides {
   }
 }
 
-function ConsumerMoveTab({ completion, connection, editor, issues, moveJobs, onCapture, onEditorChange, onManualAdd, onNewMove, onOpen, onOpenCompletion, onOpenQuote, onViewChange, scope, view }: { completion: CompletionSummary | undefined; connection: Connection; editor: MoveInfoEditor | null; issues: FieldIssue[] | undefined; moveJobs: MockMoveSummary[] | undefined; onCapture: () => void; onEditorChange: (editor: MoveInfoEditor | null) => void; onManualAdd: () => void; onNewMove?: () => void; onOpen: (jobId: string) => void; onOpenCompletion: () => void; onOpenQuote: () => void; onViewChange: (view: ConsumerMoveView) => void; scope: ScopeReview | undefined; view: ConsumerMoveView }) {
+function ConsumerMoveTab({ completion, connection, editor, issues, moveJobs, onCapture, onEditorChange, onManualAdd, onNewMove, onOpen, onOpenCompletion, onOpenQuote, onViewChange, scope, view }: { completion: CompletionSummary | undefined; connection: Connection; editor: MoveInfoEditor | null; issues: FieldIssue[] | undefined; moveJobs: MockMoveSummary[] | undefined; onCapture: (file: File) => void; onEditorChange: (editor: MoveInfoEditor | null) => void; onManualAdd: () => void; onNewMove?: () => void; onOpen: (jobId: string) => void; onOpenCompletion: () => void; onOpenQuote: () => void; onViewChange: (view: ConsumerMoveView) => void; scope: ScopeReview | undefined; view: ConsumerMoveView }) {
   const queryClient = useQueryClient();
   const selectedMove = moveJobs?.find((move) => move.job.id === connection.jobId);
   const selectedJob = selectedMove?.job;
@@ -587,7 +587,8 @@ function MoveStopPage({ draft, onDraftChange, onSave }: { draft: MoveStopDraft |
   return <div className="min-h-[calc(100dvh-var(--header-height))] bg-canvas">{draft ? <div className="space-y-2"><section className="space-y-4 bg-surface px-5 py-6"><div><Label className="text-ui-component" htmlFor="move-address">주소</Label><div className="mt-2"><AddressSearchInput id="move-address" onChange={(value) => update("address", value)} value={draft.address} /></div></div><div><Input id="move-detail-address" onChange={(event) => update("detailAddress", event.target.value)} placeholder="상세 주소 입력 (동/호수 등)" value={draft.detailAddress} /></div></section><section className="flex flex-col gap-8 bg-surface px-5 py-6"><ChoiceGroup appearance="outlined" columns={3} label="층수" onChange={(value) => update("floor", value)} options={floorOptions} scroll value={draft.floor} /><ChoiceGroup columns={2} label="사다리차 사용 여부" onChange={(value) => update("ladder", value)} options={ladderOptions} value={draft.ladder ?? "사용 안 함"} /><ChoiceGroup columns={2} label="엘리베이터 유무" onChange={(value) => update("elevator", value)} options={elevatorOptions} value={draft.elevator} /><ChoiceGroup columns={2} label="주차 가능 여부" onChange={(value) => update("parking", value)} options={parkingOptions} value={draft.parking === "가능" ? "가능" : "불가능"} /><ChoiceGroup appearance="outlined" columns={3} icons={residenceIcons} label="거주지 형태" onChange={(value) => update("residenceType", value)} options={residenceOptions} value={draft.residenceType ?? "아파트"} /></section></div> : null}<SheetFooter><Button className="w-full" disabled={!draft?.address.trim()} onClick={onSave} size="cta">변경 내용 저장</Button></SheetFooter></div>;
 }
 
-function ConsumerInventory({ onCapture, onManualAdd, scope }: { onCapture: () => void; onManualAdd: () => void; scope: ScopeReview | undefined }) {
+function ConsumerInventory({ onCapture, onManualAdd, scope }: { onCapture: (file: File) => void; onManualAdd: () => void; scope: ScopeReview | undefined }) {
+  const videoInputRef = useRef<HTMLInputElement>(null);
   const [openCategory, setOpenCategory] = useState<MovingItemCategory | "">("");
   const [query, setQuery] = useState("");
   const [quantities, setQuantities] = useState<Record<string, number>>({});
@@ -612,7 +613,8 @@ function ConsumerInventory({ onCapture, onManualAdd, scope }: { onCapture: () =>
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[calc(var(--z-sticky)-1)] flex justify-center">
       <div className="pointer-events-auto grid w-full max-w-[var(--shell-mobile)] grid-cols-2 gap-2 bg-surface px-[var(--content-gutter)] pt-2.5 pb-[max(10px,env(safe-area-inset-bottom))]">
         <Button className="min-w-0" onClick={onManualAdd} size="cta" variant="outline"><Cube aria-hidden="true" /> 품목 직접 선택</Button>
-        <Button className="min-w-0" onClick={onCapture} size="cta"><Camera aria-hidden="true" weight="fill" /> AI 영상 촬영</Button>
+        <Button className="min-w-0" onClick={() => videoInputRef.current?.click()} size="cta"><Camera aria-hidden="true" weight="fill" /> AI 영상 촬영</Button>
+        <input aria-label="AI 영상 촬영 파일" ref={videoInputRef} accept="video/mp4,video/*" capture="environment" className="sr-only" onChange={(event) => { const file = event.currentTarget.files?.[0]; event.currentTarget.value = ""; if (file) onCapture(file); }} type="file" />
       </div>
     </div>
   </div>;
