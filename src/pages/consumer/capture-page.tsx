@@ -15,6 +15,7 @@ export function CapturePage() {
   const initialVideoFile = (location.state as { videoFile?: File } | null)?.videoFile ?? null;
   const captureJobId = params.get("job") ?? session.actor.job_id;
   const inventoryHref = `/consumer?tab=move&view=items&job=${encodeURIComponent(captureJobId)}`;
+  if (params.get("mode") === "video" && !initialVideoFile) return <Navigate replace to={inventoryHref} />;
   const back = () => {
     if ((window.history.state?.idx ?? 0) > 0) navigate(-1);
     else navigate(inventoryHref, { replace: true });
