@@ -17,7 +17,6 @@ test("keeps the access secret out of browser storage", async ({ page }) => {
 test("enters the customer home without a guest app", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "고객으로 시작" }).click();
-  await page.getByRole("button", { name: "새 이사" }).click();
   await page.getByRole("textbox", { name: "이름" }).fill("새 고객");
   await page.getByRole("button", { name: "시작" }).click();
 
@@ -40,10 +39,23 @@ test("enters the customer home without a guest app", async ({ page }) => {
   await expect(page.getByRole("tab", { name: "진행 중 0" })).toHaveAttribute("aria-selected", "true");
 });
 
+test("replaces the entered customer name with the connected move name", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "고객으로 시작" }).click();
+  await page.getByRole("textbox", { name: "이름" }).fill("입력한 이름");
+  await page.getByRole("button", { name: "시작" }).click();
+  await page.getByRole("button", { name: /60초 촬영으로/ }).click();
+  await page.getByRole("button", { name: "이사 연결 코드로 불러오기" }).click();
+  await page.getByRole("button", { name: "내 이사 불러오기" }).click();
+  await page.getByRole("button", { name: "홈" }).click();
+
+  await expect(page.getByRole("heading", { name: /김서큐님/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /입력한 이름님/ })).toHaveCount(0);
+});
+
 test("lists only the move created by a new mock customer", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "고객으로 시작" }).click();
-  await page.getByRole("button", { name: "새 이사" }).click();
   await page.getByRole("textbox", { name: "이름" }).fill("목록 고객");
   await page.getByRole("button", { name: "시작" }).click();
   await page.getByRole("button", { name: "내 이사" }).click();

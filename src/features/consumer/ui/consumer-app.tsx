@@ -219,7 +219,7 @@ function NewCustomerApp() {
       {tab === "move" ? <EmptyMoveList onNewMove={() => setMoveStartOpen(true)} /> : null}
       {tab === "more" ? <ConnectedProfile connected={false} displayName={customerName} onDisconnect={disconnect} roleLabel="고객" /> : null}
     </MobileAppShell>
-    <CustomerMoveStartSheet connect={connect} onConnected={() => { window.sessionStorage.removeItem(customerDisplayNameStorageKey); setParams({ tab: "move", view: "list" }, { replace: true }); }} onNewMove={() => { setMoveStartOpen(false); setOnboardingOpen(true); }} onOpenChange={setMoveStartOpen} open={moveStartOpen} />
+    <CustomerMoveStartSheet connect={connect} onConnected={() => setParams({ tab: "move", view: "list" }, { replace: true })} onNewMove={() => { setMoveStartOpen(false); setOnboardingOpen(true); }} onOpenChange={setMoveStartOpen} open={moveStartOpen} />
     <CustomerOnboardingSheet onOpenChange={setOnboardingOpen} open={onboardingOpen} />
   </>;
 }
@@ -361,6 +361,7 @@ function CustomerMoveStartSheet({ connect, onConnected, onNewMove, onOpenChange,
     setError(null);
     try {
       await connect(secret, "customer");
+      window.sessionStorage.removeItem(customerDisplayNameStorageKey);
       close(false);
       await onConnected();
     } catch (caught) {
