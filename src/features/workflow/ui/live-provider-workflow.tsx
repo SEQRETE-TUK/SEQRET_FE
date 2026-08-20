@@ -14,11 +14,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { WorkflowTask } from "@/components/workflow/workflow-task";
+import { mockApiEnabled } from "@/api/mock-api";
 import { useAuth } from "@/features/auth/model/auth-context";
 import {
   createCompletionRequest,
   getCompletionSummary,
   getDispatch,
+  listFieldIssues,
   getMoveJob,
   getScopeReview,
   shouldRecoverState,
@@ -58,6 +60,7 @@ export function LiveProviderWorkflow({ embedded = false, wide = false }: { embed
   const jobQuery = useQuery({ enabled: canReadJob, queryKey: ["move-job", session?.actor.job_id], queryFn: () => getMoveJob(connection!), refetchInterval: 2_000 });
   const dispatchQuery = useQuery({ enabled: canReadJob && Boolean(scopeQuery.data), queryKey: workflowKeys.dispatch(session?.actor.job_id ?? ""), queryFn: () => getDispatch(connection!) });
   const completionQuery = useQuery({ enabled: canReadJob, queryKey: workflowKeys.completion(session?.actor.job_id ?? ""), queryFn: () => getCompletionSummary(connection!) });
+  const issueQuery = useQuery({ enabled: canReadJob, queryKey: workflowKeys.fieldIssues(session?.actor.job_id ?? ""), queryFn: () => listFieldIssues(connection!), refetchInterval: mockApiEnabled ? 2_000 : false });
 
   const invalidate = (...keys: readonly (readonly unknown[])[]) => Promise.all(keys.map((queryKey) => queryClient.invalidateQueries({ queryKey })));
   const setupMutation = useMutation({
@@ -126,9 +129,10 @@ export function LiveProviderWorkflow({ embedded = false, wide = false }: { embed
   });
   const mutationError = setupMutation.error ?? dispatchMutation.error ?? completionRequestMutation.error;
   const retryAfter = useRetryAfter(mutationError);
-  useAuthFailure(scopeQuery.error, jobQuery.error, dispatchQuery.error, completionQuery.error, mutationError);
+  useAuthFailure(scopeQuery.error, jobQuery.error, dispatchQuery.error, completionQuery.error, issueQuery.error, mutationError);
   if (!connection || session?.actor.role !== "company_manager") return null;
   const connectedWorker = jobQuery.data?.participants.find((participant) => participant.role === "field_worker");
+  const unresolvedFieldIssueCount = (issueQuery.data ?? []).filter((issue) => issue.status !== "approved" && issue.status !== "rejected").length;
   const operationStep = !connectedWorker ? 0 : dispatchQuery.data?.status !== "confirmed" ? 1 : completionQuery.data?.completion_submission_id ? 3 : 2;
   const copyConnectionCode = async () => {
     if (!scopeQuery.data) return;
@@ -196,7 +200,8 @@ export function LiveProviderWorkflow({ embedded = false, wide = false }: { embed
         >
           <ApiNotice error={completionQuery.error} title="완료 기록이 아직 준비되지 않았어요" />
           {completionQuery.data ? <CompletionReview summary={completionQuery.data} /> : <EmptyState>현장기사의 완료 제출을 기다리고 있습니다.</EmptyState>}
-          {completionQuery.data ? <Button className="mt-4 w-full" disabled={!completionQuery.data.completion_submission_id || ["requested", "confirmed", "issue_reported"].includes(completionQuery.data.completion_request?.status ?? "") || completionRequestMutation.isPending} onClick={() => completionRequestMutation.mutate()}><Send aria-hidden="true" /> 고객 완료 확인 요청</Button> : null}
+          {unresolvedFieldIssueCount ? <p className="mt-4 rounded-xl bg-warning-bg p-3 text-sm font-bold text-warning-ink">처리되지 않은 현장 보고 {unresolvedFieldIssueCount}건을 먼저 업체·고객이 처리해야 완료 확인을 요청할 수 있어요.</p> : null}
+          {completionQuery.data ? <Button className="mt-4 w-full" disabled={!completionQuery.data.completion_submission_id || unresolvedFieldIssueCount > 0 || ["requested", "confirmed", "issue_reported"].includes(completionQuery.data.completion_request?.status ?? "") || completionRequestMutation.isPending} onClick={() => completionRequestMutation.mutate()}><Send aria-hidden="true" /> 고객 완료 확인 요청</Button> : null}
           <ApiNotice error={completionRequestMutation.error} title="완료 요청을 처리하지 못했어요" />
         </WorkflowTask>
         </>}

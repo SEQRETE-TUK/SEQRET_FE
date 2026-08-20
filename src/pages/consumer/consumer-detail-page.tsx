@@ -5,7 +5,7 @@ import { MobileFrame } from "@/components/layout/mobile-frame";
 import { RouteLoading } from "@/components/layout/route-loading";
 import { useAuth } from "@/features/auth/model/auth-context";
 import { CompletionDecisionPage, QuoteDecisionPage } from "@/features/consumer/ui/consumer-app";
-import { getCompletionSummary, getScopeReview, workflowKeys, type Connection } from "@/features/workflow/api/workflow-api";
+import { getCompletionSummary, getScopeReview, listFieldIssues, workflowKeys, type Connection } from "@/features/workflow/api/workflow-api";
 
 type ConsumerDetailKind = "quote" | "completion";
 
@@ -34,9 +34,14 @@ function ConsumerDetailPage({ kind }: { kind: ConsumerDetailKind }) {
     queryKey: workflowKeys.completion(jobId),
     queryFn: () => getCompletionSummary(connection!),
   });
+  const issuesQuery = useQuery({
+    enabled: kind === "completion" && Boolean(connection),
+    queryKey: workflowKeys.fieldIssues(jobId),
+    queryFn: () => listFieldIssues(connection!),
+  });
 
   if (session?.actor.role !== "customer") return <Navigate replace to="/consumer" />;
-  if (!connection || (kind === "quote" ? scopeQuery.isLoading : completionQuery.isLoading)) return <RouteLoading />;
+  if (!connection || (kind === "quote" ? scopeQuery.isLoading : completionQuery.isLoading || issuesQuery.isLoading)) return <RouteLoading />;
 
   const backHref = `/consumer?tab=move&view=agreement&job=${encodeURIComponent(jobId)}`;
   const back = () => {
@@ -48,5 +53,5 @@ function ConsumerDetailPage({ kind }: { kind: ConsumerDetailKind }) {
     await queryClient.invalidateQueries({ queryKey: workflowKeys.moves(session.accessToken) });
   };
 
-  return <div className="mobile-stage" id="main-content"><MobileFrame>{kind === "quote" && scopeQuery.data ? <QuoteDecisionPage connection={connection} fallbackLocationConditions={[]} onBack={back} onResolved={refresh} scope={scopeQuery.data} /> : kind === "completion" && completionQuery.data ? <CompletionDecisionPage completion={completionQuery.data} connection={connection} onBack={back} onResolved={refresh} /> : <div className="grid min-h-dvh place-items-center px-5 text-sm text-ink-600">상세 내용을 불러오지 못했어요.</div>}</MobileFrame></div>;
+  return <div className="mobile-stage" id="main-content"><MobileFrame>{kind === "quote" && scopeQuery.data ? <QuoteDecisionPage connection={connection} fallbackLocationConditions={[]} onBack={back} onResolved={refresh} scope={scopeQuery.data} /> : kind === "completion" && completionQuery.data ? <CompletionDecisionPage completion={completionQuery.data} connection={connection} fieldIssues={issuesQuery.data ?? []} fieldIssuesError={Boolean(issuesQuery.error)} onBack={back} onResolved={refresh} /> : <div className="grid min-h-dvh place-items-center px-5 text-sm text-ink-600">상세 내용을 불러오지 못했어요.</div>}</MobileFrame></div>;
 }
