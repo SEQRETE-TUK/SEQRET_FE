@@ -1,11 +1,18 @@
 import type {
   AnalysisReview,
   AnalysisReviewItemInput,
+  CaptureAnalysis,
   CaptureSession,
   MediaAsset,
   MediaUploadTarget,
   ScopeVersionSummary,
 } from "@/features/capture/api/capture-api";
+
+declare global {
+  interface Window {
+    __SEQRET_MOCK_ANALYSIS_FAILURE__?: boolean;
+  }
+}
 import type {
   ActorSelf,
   ChangeProposal,
@@ -277,7 +284,7 @@ function createState(jobId = JOB_ID, customerAccessToken = mockAccessSecrets.cus
   const analysisRunId = crypto.randomUUID();
   const media: MediaAsset = { id: crypto.randomUUID(), capture_session_id: sessionId, room_zone_id: ORIGIN_ZONE_ID, media_purpose: "inventory", status: "ready", content_type: "video/mp4", expected_size_bytes: 1024, actual_size_bytes: 1024, sha256_hex: null, created_at: createdAt, uploaded_at: createdAt };
   const consent: CaptureSession["media_processing_consent"] = { policy_version: "2026-08-17.v1", processing_purposes: ["inventory_analysis", "condition_record", "field_change_evidence", "completion_record"], privacy_notice_acknowledged: true, retention_days_after_job_completion: 30, consented_at: createdAt };
-  const sessions: CaptureSession[] = [{ id: sessionId, job_id: jobId, created_by_participant_id: CUSTOMER_ID, created_at: createdAt, media_processing_consent: consent, media_assets: [media], analysis: { analysis_run_id: analysisRunId, capture_session_id: sessionId, status: "completed", scope_version_id: SCOPE_ID, failure_code: null, retryable: null, submitted_at: createdAt, completed_at: createdAt } }];
+  const sessions: CaptureSession[] = [{ id: sessionId, job_id: jobId, created_by_participant_id: CUSTOMER_ID, created_at: createdAt, media_processing_consent: consent, media_assets: [media], analysis: { analysis_run_id: analysisRunId, capture_session_id: sessionId, status: "completed", scope_version_id: SCOPE_ID, failure_code: null, retryable: null, failure_stage: null, provider_status: null, failure_detail_code: null, submitted_at: createdAt, completed_at: createdAt } }];
   const analysisReview: AnalysisReview = {
     job_id: jobId,
     analysis_run_id: analysisRunId,
@@ -822,8 +829,33 @@ export async function mockApiRequest<T>(path: string, init: RequestInit, accessT
   const submitCaptureMatch = path.match(new RegExp(`^${jobPath}/capture-sessions/([^/]+)/submit$`));
   if (submitCaptureMatch && method === "POST") {
     const session = state.sessions.find(({ id }) => id === submitCaptureMatch[1])!;
-    session.analysis = { analysis_run_id: crypto.randomUUID(), capture_session_id: session.id, status: "completed", scope_version_id: SCOPE_ID, failure_code: null, retryable: null, submitted_at: now(), completed_at: now() };
-    state.analysisReview = { ...state.analysisReview, analysis_run_id: session.analysis.analysis_run_id, capture_session_id: session.id, analysis_completed_at: now(), review_completed_at: null };
+    const simulateFailure = window.__SEQRET_MOCK_ANALYSIS_FAILURE__ === true;
+    session.analysis = simulateFailure ? {
+      analysis_run_id: crypto.randomUUID(),
+      capture_session_id: session.id,
+      status: "failed",
+      scope_version_id: null,
+      failure_code: "invalid_input",
+      retryable: false,
+      failure_stage: "parse",
+      provider_status: null,
+      failure_detail_code: "schema_validation",
+      submitted_at: now(),
+      completed_at: now(),
+    } satisfies CaptureAnalysis : {
+      analysis_run_id: crypto.randomUUID(),
+      capture_session_id: session.id,
+      status: "completed",
+      scope_version_id: SCOPE_ID,
+      failure_code: null,
+      retryable: null,
+      failure_stage: null,
+      provider_status: null,
+      failure_detail_code: null,
+      submitted_at: now(),
+      completed_at: now(),
+    } satisfies CaptureAnalysis;
+    if (!simulateFailure) state.analysisReview = { ...state.analysisReview, analysis_run_id: session.analysis.analysis_run_id, capture_session_id: session.id, analysis_completed_at: now(), review_completed_at: null };
     return result(session.analysis) as Promise<T>;
   }
   if (path === `${jobPath}/analysis-review` && method === "GET") return result(state.analysisReview) as Promise<T>;

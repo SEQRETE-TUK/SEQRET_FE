@@ -46,6 +46,10 @@ import {
   type CaptureConnection,
 } from "@/features/capture/model/use-capture-workflow";
 import { findResumableVideoSession } from "@/features/capture/model/capture-session";
+import {
+  analysisFailureCopy,
+  type AnalysisFailureCopy,
+} from "@/features/capture/model/analysis-failure";
 import { ApiError, SignedUploadError } from "@/api/client";
 import { mockAccessSecrets, mockApiEnabled, mockJobId } from "@/api/mock-api";
 import { MovingItemIcon } from "@/components/moving-item-icon";
@@ -205,17 +209,30 @@ const videoProcessingSteps = [
   { title: "검토할 초안을 준비하고 있어요", description: "잠시 후 확인할 수 있어요." },
 ] as const;
 
-function VideoProcessingStage({ error, onBack, step }: { error?: string | null; onBack: () => void; step: number }) {
+function VideoProcessingStage({
+  analysisFailure,
+  error,
+  onBack,
+  onManual,
+  step,
+}: {
+  analysisFailure?: AnalysisFailureCopy | null;
+  error?: string | null;
+  onBack: () => void;
+  onManual?: () => void;
+  step: number;
+}) {
   const activeStep = Math.min(step, videoProcessingSteps.length - 1);
   return <div className="flex min-h-dvh flex-col bg-canvas text-ink-900">
     <MobilePageHeader onBack={onBack} title="AI 분석 중" />
     <main className="flex flex-1 flex-col justify-center px-6 pb-20">
-      {error ? (
+      {error || analysisFailure ? (
         <Card className="border-danger bg-danger-bg p-5 text-center">
           <AlertTriangle aria-hidden="true" className="mx-auto text-danger-ink" size="var(--icon-category)" />
-          <h1 className="mt-4 text-ui-section font-black">영상 분석을 시작하지 못했어요</h1>
-          <p className="mt-2 text-ui-support leading-5 text-danger-ink">{error}</p>
-          <Button className="mt-5 w-full" onClick={onBack} size="cta">촬영 화면으로 돌아가기</Button>
+          <h1 className="mt-4 text-ui-section font-black">{analysisFailure?.title ?? "영상 분석을 시작하지 못했어요"}</h1>
+          <p className="mt-2 text-ui-support leading-5 text-danger-ink">{analysisFailure?.description ?? error}</p>
+          {analysisFailure && onManual ? <Button className="mt-5 w-full" onClick={onManual} size="cta">직접 짐 선택하기</Button> : null}
+          <Button className={`${analysisFailure && onManual ? "mt-2" : "mt-5"} w-full`} onClick={onBack} size="cta" variant={analysisFailure && onManual ? "outline" : "default"}>촬영 화면으로 돌아가기</Button>
         </Card>
       ) : (
         <>
@@ -422,6 +439,7 @@ function AnalysisState({ analysis }: { analysis: CaptureAnalysis }) {
     );
   }
   if (analysis.status === "failed") {
+    const failureCopy = analysisFailureCopy(analysis);
     return (
       <Card className="mt-5 border-warning bg-warning-bg p-5">
         <div className="flex gap-3">
@@ -431,10 +449,9 @@ function AnalysisState({ analysis }: { analysis: CaptureAnalysis }) {
             size="var(--icon-md)"
           />
           <div>
-            <h2 className="text-xl font-bold">분석을 완료하지 못했어요</h2>
+            <h2 className="text-xl font-bold">{failureCopy.title}</h2>
             <p className="mt-2 text-base leading-5 text-ink-600">
-              촬영 파일은 그대로 보존됐어요. 아래에서 짐 목록을 직접 작성해
-              흐름을 계속할 수 있어요.
+              {failureCopy.description}
             </p>
           </div>
         </div>
@@ -479,6 +496,7 @@ function ConnectedCapture({
 }: ConnectedCaptureProps) {
   const workflow = useCaptureWorkflow(connection);
   const [localError, setLocalError] = useState<string | null>(null);
+  const [videoFailure, setVideoFailure] = useState<AnalysisFailureCopy | null>(null);
   const [localNotice, setLocalNotice] = useState<string | null>(null);
   const [manualMode, setManualMode] = useState(initialManual);
   const [manualDraftItems, setManualDraftItems] = useState<
@@ -683,6 +701,7 @@ function ConnectedCapture({
     }
     setVideoSubmitPendingSessionId(null);
     setLocalError(null);
+    setVideoFailure(null);
     setVideoAnalysisSessionId(null);
     setVideoMode("loading");
     startVideoUpload(file);
@@ -723,7 +742,7 @@ function ConnectedCapture({
             }
           })();
         } else {
-          setLocalError("AI 분석에 실패했어요. 촬영 화면으로 돌아가 다시 시도해 주세요.");
+          setVideoFailure(analysisFailureCopy(videoAnalysis));
         }
       }, 0);
       return () => window.clearTimeout(completionTimer);
@@ -1046,6 +1065,7 @@ function ConnectedCapture({
   if (videoMode === "loading") {
     return (
       <VideoProcessingStage
+        analysisFailure={videoFailure}
         error={localError}
         onBack={() => {
           if (appendReviewOnNextLoad.current) {
@@ -1059,6 +1079,14 @@ function ConnectedCapture({
             onDisconnect();
           }
         }}
+        onManual={zones.length > 0 && !latestScopeVersion?.locked_at ? () => {
+          setVideoAnalysisRequested(false);
+          setVideoAnalysisSessionId(null);
+          setVideoSubmitPendingSessionId(null);
+          setVideoFailure(null);
+          setVideoMode(null);
+          startManualEntry();
+        } : undefined}
         step={videoProcessingStep}
       />
     );

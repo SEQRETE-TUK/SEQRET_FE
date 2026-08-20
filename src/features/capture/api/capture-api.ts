@@ -17,6 +17,30 @@ type CaptureAnalysisStatus =
   | "completed"
   | "failed";
 
+export type CaptureAnalysisFailureStage =
+  | "prompt"
+  | "input_lookup"
+  | "provider_call"
+  | "parse"
+  | "source_map"
+  | "result_load"
+  | "scope_import";
+
+export type CaptureAnalysisFailureDetail =
+  | "prompt_not_configured"
+  | "no_ready_media"
+  | "provider_rejected"
+  | "provider_timeout"
+  | "provider_unavailable"
+  | "empty_response"
+  | "schema_validation"
+  | "invalid_source_reference"
+  | "mixed_source_location"
+  | "duplicate_item_key"
+  | "duplicate_location"
+  | "result_missing"
+  | "scope_import_invalid";
+
 export interface RoomZone {
   id: string;
   name: string;
@@ -58,6 +82,9 @@ export interface CaptureAnalysis {
   scope_version_id: string | null;
   failure_code: string | null;
   retryable: boolean | null;
+  failure_stage: CaptureAnalysisFailureStage | null;
+  provider_status: number | null;
+  failure_detail_code: CaptureAnalysisFailureDetail | null;
   submitted_at: string;
   completed_at: string | null;
 }

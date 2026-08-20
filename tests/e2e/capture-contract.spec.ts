@@ -195,6 +195,33 @@ test("opens the native video picker from the inventory action", async ({ page })
   await expect(page.getByRole("heading", { name: "AI 초안을 확인해 주세요" })).toHaveCount(0);
 });
 
+test("explains an AI schema failure and offers direct inventory entry", async ({ page }) => {
+  await page.addInitScript(() => {
+    window.__SEQRET_MOCK_ANALYSIS_FAILURE__ = true;
+    Object.defineProperty(HTMLMediaElement.prototype, "duration", {
+      configurable: true,
+      get: () => 60,
+    });
+    Object.defineProperty(HTMLMediaElement.prototype, "load", {
+      configurable: true,
+      value(this: HTMLMediaElement) {
+        queueMicrotask(() => this.dispatchEvent(new Event("loadedmetadata")));
+      },
+    });
+  });
+  await page.goto("/consumer?tab=move&view=items");
+  const fileChooserPromise = page.waitForEvent("filechooser");
+  await page.getByRole("button", { name: "AI 영상 촬영", exact: true }).click();
+  const fileChooser = await fileChooserPromise;
+  await fileChooser.setFiles({ name: "invalid-result.mp4", mimeType: "video/mp4", buffer: Buffer.from("mock-video") });
+
+  await expect(page.getByRole("heading", { name: "AI 짐 목록 형식을 확인하지 못했어요" })).toBeVisible();
+  await expect(page.getByText(/AI가 만든 짐 목록 일부가 필수 형식에 맞지 않아/)).toBeVisible();
+  await expect(page.getByRole("button", { name: "직접 짐 선택하기" })).toBeVisible();
+  await page.getByRole("button", { name: "직접 짐 선택하기" }).click();
+  await expect(page.getByRole("heading", { name: "짐 목록 선택" })).toBeVisible();
+});
+
 test("rejects a video longer than two minutes before upload", async ({ page }) => {
   await page.addInitScript(() => {
     Object.defineProperty(HTMLMediaElement.prototype, "duration", {
