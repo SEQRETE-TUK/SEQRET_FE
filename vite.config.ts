@@ -74,8 +74,8 @@ export default defineConfig(({ mode }) => {
         injectRegister: false,
         includeAssets: ["icon-192.png", "icon-512.png"],
         manifest: {
-          name: "SEQRET · 이사 작업범위 공동확인",
-          short_name: "SEQRET",
+          name: "짐로그",
+          short_name: "짐로그",
           description: "고객, 이사업체, 현장기사가 같은 작업범위와 현장 상태를 확인하는 서비스",
           start_url: "/",
           display: "standalone",
