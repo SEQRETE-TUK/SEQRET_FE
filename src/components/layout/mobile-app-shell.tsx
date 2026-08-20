@@ -95,7 +95,7 @@ export function MobileAppShell<T extends string>({
               <button
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "relative flex min-h-13 min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl text-xs font-semibold",
+                  "relative flex h-11 min-w-0 self-center flex-col items-center justify-center gap-0.5 rounded-xl text-xs font-[var(--weight-button)]",
                   active ? "text-primary-700" : "text-ink-400",
                 )}
                 key={id}

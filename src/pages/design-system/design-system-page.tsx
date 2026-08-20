@@ -338,6 +338,7 @@ export function DesignSystemPage() {
                 <Button>다음 단계</Button>
                 <Button variant="outline">이전</Button>
                 <Button variant="secondary">임시 저장</Button>
+                <Button variant="destructiveSoft">연결 해제</Button>
                 <Button variant="destructive">연결 종료</Button>
               </div>
               <div className="mt-5 max-w-[560px] border-t border-line pt-5">

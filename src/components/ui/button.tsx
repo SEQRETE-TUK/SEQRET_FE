@@ -12,6 +12,7 @@ const buttonVariants = cva(
         default: "border-primary-600 bg-primary-600 !text-white hover:bg-primary-700",
         outline: "border-primary-400 bg-surface text-primary-700 hover:border-primary-600 hover:bg-primary-50",
         secondary: "border-transparent bg-primary-50 text-primary-700 hover:bg-primary-100",
+        destructiveSoft: "border-line bg-danger-bg text-danger-ink hover:bg-danger-bg",
         ghost: "border-transparent bg-transparent text-ink-600 hover:text-ink-900",
         destructive: "border-danger bg-danger !text-white hover:bg-danger",
       },

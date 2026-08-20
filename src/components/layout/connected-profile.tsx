@@ -90,7 +90,7 @@ export function ConnectedProfile({
       </Sheet>
 
       <Sheet>
-        <SheetTrigger className="mt-7 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-[var(--radius-input)] border border-line bg-surface px-5 text-ui-support font-bold text-danger-ink">
+        <SheetTrigger render={<Button className="mt-7 w-full" size="cta" variant="destructiveSoft" />}>
           <LogOut aria-hidden="true" className="size-5" /> 이 기기에서 연결 해제
         </SheetTrigger>
         <SheetContent showClose={false}>

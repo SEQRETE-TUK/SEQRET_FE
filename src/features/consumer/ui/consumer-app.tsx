@@ -587,7 +587,7 @@ function MoveInfo({ canEdit, editor, onChange, onEditorChange, scope, value }: {
   return (
     <div className="space-y-2 bg-canvas pb-28">
       <section className="bg-surface px-[var(--content-gutter)] py-5">
-        <h2 className="text-ui-component font-black">이사 일정</h2>
+        <h2 className="text-ui-section leading-7 font-extrabold tracking-[var(--tracking-display)]">이사 일정</h2>
         <button aria-label={canEdit ? "이사 일정 수정" : undefined} className="mt-4 flex min-h-11 w-full items-center gap-2 text-left disabled:cursor-default" disabled={!canEdit} onClick={() => onEditorChange("schedule")} type="button">
           <span className="grid size-8 shrink-0 place-items-center text-primary-700">
             <Calendar aria-hidden="true" size="var(--icon-md)" weight="bold" />
@@ -598,7 +598,7 @@ function MoveInfo({ canEdit, editor, onChange, onEditorChange, scope, value }: {
         </button>
       </section>
       <section className="bg-surface px-[var(--content-gutter)] py-5">
-        <h2 className="text-ui-component font-black">이동 경로</h2>
+        <h2 className="text-ui-section leading-7 font-extrabold tracking-[var(--tracking-display)]">이동 경로</h2>
         <div className="relative mt-4">
           <span aria-hidden="true" className="absolute bottom-6 left-[15px] top-6 w-px bg-primary-500" />
           <RoutePoint label="출발지" onEdit={canEdit ? () => onEditorChange("origin") : undefined} stop={getStop("origin")} />

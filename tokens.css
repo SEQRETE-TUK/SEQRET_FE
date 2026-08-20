@@ -46,7 +46,7 @@
   --weight-list-title: 500;
   --weight-list-detail: 400;
   --weight-data: 500;
-  --weight-status: 400;
+  --weight-status: 500;
   --weight-micro: 600;
   --weight-strong: 700;
   --display-weight: 800;
@@ -130,7 +130,7 @@
   --shell-mobile: 27rem;
   --shell-wide: 80rem;
   --header-height: 5.25rem;
-  --bottom-rail-height: 4.25rem;
+  --bottom-rail-height: 3.5rem;
   --content-gutter: clamp(1.25rem, 5vw, 1.5rem);
 
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
