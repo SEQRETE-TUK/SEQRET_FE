@@ -874,6 +874,7 @@ function ConnectedCapture({
       setLocalError(error);
       return;
     }
+    setVideoSubmitPendingSessionId(null);
     if (videoUrl && videoUrl !== "mock") URL.revokeObjectURL(videoUrl);
     setLocalError(null);
     if (mockApiEnabled) {
@@ -945,6 +946,43 @@ function ConnectedCapture({
       return () => window.clearTimeout(completionTimer);
     }
   }, [videoAnalysis, videoAnalysisRequested, videoMode, workflow]);
+
+  useEffect(() => {
+    if (
+      mockApiEnabled ||
+      videoMode !== "loading" ||
+      !videoAnalysisRequested ||
+      !videoSubmitPendingSessionId
+    ) return;
+    const pendingSession = sessions?.find(
+      ({ id }) => id === videoSubmitPendingSessionId,
+    );
+    if (!pendingSession) return;
+    const assets = pendingSession.media_assets.filter(
+      (asset) => asset.media_purpose === "inventory",
+    );
+    if (assets.some((asset) => asset.status === "failed" || asset.status === "deleted")) {
+      const failureTimer = window.setTimeout(() => {
+        setVideoSubmitPendingSessionId(null);
+        setVideoAnalysisRequested(false);
+        setLocalError("영상 파일 확인에 실패했어요. 다시 촬영해 주세요.");
+      }, 0);
+      return () => window.clearTimeout(failureTimer);
+    }
+    if (assets.length === 0 || assets.some((asset) => asset.status !== "ready")) return;
+
+    const submitTimer = window.setTimeout(() => {
+      setVideoSubmitPendingSessionId(null);
+      workflow.submitMutation.mutate(videoSubmitPendingSessionId, {
+        onError: (error) => {
+          setVideoAnalysisRequested(false);
+          setLocalError(friendlyError(error));
+          setVideoMode("loading");
+        },
+      });
+    }, 0);
+    return () => window.clearTimeout(submitTimer);
+  }, [sessions, videoAnalysisRequested, videoMode, videoSubmitPendingSessionId, workflow]);
 
   useEffect(() => {
     prepareVideoRef.current = prepareVideo;
@@ -1266,6 +1304,7 @@ function ConnectedCapture({
             previousReviewDraftItems.current = [];
             setVideoAnalysisRequested(false);
             setVideoAnalysisSessionId(null);
+            setVideoSubmitPendingSessionId(null);
             setVideoMode(null);
           } else {
             onDisconnect();
@@ -1285,6 +1324,7 @@ function ConnectedCapture({
             if (appendReviewOnNextLoad.current) {
               appendReviewOnNextLoad.current = false;
               previousReviewDraftItems.current = [];
+              setVideoSubmitPendingSessionId(null);
               setVideoMode(null);
             } else {
               onDisconnect();
@@ -1294,6 +1334,7 @@ function ConnectedCapture({
             if (videoUrl && videoUrl !== "mock") URL.revokeObjectURL(videoUrl);
             setVideoAnalysisRequested(false);
             setVideoAnalysisSessionId(null);
+            setVideoSubmitPendingSessionId(null);
             setVideoUrl(null);
             setVideoMode("capture");
           }
@@ -1302,6 +1343,7 @@ function ConnectedCapture({
         onMockCapture={() => {
           setVideoAnalysisRequested(false);
           setVideoAnalysisSessionId(null);
+          setVideoSubmitPendingSessionId(null);
           setMockProcessingStep(0);
           setVideoUrl("mock");
           setVideoMode("loading");

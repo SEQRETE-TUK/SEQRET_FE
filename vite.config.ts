@@ -72,7 +72,7 @@ export default defineConfig(({ mode }) => {
       VitePWA({
         registerType: "autoUpdate",
         injectRegister: false,
-        includeAssets: ["icon-192.png", "icon-512.png"],
+        includeAssets: ["icon-192.png", "icon-512.png", "icon-android-192.png", "icon-android-512.png"],
         manifest: {
           name: "짐로그",
           short_name: "짐로그",
@@ -82,8 +82,8 @@ export default defineConfig(({ mode }) => {
           background_color: "#F4F5F9",
           theme_color: "#F4F5F9",
           icons: [
-            { src: "/icon-192.png", sizes: "192x192", type: "image/png" },
-            { src: "/icon-512.png", sizes: "512x512", type: "image/png" },
+            { src: "/icon-android-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+            { src: "/icon-android-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
           ],
         },
       }),
