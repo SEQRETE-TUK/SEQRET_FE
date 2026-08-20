@@ -136,6 +136,7 @@ test("opens the native video picker from the inventory action", async ({ page })
   await expect(page).toHaveURL(/\/consumer\/capture\?mode=video&job=/);
   await expect(page.getByRole("heading", { name: "AI 분석 중" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "출발지 구역을 촬영해 주세요" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "집 전체 촬영" })).toHaveCount(0);
 });
 
 test("redirects legacy capture URLs instead of showing the room flow", async ({ page }) => {

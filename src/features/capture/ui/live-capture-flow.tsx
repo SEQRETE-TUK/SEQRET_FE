@@ -1,9 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeftIcon as ArrowLeft,
-  CameraIcon as Camera,
   CheckIcon as Check,
-  UploadSimpleIcon as FileUp,
   CircleNotchIcon as LoaderCircle,
   LockKeyIcon as LockKeyhole,
   PlayIcon as Play,
@@ -16,7 +14,6 @@ import {
 import {
   WarningStatusIcon as AlertTriangle,
   SuccessStatusIcon as CheckCircle2,
-  InfoStatusIcon as Info,
   SecurityStatusIcon as ShieldCheck,
 } from "@/components/icons";
 import { useEffect, useRef, useState, type FormEvent } from "react";
@@ -32,7 +29,6 @@ import {
   ManualScopeEditor,
   type AnalysisReviewDraftItem,
 } from "@/features/capture/ui/analysis-review-panel";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -41,8 +37,6 @@ import {
   isValidAccessSecret,
   isValidJobId,
   type CaptureAnalysis,
-  type MediaAsset,
-  type RoomZone,
 } from "@/features/capture/api/capture-api";
 import {
   useCaptureWorkflow,
@@ -70,21 +64,20 @@ interface ConnectedCaptureProps {
   onResumeUnavailable?: () => void;
 }
 
-function VideoCaptureStage({
+function VideoResultStage({
   fileUrl,
   onBack,
   onFile,
-  onMockCapture,
   onSubmit,
   pending,
 }: {
-  fileUrl: string | null;
+  fileUrl: string;
   onBack: () => void;
   onFile: (file: File) => void;
-  onMockCapture: () => void;
   onSubmit: (items: { key: string; name: string; quantity: number }[]) => void;
   pending: boolean;
 }) {
+  const videoInputRef = useRef<HTMLInputElement>(null);
   const [resultQuantities, setResultQuantities] = useState<Record<string, number>>({ boxes: 4 });
   const [resultFilter, setResultFilter] = useState<"all" | MovingItemCategory>("all");
   const detectedItems = [
@@ -111,8 +104,7 @@ function VideoCaptureStage({
       (resultFilter === "all" || movingItemCategoryForName(item.name) === resultFilter),
   );
 
-  if (fileUrl !== null)
-    return (
+  return (
       <div className="min-h-dvh bg-canvas text-ink-900">
         <main className="pb-44">
           <figure className="relative overflow-hidden bg-ink-900 text-white">
@@ -166,89 +158,21 @@ function VideoCaptureStage({
             )}
             확인한 짐 {detectedItems.filter((item) => quantityFor(item.key) > 0).length}개 반영
           </Button>
-          <Button className="mt-2 w-full" onClick={onBack} size="cta" variant="ghost"><RotateCcw aria-hidden="true" />다시 촬영</Button>
-        </div>
-      </div>
-    );
-
-  return (
-    <div className="relative min-h-dvh overflow-hidden bg-ink-900 text-white">
-      <img
-        alt="집 전체 촬영"
-        className="absolute inset-0 h-full w-full object-cover opacity-75"
-        height="844"
-        src="/room-after-evidence.png"
-        width="390"
-      />
-      <div
-        aria-hidden="true"
-        className="absolute inset-0 bg-[var(--color-overlay)]"
-      />
-      <header className="app-safe-header relative z-10 grid grid-cols-[48px_1fr_48px] items-center px-3 pt-3">
-        <button
-          aria-label="촬영 닫기"
-          className="grid size-11 place-items-center rounded-full bg-ink-900/60"
-          onClick={onBack}
-          type="button"
-        >
-          <X aria-hidden="true" size="var(--icon-md)" />
-        </button>
-        <h1 className="text-center text-xl font-black">집 전체 촬영</h1>
-        <span className="grid size-11 place-items-center rounded-full bg-ink-900/60">
-          <Camera aria-hidden="true" size="var(--icon-sm)" />
-        </span>
-      </header>
-      <main className="relative z-10 flex min-h-[calc(100dvh-80px)] flex-col justify-end px-6 pb-[max(28px,env(safe-area-inset-bottom))]">
-        <div className="space-y-2">
-          <p className="w-fit rounded-full bg-surface/88 px-4 py-2 text-sm font-bold text-ink-900">
-            <Check
-              aria-hidden="true"
-              className="mr-2 inline text-success"
-              size="var(--icon-sm)"
-            />
-            침실·주방·거실의 큰 짐을 천천히 보여주세요
-          </p>
-          <p className="w-fit rounded-full bg-surface/88 px-4 py-2 text-sm font-bold text-ink-900">
-            방 이름과 상관없이 짐이 잘 보이게 촬영해 주세요
-          </p>
-        </div>
-        <div className="mt-8 text-center">
-          <p className="text-ui-section font-black">60초 촬영</p>
-          <label
-            className="mx-auto mt-5 grid size-24 place-items-center rounded-full border-[7px] border-white bg-danger text-white shadow-[var(--shadow-raised)]"
-            htmlFor="native-video-capture"
-          >
-            <Video
-              aria-hidden="true"
-              size="var(--icon-category)"
-              weight="fill"
-            />
-            <span className="sr-only">휴대폰 카메라로 영상 촬영 시작</span>
-          </label>
+          <Button className="mt-2 w-full" onClick={() => videoInputRef.current?.click()} size="cta" variant="ghost"><RotateCcw aria-hidden="true" />다시 촬영</Button>
           <input
             accept="video/mp4,video/*"
             capture="environment"
             className="sr-only"
-            id="native-video-capture"
             onChange={(event) => {
               const file = event.currentTarget.files?.[0];
               event.currentTarget.value = "";
               if (file) onFile(file);
             }}
+            ref={videoInputRef}
             type="file"
           />
-          {mockApiEnabled ? (
-            <button
-              className="mt-5 min-h-11 rounded-full bg-surface/90 px-5 text-sm font-extrabold text-ink-900"
-              onClick={onMockCapture}
-              type="button"
-            >
-              Mock 촬영 완료
-            </button>
-          ) : null}
         </div>
-      </main>
-    </div>
+      </div>
   );
 }
 
@@ -285,15 +209,6 @@ function VideoProcessingStage({ error, onBack, step }: { error?: string | null; 
       )}
     </main>
   </div>;
-}
-
-interface ZoneRowProps {
-  assets: MediaAsset[];
-  disabled: boolean;
-  index: number;
-  onFile: (file: File, roomZoneId: string) => void;
-  resumableAssetId: string | null;
-  zone: RoomZone;
 }
 
 interface ReviewDraftState {
@@ -467,117 +382,6 @@ function StageRail({
   );
 }
 
-function zoneState(
-  assets: MediaAsset[],
-  resumableAssetId: string | null,
-): { label: string; tone: "default" | "success" | "warning" } {
-  if (assets.length === 0) return { label: "촬영 필요", tone: "default" };
-  if (
-    assets.some(
-      (asset) => asset.status === "failed" || asset.status === "deleted",
-    )
-  ) {
-    return { label: "새 촬영 필요", tone: "warning" };
-  }
-  if (
-    assets.some(
-      (asset) =>
-        asset.status === "pending_upload" && asset.id !== resumableAssetId,
-    )
-  ) {
-    return { label: "업로드 중단", tone: "warning" };
-  }
-  if (assets.some((asset) => asset.id === resumableAssetId)) {
-    return { label: "재시도 가능", tone: "warning" };
-  }
-  if (assets.some((asset) => VALIDATING_MEDIA.has(asset.status))) {
-    return { label: "파일 확인 중", tone: "default" };
-  }
-  return { label: `${assets.length}개 준비`, tone: "success" };
-}
-
-function ZoneRow({
-  assets,
-  disabled,
-  index,
-  onFile,
-  resumableAssetId,
-  zone,
-}: ZoneRowProps) {
-  const state = zoneState(assets, resumableAssetId);
-  const inputId = `capture-zone-${zone.id}`;
-  return (
-    <li className="relative flex gap-4 border-b border-line py-4 last:border-b-0">
-      <span
-        className={`relative z-10 grid size-9 shrink-0 place-items-center rounded-full text-ui-support font-extrabold ${
-          state.tone === "success"
-            ? "bg-success-bg text-success-ink"
-            : state.tone === "warning"
-              ? "bg-warning-bg text-warning-ink"
-              : "bg-primary-50 text-primary-700"
-        }`}
-      >
-        {state.tone === "success" ? (
-          <Check aria-hidden="true" size="var(--icon-xs)" />
-        ) : (
-          index + 1
-        )}
-      </span>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <p className="truncate text-lg font-bold">{zone.name}</p>
-          <Badge
-            variant={
-              state.tone === "success"
-                ? "success"
-                : state.tone === "warning"
-                  ? "warning"
-                  : "neutral"
-            }
-          >
-            {state.label}
-          </Badge>
-        </div>
-        <p className="mt-1 text-ui-support text-ink-400">
-          {assets.length > 0
-            ? assets
-                .map((asset) =>
-                  asset.content_type === "video/mp4" ? "영상" : "사진",
-                )
-                .join(" · ")
-            : "큰 짐과 이동 동선이 보이게 촬영해 주세요"}
-        </p>
-      </div>
-      <label
-        aria-disabled={disabled}
-        className={`grid size-11 shrink-0 place-items-center rounded-xl border ${
-          disabled
-            ? "pointer-events-none border-line bg-line text-ink-400"
-            : "border-primary-100 bg-primary-50 text-primary-700"
-        }`}
-        htmlFor={inputId}
-      >
-        <Camera aria-hidden="true" size="var(--icon-sm)" />
-        <span className="sr-only">{zone.name} 사진 또는 영상 추가</span>
-      </label>
-      <input
-        accept="image/jpeg,image/png,video/mp4"
-        capture="environment"
-        className="sr-only"
-        disabled={disabled}
-        id={inputId}
-        name={`captureZone-${zone.id}`}
-        onChange={(event) => {
-          const file = event.currentTarget.files?.[0];
-          event.currentTarget.value = "";
-          if (file) onFile(file, zone.id);
-        }}
-        type="file"
-      />
-    </li>
-  );
-}
-
 function AnalysisState({ analysis }: { analysis: CaptureAnalysis }) {
   if (analysis.status === "completed") {
     return (
@@ -660,18 +464,18 @@ function ConnectedCapture({
   const workflow = useCaptureWorkflow(connection);
   const [localError, setLocalError] = useState<string | null>(null);
   const [localNotice, setLocalNotice] = useState<string | null>(null);
-  const [consentAcknowledged, setConsentAcknowledged] = useState(false);
   const [manualMode, setManualMode] = useState(initialManual);
   const [manualDraftItems, setManualDraftItems] = useState<
     AnalysisReviewDraftItem[]
   >([]);
-  const [videoMode, setVideoMode] = useState<"capture" | "loading" | "review" | null>(initialVideo ? "loading" : null);
+  const [videoMode, setVideoMode] = useState<"loading" | "review" | null>(initialVideo ? "loading" : null);
   const [mockProcessingStep, setMockProcessingStep] = useState(0);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [videoAnalysisSessionId, setVideoAnalysisSessionId] = useState<string | null>(null);
   const [videoAnalysisRequested, setVideoAnalysisRequested] = useState(false);
   const [videoSubmitPendingSessionId, setVideoSubmitPendingSessionId] = useState<string | null>(null);
   const initialVideoStarted = useRef(false);
+  const additionalVideoInputRef = useRef<HTMLInputElement>(null);
   const prepareVideoRef = useRef<(file: File) => void>(() => undefined);
   const [recoveringReview, setRecoveringReview] = useState(false);
   const [removedReviewItem, setRemovedReviewItem] =
@@ -697,35 +501,10 @@ function ConnectedCapture({
   const zones = [...(origin?.room_zones ?? [])].sort(
     (left, right) => left.sort_order - right.sort_order,
   );
-  const inventoryAssets =
-    session?.media_assets.filter(
-      (asset) => asset.media_purpose === "inventory",
-    ) ?? [];
-  const resumableAssetId = workflow.resumableUpload?.target.asset.id ?? null;
-  const unrecoverable = inventoryAssets.some(
-    (asset) =>
-      asset.status === "failed" ||
-      asset.status === "deleted" ||
-      (asset.status === "pending_upload" && asset.id !== resumableAssetId),
-  );
-  const validating = inventoryAssets.some((asset) =>
-    VALIDATING_MEDIA.has(asset.status),
-  );
-  const allReady =
-    zones.length > 0 &&
-    inventoryAssets.length > 0 &&
-    inventoryAssets.every((asset) => asset.status === "ready") &&
-    zones.every((zone) =>
-      inventoryAssets.some(
-        (asset) => asset.room_zone_id === zone.id && asset.status === "ready",
-      ),
-    );
   const analysis = session?.analysis ?? null;
   const videoAnalysis = videoAnalysisSessionId
     ? sessions?.find(({ id }) => id === videoAnalysisSessionId)?.analysis ?? null
     : null;
-  const analysisActive =
-    analysis !== null && ACTIVE_ANALYSIS.has(analysis.status);
   const review = workflow.reviewQuery.data;
   const reviewKey = review
     ? `${review.source_scope_version_id}:${review.review_scope_version_id ?? "draft"}`
@@ -802,15 +581,6 @@ function ConnectedCapture({
         item.description.trim().length > 0 &&
         zones.some((zone) => zone.id === item.roomZoneId),
     );
-  const stage: 1 | 2 | 3 | 4 = manualMode
-    ? 1
-    : analysis?.status === "completed"
-      ? 4
-      : analysis
-        ? 3
-        : validating || allReady
-          ? 2
-          : 1;
   const busy =
     workflow.createSessionMutation.isPending ||
     workflow.uploadMutation.isPending ||
@@ -1103,10 +873,6 @@ function ConnectedCapture({
     );
   }
 
-  const terminalJob = job.status === "completed" || job.status === "canceled";
-  const uploadDisabled =
-    !session || analysis !== null || busy || unrecoverable || terminalJob;
-
   const canLeaveReview = () =>
     !reviewDirty ||
     window.confirm(
@@ -1137,37 +903,6 @@ function ConnectedCapture({
     await reloadReview();
   };
 
-  const startSession = () => {
-    if (!consentAcknowledged || !workflow.consentPolicyQuery.data) return;
-    setLocalError(null);
-    workflow.createSessionMutation.reset();
-    workflow.uploadMutation.reset();
-    workflow.createSessionMutation.mutate();
-  };
-
-  const selectFile = (file: File, roomZoneId: string) => {
-    const error = captureFileError(file);
-    if (error) {
-      setLocalError(error);
-      return;
-    }
-    if (!session) return;
-    setLocalError(null);
-    workflow.uploadMutation.reset();
-    workflow.uploadMutation.mutate({
-      captureSessionId: session.id,
-      file,
-      roomZoneId,
-    });
-  };
-
-  const submit = () => {
-    if (!session || !allReady) return;
-    setLocalError(null);
-    workflow.submitMutation.reset();
-    workflow.submitMutation.mutate(session.id);
-  };
-
   const setReviewDraft = (items: AnalysisReviewDraftItem[]) => {
     if (!review) return;
     setReviewDraftState({ key: reviewKey, items });
@@ -1191,13 +926,18 @@ function ConnectedCapture({
     ]);
   };
 
-  const startAdditionalVideo = () => {
+  const addVideo = (file: File) => {
     if (reviewCompleted || busy || !review) return;
+    const error = captureFileError(file);
+    if (error) {
+      setLocalError(error);
+      return;
+    }
     previousReviewDraftItems.current = reviewDraftItems;
     appendReviewOnNextLoad.current = true;
     setLocalError(null);
     setLocalNotice(null);
-    setVideoMode("capture");
+    prepareVideo(file);
   };
 
   const changeReviewItem = (
@@ -1367,39 +1107,23 @@ function ConnectedCapture({
     );
   }
 
-  if (videoMode)
+  if (videoMode === "review" && videoUrl)
     return (
-      <VideoCaptureStage
-        fileUrl={videoMode === "review" ? videoUrl : null}
+      <VideoResultStage
+        fileUrl={videoUrl}
         onBack={() => {
-          if (videoMode === "capture") {
-            if (appendReviewOnNextLoad.current) {
-              appendReviewOnNextLoad.current = false;
-              previousReviewDraftItems.current = [];
-              setVideoSubmitPendingSessionId(null);
-              setVideoMode(null);
-            } else {
-              onDisconnect();
-            }
-          }
-          else {
-            if (videoUrl && videoUrl !== "mock") URL.revokeObjectURL(videoUrl);
-            setVideoAnalysisRequested(false);
-            setVideoAnalysisSessionId(null);
-            setVideoSubmitPendingSessionId(null);
-            setVideoUrl(null);
-            setVideoMode("capture");
-          }
-        }}
-        onFile={prepareVideo}
-        onMockCapture={() => {
+          if (videoUrl !== "mock") URL.revokeObjectURL(videoUrl);
           setVideoAnalysisRequested(false);
           setVideoAnalysisSessionId(null);
           setVideoSubmitPendingSessionId(null);
-          setMockProcessingStep(0);
-          setVideoUrl("mock");
-          setVideoMode("loading");
+          setVideoUrl(null);
+          if (appendReviewOnNextLoad.current) {
+            appendReviewOnNextLoad.current = false;
+            previousReviewDraftItems.current = [];
+            setVideoMode(null);
+          } else onDisconnect();
         }}
+        onFile={prepareVideo}
         onSubmit={applyVideo}
         pending={busy || workflow.reviewQuery.isPending || !review}
       />
@@ -1425,9 +1149,7 @@ function ConnectedCapture({
                     : "실제 서버와 연결됨"}
                 </p>
                 <h1 className="mt-2 text-ui-title-lg font-extrabold leading-8">
-                  {analysis?.status === "completed"
-                    ? "AI 초안을 확인해 주세요"
-                    : "출발지 구역을 촬영해 주세요"}
+                  AI 초안을 확인해 주세요
                 </h1>
               </div>
               {(workflow.sessionsQuery.isFetching ||
@@ -1440,76 +1162,11 @@ function ConnectedCapture({
               )}
             </div>
             <p className="mt-2 text-base leading-5 text-ink-600">
-              {analysis?.status === "completed"
-                ? "AI 제안은 확정 범위가 아니에요. 내가 확인한 내용만 다음 단계로 전달해요."
-                : "파일은 비공개 저장소로 직접 전송하고, 서버 확인이 끝난 자료만 AI 분석에 사용해요."}
+              AI 제안은 확정 범위가 아니에요. 내가 확인한 내용만 다음 단계로 전달해요.
             </p>
-            <StageRail complete={reviewCompleted} stage={stage} />
+            <StageRail complete={reviewCompleted} stage={4} />
           </>
         ) : null}
-
-        {!session && !manualMode && (
-          <Card className="mt-6 p-5 text-center">
-            <Video
-              aria-hidden="true"
-              className="mx-auto text-primary-700"
-              size="var(--icon-category)"
-            />
-            <h2 className="mt-3 text-xl font-bold">
-              새 촬영을 시작할 준비가 됐어요
-            </h2>
-            <p className="mt-2 text-ui-support leading-5 text-ink-600">
-              촬영 세션을 만든 뒤 구역별 사진이나 영상을 추가해요.
-            </p>
-            <Button
-              className="mt-4 w-full"
-              disabled={
-                zones.length === 0 ||
-                workflow.scopeVersionsQuery.isPending ||
-                Boolean(latestScopeVersion?.locked_at)
-              }
-              onClick={startManualEntry}
-              size="chip"
-              variant="outline"
-            >
-              촬영 없이 직접 입력
-            </Button>
-          </Card>
-        )}
-
-        {session && !analysis && (
-          <Card className="relative mt-6 overflow-hidden px-5">
-            <span className="absolute bottom-8 left-[37px] top-8 w-px bg-primary-100" />
-            {zones.length > 0 ? (
-              <ol>
-                {zones.map((zone, index) => (
-                  <ZoneRow
-                    assets={inventoryAssets.filter(
-                      (asset) => asset.room_zone_id === zone.id,
-                    )}
-                    disabled={uploadDisabled}
-                    index={index}
-                    key={zone.id}
-                    onFile={selectFile}
-                    resumableAssetId={resumableAssetId}
-                    zone={zone}
-                  />
-                ))}
-              </ol>
-            ) : (
-              <div className="py-6 text-center">
-                <Info
-                  aria-hidden="true"
-                  className="mx-auto text-warning"
-                  size="var(--icon-md)"
-                />
-                <p className="mt-3 text-lg font-bold">
-                  출발지 촬영 구역이 없어요
-                </p>
-              </div>
-            )}
-          </Card>
-        )}
 
         {analysis && !manualMode ? <AnalysisState analysis={analysis} /> : null}
 
@@ -1595,9 +1252,23 @@ function ConnectedCapture({
           !recoveringReview && (
             <>
               {!reviewCompleted && (
-                <Button className="mt-5 w-full" disabled={busy} onClick={startAdditionalVideo} size="cta" variant="outline">
-                  <Video aria-hidden="true" size="var(--icon-sm)" /> 다른 공간 영상 추가
-                </Button>
+                <>
+                  <Button className="mt-5 w-full" disabled={busy} onClick={() => additionalVideoInputRef.current?.click()} size="cta" variant="outline">
+                    <Video aria-hidden="true" size="var(--icon-sm)" /> 다른 공간 영상 추가
+                  </Button>
+                  <input
+                    accept="video/mp4,video/*"
+                    capture="environment"
+                    className="sr-only"
+                    onChange={(event) => {
+                      const file = event.currentTarget.files?.[0];
+                      event.currentTarget.value = "";
+                      if (file) addVideo(file);
+                    }}
+                    ref={additionalVideoInputRef}
+                    type="file"
+                  />
+                </>
               )}
               <AnalysisReviewPanel
                 canAdd={reviewDraftItems.length < MAX_REVIEW_ITEMS}
@@ -1619,28 +1290,6 @@ function ConnectedCapture({
             </>
           )}
 
-        {workflow.resumableUpload && workflow.uploadMutation.isError && (
-          <Card className="mt-4 border-warning bg-warning-bg p-4">
-            <p className="text-base font-bold">
-              중단된 파일 전송을 이어갈 수 있어요
-            </p>
-            <Button
-              className="mt-3 w-full"
-              disabled={busy}
-              onClick={() => {
-                setLocalError(null);
-                workflow.uploadMutation.reset();
-                workflow.uploadMutation.mutate(undefined);
-              }}
-              size="chip"
-              variant="outline"
-            >
-              <RotateCcw aria-hidden="true" size="var(--icon-xs)" /> 업로드 다시
-              시도
-            </Button>
-          </Card>
-        )}
-
         {(localError || requestError) && (
           <p
             className="mt-4 rounded-2xl bg-danger-bg px-4 py-3 text-base font-bold text-danger-ink"
@@ -1650,16 +1299,6 @@ function ConnectedCapture({
           </p>
         )}
 
-        {unrecoverable && !analysis && (
-          <Card className="mt-4 border-warning bg-warning-bg p-4">
-            <p className="text-base font-bold">
-              완료되지 않은 파일이 있어 새 촬영이 필요해요
-            </p>
-            <p className="mt-1 text-ui-support leading-5 text-ink-600">
-              기존 기록은 지우지 않고 새 세션에서 다시 촬영해요.
-            </p>
-          </Card>
-        )}
       </main>
 
       {manualMode && !manualValid ? null : (
@@ -1681,36 +1320,6 @@ function ConnectedCapture({
                   : "짐을 선택해 주세요"}
               </Button><button className="mx-auto flex min-h-11 items-center gap-2 px-4 text-sm font-semibold text-ink-600" onClick={() => setManualDraftItems([])} type="button"><RotateCcw aria-hidden="true" size="var(--icon-xs)" />선택 초기화</button></div>
             )
-          ) : !session || unrecoverable ? (
-            <div>
-              <label className="mb-3 flex items-start gap-3 text-sm text-ink-600">
-                <input
-                  checked={consentAcknowledged}
-                  className="mt-0.5 size-5"
-                  disabled={!workflow.consentPolicyQuery.data}
-                  onChange={(event) => setConsentAcknowledged(event.target.checked)}
-                  type="checkbox"
-                />
-                <span>{workflow.consentPolicyQuery.data?.notice ?? "촬영 개인정보 안내를 불러오는 중입니다."}</span>
-              </label>
-              <Button
-                className="w-full"
-                disabled={busy || terminalJob || !consentAcknowledged || !workflow.consentPolicyQuery.data}
-                onClick={startSession}
-                size="cta"
-              >
-                {workflow.createSessionMutation.isPending ? (
-                  <LoaderCircle
-                    aria-hidden="true"
-                    className="demo-spin"
-                    size="var(--icon-sm)"
-                  />
-                ) : (
-                  <Video aria-hidden="true" size="var(--icon-sm)" />
-                )}
-                {unrecoverable ? "새 촬영 세션 시작" : "촬영 시작"}
-              </Button>
-            </div>
           ) : analysis?.status === "completed" ? (
             workflow.reviewQuery.isPending || recoveringReview ? (
               <Button className="w-full" disabled size="cta">
@@ -1771,60 +1380,14 @@ function ConnectedCapture({
                   : "항목 내용을 확인해 주세요"}
               </Button>
             )
-          ) : analysis ? (
-            <Button className="w-full" disabled size="cta">
-              {analysisActive ? (
-                <LoaderCircle
-                  aria-hidden="true"
-                  className="demo-spin"
-                  size="var(--icon-sm)"
-                />
-              ) : (
-                <AlertTriangle aria-hidden="true" size="var(--icon-sm)" />
-              )}
-              {analysisActive ? "AI 분석 진행 중" : "분석 실패 · 촬영 보존됨"}
-            </Button>
-          ) : allReady ? (
-            <Button
-              className="w-full"
-              disabled={busy || zones.length === 0}
-              onClick={submit}
-              size="cta"
-            >
-              {workflow.submitMutation.isPending ? (
-                <LoaderCircle
-                  aria-hidden="true"
-                  className="demo-spin"
-                  size="var(--icon-sm)"
-                />
-              ) : (
-                <FileUp aria-hidden="true" size="var(--icon-sm)" />
-              )}
-              촬영 마치고 AI 분석 시작
-            </Button>
-          ) : (
-            <Button className="w-full" disabled size="cta">
-              {validating || workflow.uploadMutation.isPending ? (
-                <LoaderCircle
-                  aria-hidden="true"
-                  className="demo-spin"
-                  size="var(--icon-sm)"
-                />
-              ) : (
-                <Camera aria-hidden="true" size="var(--icon-sm)" />
-              )}
-              {validating ? "업로드 파일 확인 중" : "구역 촬영을 추가해 주세요"}
-            </Button>
-          )}
+          ) : null}
           {!manualMode ? (
             <p className="mt-3 text-center text-sm text-ink-400">
               {reviewDirty
                 ? "확정 전 변경은 이 화면에만 보관돼요."
                 : reviewCompleted
                   ? "검토 완료본은 변경 이력으로 보존돼요."
-                  : terminalJob
-                    ? "종료된 작업에는 새 촬영을 추가할 수 없어요."
-                    : "업로드 URL과 secret은 브라우저에 저장하지 않아요."}
+                  : "업로드 URL과 secret은 브라우저에 저장하지 않아요."}
             </p>
           ) : null}
         </div>
