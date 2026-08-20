@@ -1,0 +1,35 @@
+- generic [ref=f2e1]:
+  - generic [ref=f2e2]:
+    - link [ref=f2e37] [cursor=pointer]:
+      - /url: "#main-content"
+      - text: 본문으로 건너뛰기
+    - generic [ref=f2e8]:
+      - complementary [ref=f2e9]:
+        - strong [ref=f2e12]: 짐로그
+        - navigation [ref=f2e38]:
+          - button [ref=f2e39] [cursor=pointer]:
+            - generic [ref=f2e16]: 작업
+        - button [ref=f2e40] [cursor=pointer]:
+          - generic [ref=f2e20]: 연결 해제
+      - generic [ref=f2e21]:
+        - banner [ref=f2e22]:
+          - heading [level=1] [ref=f2e41]: 작업
+          - generic [ref=f2e25]:
+            - searchbox [ref=f2e42]
+            - button [ref=f2e43] [cursor=pointer]
+        - main [ref=f2e29]:
+          - generic [ref=f2e33]:
+            - heading [level=3] [ref=f2e44]: 연결된 이사가 없어요
+            - paragraph [ref=f2e35]: 고객과 공유한 이사 연결 코드로 작업을 불러오세요.
+            - button [ref=f2e45] [cursor=pointer]: 연결 코드 추가
+  - dialog [ref=f2e49]:
+    - generic [ref=f2e50]:
+      - heading "이사 연결 코드 추가" [level=2] [ref=f2e51]
+      - paragraph [ref=f2e52]: 고객·기사와 공유하는 코드를 입력하면 작업을 추가합니다.
+    - generic [ref=f2e53]:
+      - generic [ref=f2e54]: 이사 연결 코드
+      - textbox "이사 연결 코드" [active] [ref=f2e55]:
+        - /placeholder: MOVE-XXXXXXXX
+        - text: MOVE-11111111
+    - button "작업 추가" [ref=f2e57] [cursor=pointer]
+    - button "닫기" [ref=f2e58] [cursor=pointer]

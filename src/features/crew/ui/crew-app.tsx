@@ -95,10 +95,24 @@ function ConnectedCrewApp({ session }: { session: AuthSession }) {
   const issueQuery = useQuery({ enabled: !invitationPending, queryKey: workflowKeys.fieldIssues(connection.jobId), queryFn: () => listFieldIssues(connection), refetchInterval: mockApiEnabled && !invitationPending ? 2_000 : false });
   const notificationsQuery = useQuery({ enabled: !invitationPending && tab === "notifications", queryKey: workflowKeys.notifications(connection.jobId), queryFn: () => listNotifications(connection) });
   const moveListQuery = useQuery({ enabled: !invitationPending, queryKey: workflowKeys.moves(session.actor.role), queryFn: () => listMoveJobs(session.accessToken) });
+  const activeMoves = moveListQuery.data?.moves.filter((move) => move.job.status !== "completed" && move.job.status !== "canceled") ?? [];
+  const homeMove = activeMoves.find((move) => move.job.id === connection.jobId) ?? activeMoves[0];
+  const homeBrief = !homeMove || homeMove.job.id === connection.jobId ? briefQuery.data : undefined;
   const changeTab = (next: CrewTab) => setParams(next === "home" ? {} : next === "work" ? { tab: "work", view: "list" } : { tab: next }, { replace: true });
   const changeWorkView = (view: CrewWorkView) => setParams({ tab: "work", view }, { replace: true });
   const refresh = () => queryClient.invalidateQueries({ queryKey: workflowKeys.root(connection.jobId) });
   const disconnect = () => { clearSession(); navigate("/"); };
+  const selectMove = (jobId: string) => {
+    const move = moveListQuery.data?.moves.find((item) => item.job.id === jobId);
+    const participant = move?.job.participants.find((item) => item.role === "field_worker");
+    if (!move || !participant) return;
+    if (move.job.id === session.actor.job_id && participant.id === session.actor.participant_id) return;
+    switchSession({ actor: { ...session.actor, job_id: move.job.id, participant_id: participant.id, display_name: participant.display_name, invitation: null }, accessToken: mockApiEnabled ? session.accessToken : undefined });
+  };
+  const openWork = (jobId = homeMove?.job.id) => {
+    if (jobId) selectMove(jobId);
+    changeWorkView("agreement");
+  };
 
   if (invitationPending) return <div className="mobile-stage min-h-dvh bg-canvas"><main className="mobile-frame min-h-dvh px-[var(--content-gutter)] py-8"><p className="text-sm font-extrabold text-primary-700">현장기사 초대</p><h1 className="mt-2 text-ui-section font-black">배정된 작업을 먼저 확인해 주세요</h1><p className="mt-2 text-sm leading-6 text-ink-600">수락하기 전에는 고객 주소와 작업범위를 불러오지 않습니다.</p><div className="mt-6"><InvitationPanel /></div></main></div>;
 
@@ -106,8 +120,8 @@ function ConnectedCrewApp({ session }: { session: AuthSession }) {
   return (
     <>
     <MobileAppShell current={tab} eyebrow={`현장기사 · ${session.actor.display_name}`} header={header} items={items} onChange={changeTab} onProfile={() => changeTab("more")} onRefresh={tab === "more" ? undefined : refresh} root={tab === "home"} showNav={tab !== "work" || workView === "list"} title={titles[tab]}>
-      {tab === "home" ? <CrewHome brief={briefQuery.data} displayName={session.actor.display_name} issueCount={issueQuery.data?.filter((issue) => issue.status !== "approved" && issue.status !== "rejected").length ?? 0} onInvite={() => setInviteOpen(true)} onWork={() => changeWorkView("agreement")} /> : null}
-      {tab === "work" ? <CrewWork brief={briefQuery.data} connection={connection} issues={issueQuery.data ?? []} moveJobs={moveListQuery.data?.moves} onNewWork={() => setInviteOpen(true)} onSelect={(jobId) => { const move = moveListQuery.data?.moves.find((item) => item.job.id === jobId); const participant = move?.job.participants.find((item) => item.role === "field_worker"); if (move && participant) switchSession({ actor: { ...session.actor, job_id: move.job.id, participant_id: participant.id, display_name: participant.display_name, invitation: null }, accessToken: mockApiEnabled ? session.accessToken : undefined }); }} onViewChange={changeWorkView} scope={scopeQuery.data} view={workView} /> : null}
+      {tab === "home" ? <CrewHome brief={homeBrief} displayName={session.actor.display_name} issueCount={issueQuery.data?.filter((issue) => issue.status !== "approved" && issue.status !== "rejected").length ?? 0} move={homeMove} onInvite={() => setInviteOpen(true)} onWork={() => openWork()} /> : null}
+      {tab === "work" ? <CrewWork brief={briefQuery.data} connection={connection} issues={issueQuery.data ?? []} moveJobs={moveListQuery.data?.moves} onNewWork={() => setInviteOpen(true)} onSelect={selectMove} onViewChange={changeWorkView} scope={scopeQuery.data} view={workView} /> : null}
       {tab === "notifications" ? <CrewNotifications error={notificationsQuery.error} notifications={notificationsQuery.data} onAction={() => setParams({ tab: "work", view: "agreement" }, { replace: true })} pending={notificationsQuery.isPending} /> : null}
       {tab === "more" ? <ConnectedProfile displayName={session.actor.display_name} expiresAt={session.actor.expires_at} onDisconnect={disconnect} permissions={session.actor.permissions} roleLabel="현장기사" /> : null}
     </MobileAppShell>
@@ -233,22 +247,28 @@ function CrewAgreementHistorySheet({ issue, onOpenChange, open, scope }: { issue
   return <AgreementHistorySheet issue={issue} onOpenChange={onOpenChange} open={open} scope={scope} />;
 }
 
-function CrewHome({ brief, displayName, issueCount, onInvite, onWork }: {
+function CrewHome({ brief, displayName, issueCount, move, onInvite, onWork }: {
   brief: Awaited<ReturnType<typeof getFieldBrief>> | undefined;
   displayName: string;
   issueCount: number;
+  move: MockMoveSummary | undefined;
   onInvite: () => void;
   onWork: () => void;
 }) {
-  const startAt = brief?.start_at ? new Date(brief.start_at) : null;
+  const fallbackJob = move?.job;
+  const startAtValue = brief?.start_at ?? fallbackJob?.scheduled_at;
+  const startAt = startAtValue ? new Date(startAtValue) : null;
   const dDay = startAt ? Math.max(0, Math.ceil((startAt.getTime() - renderStartedAt) / 86_400_000)) : null;
   const workerName = mockApiEnabled ? "김민수" : brief?.lead_worker_name ?? (displayName.trim() || "기사");
   const salutation = workerName.endsWith("기사") ? `${workerName}님` : `${workerName} 기사님`;
+  const origin = brief?.masked_origin ?? fallbackJob?.locations[0]?.label ?? "출발지";
+  const destination = brief?.masked_destination ?? fallbackJob?.locations[1]?.label ?? "도착지";
+  const currentProgress = brief?.completion_submission_id ? 4 : brief?.checked_in_at ? 3 : 2;
   return (
     <div className="pb-[var(--bottom-rail-height)]">
       <h1 className="mb-4 mt-1 px-[var(--content-gutter)] text-ui-component">{salutation}, 오늘 작업을 준비해요</h1>
       <section className="px-[var(--content-gutter)]"><CrewInviteHero onInvite={onInvite} /></section>
-      {brief ? <div className="mx-[var(--content-gutter)]"><ActiveMoveCard heading="진행 중인 이사 1건" headingClassName="text-ui-component" meta={<span className="mt-4 flex min-w-0 items-center gap-2 rounded-[var(--radius-component)] border border-line bg-surface px-2.5 py-2 text-ui-control text-ink-900"><Calendar aria-hidden="true" className="shrink-0 text-primary-700" size="var(--icon-sm)" weight="bold" /><span className="min-w-0 flex-1 truncate">{startAt ? fullDateFormatter.format(startAt) : "일정 확인 중"}</span>{dDay !== null ? <b className="shrink-0 rounded-[var(--radius-component)] bg-primary-50 px-2.5 py-1.5 font-[var(--weight-button)] text-primary-700">D-{dDay}</b> : null}</span>} onOpen={onWork} prelude={<MoveJourneyProgress current={brief.completion_submission_id ? 4 : brief.checked_in_at ? 3 : 2} />} route={<MoveRouteSummary destination={brief.masked_destination ?? "도착지"} origin={brief.masked_origin ?? "출발지"} />} showChevron={false}><div className="mt-4"><Button className="w-full" onClick={onWork} size="cta">지금 확인</Button></div></ActiveMoveCard><CrewCaution issueCount={issueCount} /></div> : <section className="mx-[var(--content-gutter)] mt-4 ui-card px-5 py-8 text-center"><ClockCounterClockwise aria-hidden="true" className="mx-auto text-ink-400" size="var(--icon-category)" /><h2 className="mt-3 text-ui-component">업체의 작업 확정을 기다리고 있어요</h2><p className="mt-2 text-ui-support text-ink-600">배차와 작업범위가 확정되면 오늘 작업이 표시됩니다.</p></section>}
+      {brief || move ? <div className="mx-[var(--content-gutter)]"><ActiveMoveCard heading="진행 중인 이사 1건" headingClassName="text-ui-component" meta={<span className="mt-4 flex min-w-0 items-center gap-2 rounded-[var(--radius-component)] border border-line bg-surface px-2.5 py-2 text-ui-control text-ink-900"><Calendar aria-hidden="true" className="shrink-0 text-primary-700" size="var(--icon-sm)" weight="bold" /><span className="min-w-0 flex-1 truncate">{startAt ? fullDateFormatter.format(startAt) : "일정 확인 중"}</span>{dDay !== null ? <b className="shrink-0 rounded-[var(--radius-component)] bg-primary-50 px-2.5 py-1.5 font-[var(--weight-button)] text-primary-700">D-{dDay}</b> : null}</span>} onOpen={onWork} prelude={<MoveJourneyProgress current={currentProgress} />} route={<MoveRouteSummary destination={destination} origin={origin} />} showChevron={false}><div className="mt-4"><Button className="w-full" onClick={onWork} size="cta">지금 확인</Button></div></ActiveMoveCard><CrewCaution issueCount={issueCount} /></div> : <section className="mx-[var(--content-gutter)] mt-4 ui-card px-5 py-8 text-center"><ClockCounterClockwise aria-hidden="true" className="mx-auto text-ink-400" size="var(--icon-category)" /><h2 className="mt-3 text-ui-component">업체의 작업 확정을 기다리고 있어요</h2><p className="mt-2 text-ui-support text-ink-600">배차와 작업범위가 확정되면 오늘 작업이 표시됩니다.</p></section>}
     </div>
   );
 }

@@ -658,18 +658,18 @@ function RoutePoint({ destination = false, label, onEdit, stop }: { destination?
     { active: stop.parking === "가능", label: `주차 ${stop.parking}` },
   ];
   const Icon = destination ? Package : Truck;
-  return <div className={destination ? "relative mt-7" : "relative"}>
-    {!destination ? <span aria-hidden="true" className="absolute -bottom-[50px] left-4 top-9 z-0 w-[1.5px] bg-primary-400" /> : null}
-    <button className="relative z-10 flex min-h-11 w-full items-center gap-2 text-left disabled:cursor-default" disabled={!onEdit} onClick={onEdit} type="button">
+  return <div className={destination ? "relative mt-8" : "relative"}>
+    {!destination ? <span aria-hidden="true" className="absolute -bottom-[52px] left-4 top-9 z-0 w-[1.5px] bg-primary-400" /> : null}
+    <button aria-label={`${label} ${onEdit ? "정보 수정" : "정보"}`} className="group relative z-10 flex min-h-11 w-full items-center gap-2 text-left disabled:cursor-default" disabled={!onEdit} onClick={onEdit} type="button">
       <span className="grid size-8 shrink-0 place-items-center bg-surface text-primary-700"><Icon aria-hidden="true" size="var(--icon-md)" weight="fill" /></span>
       <span className="min-w-0 flex-1 text-ui-component font-black">{label}</span>
-      {onEdit ? <CaretRight aria-hidden="true" className="shrink-0 text-ink-400" size="var(--icon-sm)" weight="bold" /> : null}
+      {onEdit ? <CaretRight aria-hidden="true" className="shrink-0 text-ink-400 transition-transform duration-150 group-hover:translate-x-0.5" size="var(--icon-sm)" weight="bold" /> : null}
     </button>
-    <div className="ml-10 mt-3 rounded-[var(--radius-component)] border border-line bg-surface px-4 py-4">
+    <div className="ml-10 mt-3 rounded-[var(--radius-component)] border border-line bg-surface px-4 py-4 shadow-[0_1px_0_rgba(31,35,47,0.02)]">
       <strong className="block break-keep text-ui-component font-black leading-6">{stop.address || `${label}를 입력해 주세요`}</strong>
       {stop.detailAddress ? <span className="mt-1 block text-sm leading-5 text-ink-600">{stop.detailAddress}</span> : null}
       <p className="mt-3 text-sm font-semibold text-ink-600">{[stop.floor, stop.residenceType].filter(Boolean).join(" · ")}</p>
-      <div className="mt-3 flex flex-wrap gap-1.5">{conditions.map((condition) => <span className={condition.active ? "rounded-lg bg-primary-50 px-2.5 py-1 text-ui-micro font-bold text-primary-700" : "rounded-lg bg-surface-muted px-2.5 py-1 text-ui-micro font-bold text-ink-600"} key={condition.label}>{condition.label}</span>)}</div>
+      <div className="mt-3 flex flex-wrap gap-1.5">{conditions.map((condition) => <span className={condition.active ? "rounded-full bg-primary-50 px-2.5 py-1 text-ui-micro font-bold text-primary-700" : "rounded-full bg-surface-muted px-2.5 py-1 text-ui-micro font-bold text-ink-600"} key={condition.label}>{condition.label}</span>)}</div>
     </div>
   </div>;
 }

@@ -1,0 +1,5 @@
+- generic [ref=f3e2]:
+  - link "본문으로 건너뛰기" [ref=f3e3] [cursor=pointer]:
+    - /url: "#main-content"
+  - status [ref=f3e4]:
+    - paragraph [ref=f3e7]: 화면을 준비하고 있어요

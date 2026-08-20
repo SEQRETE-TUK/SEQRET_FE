@@ -644,8 +644,13 @@ export async function mockApiRequest<T>(path: string, init: RequestInit, accessT
   if (!state || !authenticatedActor) throw new Error("Mock 연결 정보가 없습니다.");
   if (!state.actors[accessToken] && authenticatedActor.role === "customer") state.actors[accessToken] = actor("customer", CUSTOMER_ID, authenticatedActor.display_name, state.job.id);
   if (path === "/api/v1/move-jobs" && method === "GET") {
-    if (authenticatedActor.role !== "customer") throw new Error("고객 이사 목록은 고객만 확인할 수 있어요.");
-    return result({ moves: customerMoveSummaries(accessToken) }) as Promise<T>;
+    if (authenticatedActor.role === "customer") {
+      return result({ moves: customerMoveSummaries(accessToken) }) as Promise<T>;
+    }
+    const moves = [...mockStates.values()]
+      .filter((candidate) => candidate.actors[accessToken]?.role === authenticatedActor.role)
+      .map((candidate) => moveSummary(candidate));
+    return result({ moves }) as Promise<T>;
   }
   const jobPath = `/api/v1/move-jobs/${encodeURIComponent(state.job.id)}`;
   if (path === jobPath && method === "GET") return result(state.job) as Promise<T>;

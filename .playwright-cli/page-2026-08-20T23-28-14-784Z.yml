@@ -1,0 +1,38 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - link [ref=e50] [cursor=pointer]:
+      - /url: "#main-content"
+      - text: 본문으로 건너뛰기
+    - generic [ref=e9]:
+      - banner [ref=e10]:
+        - strong [ref=e13]: 짐로그
+        - button [ref=e51] [cursor=pointer]
+      - main [ref=e17]:
+        - generic [ref=e18]:
+          - heading [level=1] [ref=e52]: 배정된 이사를 연결해 주세요
+          - button [ref=e53] [cursor=pointer]:
+            - generic [ref=e22]:
+              - strong [ref=e23]: 연결 코드로 오늘 작업 연결하기
+              - generic [ref=e24]: 배정된 이사 정보를 한 번에 불러와요.
+              - generic [ref=e25]: 연결 코드 입력하기
+          - generic [ref=e29]:
+            - heading [level=2] [ref=e55]: 연결된 작업이 없어요
+            - paragraph [ref=e31]: 연결 코드를 입력하면 배정된 이사와 현장 정보를 한곳에서 확인할 수 있어요.
+          - paragraph [ref=e33]:
+            - generic [ref=e36]: 작업 전 최신 승인본을 확인하고, 현장이 다르면 추가 금액을 요구하지 말고 먼저 보고해 주세요.
+      - navigation [ref=e56]:
+        - button [ref=e57] [cursor=pointer]:
+          - generic [ref=e41]: 홈
+        - button [ref=e58] [cursor=pointer]:
+          - generic [ref=e45]: 내 작업
+        - button [ref=e59] [cursor=pointer]:
+          - generic [ref=e49]: 더보기
+  - dialog [ref=e63]:
+    - generic [ref=e64]:
+      - heading "이사 연결 코드 입력" [level=2] [ref=e65]
+      - paragraph [ref=e66]: 고객·업체와 공유하는 코드를 입력하면 배정된 이사와 연결돼요.
+    - textbox "이사 연결 코드" [active] [ref=e68]:
+      - /placeholder: MOVE-XXXXXXXX
+      - text: MOVE-11111111
+    - button "내 작업에 연결" [ref=e70] [cursor=pointer]
+    - button "닫기" [ref=e71] [cursor=pointer]

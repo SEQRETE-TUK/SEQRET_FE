@@ -1,0 +1,30 @@
+- generic [ref=e2]:
+  - link "본문으로 건너뛰기" [ref=e75] [cursor=pointer]:
+    - /url: "#main-content"
+  - generic [ref=e77]:
+    - banner [ref=e159]:
+      - button "작업 목록으로 돌아가기" [ref=e161] [cursor=pointer]
+      - heading "우리 집 이사" [level=1] [ref=e165]
+      - button "더보기" [ref=e167] [cursor=pointer]
+    - main [ref=e85]:
+      - tablist "작업 상세 메뉴" [ref=e170]:
+        - tab "확인서" [ref=e171] [cursor=pointer]
+        - tab "현장 보고" [active] [selected] [ref=e172] [cursor=pointer]
+        - tab "작업 완료" [ref=e173] [cursor=pointer]
+      - generic [ref=e368]:
+        - generic [ref=e369]:
+          - heading "승인본과 다른 점이 있나요?" [level=2] [ref=e374]
+          - paragraph [ref=e375]: 현장 사실과 사진을 업체에 보내면 업체가 변경 범위와 금액을 제안해요.
+          - button "새 현장 보고" [ref=e376] [cursor=pointer]
+        - generic [ref=e377]:
+          - heading "내가 보낸 보고 1건" [level=2] [ref=e378]:
+            - text: 내가 보낸 보고
+            - generic [ref=e379]: 1건
+          - button "엘리베이터 운행 중단 상세 보기" [ref=e381] [cursor=pointer]:
+            - img "엘리베이터 운행 중단 현장 증거" [ref=e382]
+            - generic [ref=e383]:
+              - strong [ref=e384]: 엘리베이터 운행 중단
+              - generic [ref=e385]: 증거 1건 · 오전 8:27
+            - generic [ref=e386]: 고객 확인 대기
+        - complementary [ref=e390]:
+          - paragraph [ref=e394]: 기사는 현장 사실만 보고하며 금액을 입력하지 않아요.
