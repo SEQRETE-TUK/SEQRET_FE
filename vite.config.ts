@@ -72,6 +72,10 @@ export default defineConfig(({ mode }) => {
       VitePWA({
         registerType: "autoUpdate",
         injectRegister: false,
+        workbox: {
+          clientsClaim: true,
+          skipWaiting: true,
+        },
         includeAssets: ["icon-192.png", "icon-512.png", "icon-android-192.png", "icon-android-512.png", "icon-maskable-192.png", "icon-maskable-512.png"],
         manifest: {
           name: "\u200B",
