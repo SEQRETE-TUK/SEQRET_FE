@@ -113,12 +113,8 @@
 
   --rule-hair: 1px;
   --rule-fine: 2px;
-  /* Shape hierarchy: compact controls → standard cards → feature surfaces → sheets */
-  --radius-small: 0.375rem;
-  --radius-control: 0.5rem;
-  --radius-input: var(--radius-control);
-  --radius-card: 0.625rem;
-  --radius-feature: 0.75rem;
+  /* General UI uses one radius; sheets and pills keep their structural shape. */
+  --radius-component: 0.625rem;
   --radius-sheet: 1rem;
   --radius-pill: 9999px;
   --shadow-card: none;
@@ -131,7 +127,7 @@
   --shell-wide: 80rem;
   --header-height: 5.25rem;
   --bottom-rail-height: 3.5rem;
-  --content-gutter: clamp(1.25rem, 5vw, 1.5rem);
+  --content-gutter: clamp(0.75rem, 3vw, 1rem);
 
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
@@ -168,7 +164,7 @@
   --border: var(--color-rule);
   --input: var(--color-rule);
   --ring: var(--color-focus);
-  --radius: var(--radius-card);
+  --radius: var(--radius-component);
 
   /* Compatibility aliases while feature screens migrate to semantic names */
   --primary-50: var(--color-accent-50);

@@ -86,7 +86,7 @@ export function MoveJourneyProgress({ current, steps = ["촬영과\n짐 검수",
 export function SectionHeader({ aside, children, className }: { aside?: ReactNode; children: ReactNode; className?: string }) {
   return (
     <div className={cn("flex min-h-8 items-end justify-between gap-3", className)}>
-      <h3 className="text-ui-section leading-7 font-extrabold tracking-[var(--tracking-display)]">{children}</h3>
+      <h3 className="text-ui-component">{children}</h3>
       {aside ? <div className="pb-0.5 text-ui-control text-ink-600">{aside}</div> : null}
     </div>
   );
@@ -108,7 +108,7 @@ export function ListGroup({
       aria-label={label}
       className={cn(
         "mt-3 overflow-hidden",
-        variant === "contained" && "ui-card rounded-[var(--radius-control)] shadow-[var(--shadow-card)]",
+        variant === "contained" && "ui-card rounded-[var(--radius-component)] shadow-[var(--shadow-card)]",
         variant === "plain" && "app-list-plain",
         className,
       )}

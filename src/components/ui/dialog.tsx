@@ -13,7 +13,7 @@ function DialogContent({ className, children, showClose = true, ...props }: Dial
       <DialogPrimitive.Viewport className="fixed inset-0 z-[var(--z-modal)] grid place-items-center overflow-y-auto p-4 sm:p-6">
         <DialogPrimitive.Popup
           className={cn(
-            "demo-dialog-popup ui-surface relative max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-[var(--radius-card)] bg-surface p-6 text-ink-900 outline-2 outline-transparent focus-visible:outline-focus-ring sm:max-h-[calc(100dvh-3rem)]",
+            "demo-dialog-popup ui-surface relative max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-[var(--radius-component)] bg-surface p-6 text-ink-900 outline-2 outline-transparent focus-visible:outline-focus-ring sm:max-h-[calc(100dvh-3rem)]",
             className,
           )}
           {...props}

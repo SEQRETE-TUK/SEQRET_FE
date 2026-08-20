@@ -64,7 +64,7 @@ export function AddressSearchInput({ id, onChange, value }: { id: string; onChan
   };
 
   return <div>
-    <button aria-label={value ? `주소 검색: ${value}` : "주소 검색"} className="flex min-h-12 w-full items-center justify-between gap-3 rounded-[var(--radius-control)] border border-line bg-surface px-4 text-left text-ui-control text-ink-900 focus-visible:border-primary-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring disabled:cursor-wait disabled:opacity-70" disabled={loading} id={id} onClick={search} type="button">
+    <button aria-label={value ? `주소 검색: ${value}` : "주소 검색"} className="flex min-h-12 w-full items-center justify-between gap-3 rounded-[var(--radius-component)] border border-line bg-surface px-4 text-left text-ui-control text-ink-900 focus-visible:border-primary-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring disabled:cursor-wait disabled:opacity-70" disabled={loading} id={id} onClick={search} type="button">
       <span className={value ? "min-w-0 truncate text-ui-body" : "min-w-0 truncate text-ui-body text-ink-400"}>{loading ? "주소 불러오는 중" : value || "주소를 검색해 주세요"}</span>
       <MagnifyingGlass aria-hidden="true" className="shrink-0 text-primary-700" size="var(--icon-sm)" />
     </button>

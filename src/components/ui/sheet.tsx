@@ -54,7 +54,7 @@ function SheetDescription({ className, ...props }: Dialog.Description.Props) {
 }
 
 function SheetFooter({ className, ...props }: ComponentProps<"div">) {
-  return <div className={cn("sticky bottom-0 mt-0 bg-surface px-5 py-2.5 pb-[max(10px,env(safe-area-inset-bottom))]", className)} {...props} />;
+  return <div className={cn("sticky bottom-0 mt-0 bg-surface px-[var(--content-gutter)] py-2.5 pb-[max(10px,env(safe-area-inset-bottom))]", className)} {...props} />;
 }
 
 export { Sheet, SheetClose, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger };

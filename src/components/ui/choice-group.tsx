@@ -40,7 +40,7 @@ function ChoiceGroup<Value extends string>({
             ? scroll
               ? "no-scrollbar -mx-5 flex w-[calc(100%+2.5rem)] snap-x snap-mandatory gap-2 overflow-x-auto px-5 scroll-px-5 pb-1"
               : "grid gap-2"
-            : "grid gap-0 overflow-hidden rounded-[var(--radius-control)] border border-line bg-surface-muted p-px",
+            : "grid gap-0 overflow-hidden rounded-[var(--radius-component)] border border-line bg-surface-muted p-px",
           !outlined && (singleRow ? "h-[var(--control-touch)]" : "auto-rows-[var(--control-touch)]"),
           !scroll && (columns === 2 ? "grid-cols-2" : "grid-cols-3"),
         )}
@@ -53,8 +53,8 @@ function ChoiceGroup<Value extends string>({
               className={cn(
                 "flex cursor-pointer items-center justify-center px-[var(--filter-padding-x)] text-center ui-button-text text-ink-600 outline-none focus-visible:ring-2 focus-visible:ring-primary-300 data-checked:text-primary-700",
                 outlined
-                  ? "h-[var(--control-touch)] rounded-[var(--radius-control)] border border-line bg-surface data-checked:border-primary-400 data-checked:bg-primary-50"
-                  : "rounded-[calc(var(--radius-control)-2px)] border border-transparent data-checked:border-primary-400 data-checked:bg-surface",
+                  ? "h-[var(--control-touch)] rounded-[var(--radius-component)] border border-line bg-surface data-checked:border-primary-400 data-checked:bg-primary-50"
+                  : "rounded-[var(--radius-component)] border border-transparent data-checked:border-primary-400 data-checked:bg-surface",
                 outlined && scroll ? "min-w-[calc(var(--control-touch)*1.9)] shrink-0 snap-start" : icons ? "h-auto min-h-[calc(var(--control-touch)*1.75)] flex-col gap-2 py-3" : singleRow ? "h-full" : "h-[var(--control-touch)]",
               )}
               key={option}

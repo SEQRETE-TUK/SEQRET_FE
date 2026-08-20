@@ -5,12 +5,11 @@
 
 @theme inline {
   --spacing: var(--space-3xs);
-  --radius-sm: var(--radius-small);
-  --radius-md: var(--radius-small);
-  --radius-lg: var(--radius-control);
-  --radius-xl: var(--radius-card);
-  /* Legacy rounded-2xl stays a regular card; feature radius is explicit. */
-  --radius-2xl: var(--radius-card);
+  --radius-sm: var(--radius-component);
+  --radius-md: var(--radius-component);
+  --radius-lg: var(--radius-component);
+  --radius-xl: var(--radius-component);
+  --radius-2xl: var(--radius-component);
   --radius-3xl: var(--radius-sheet);
   --font-weight-medium: var(--weight-body);
   --font-weight-normal: var(--weight-body);
@@ -123,6 +122,22 @@ input,
 textarea,
 select {
   font-family: inherit;
+}
+
+.ui-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='16'%20height='16'%20viewBox='0%200%2016%2016'%20fill='none'%3E%3Cpath%20d='m4%206%204%204%204-4'%20stroke='%23606570'%20stroke-width='1.5'%20stroke-linecap='round'%20stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-position: right var(--field-padding-x) center;
+  background-repeat: no-repeat;
+  background-size: var(--icon-xs);
+  padding-right: calc(var(--field-padding-x) + var(--icon-xs) + var(--space-2xs));
+}
+
+@media (forced-colors: active) {
+  .ui-select {
+    appearance: auto;
+    background-image: none;
+  }
 }
 
 fieldset {
@@ -304,7 +319,7 @@ p {
   left: var(--space-xs);
   z-index: var(--z-tooltip);
   transform: translateY(calc(-100% - var(--space-lg)));
-  border-radius: var(--radius-input);
+  border-radius: var(--radius-component);
   background: var(--ink-900);
   color: var(--color-accent-ink);
   padding: var(--space-xs) var(--space-sm);
@@ -355,12 +370,12 @@ p {
 }
 
 .app-panel {
-  border-radius: var(--radius-card);
+  border-radius: var(--radius-component);
   background: var(--color-paper-2);
 }
 
 .ui-card {
-  border-radius: var(--radius-card);
+  border-radius: var(--radius-component);
   background: var(--color-paper-2);
 }
 
@@ -388,7 +403,7 @@ p {
   height: 3rem;
   flex: 0 0 auto;
   place-items: center;
-  border-radius: var(--radius-card);
+  border-radius: var(--radius-component);
   background: var(--color-accent-50);
   color: var(--color-accent);
 }

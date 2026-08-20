@@ -145,7 +145,7 @@ export function DesignSystemRail({ groups }: { groups: ReadonlyArray<DesignSyste
               aria-current={activeId === group.id ? "location" : undefined}
               aria-expanded={expanded}
               className={cn(
-                "press-static flex min-h-9 w-full items-center justify-between rounded-[var(--radius-small)] px-2.5 text-xs leading-4 font-semibold text-ink-600 hover:bg-surface-muted hover:text-ink-900 active:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring",
+                "press-static flex min-h-9 w-full items-center justify-between rounded-[var(--radius-component)] px-2.5 text-xs leading-4 font-semibold text-ink-600 hover:bg-surface-muted hover:text-ink-900 active:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring",
                 groupActive && "text-ink-900",
               )}
               onClick={() => toggleGroup(group.id)}
@@ -168,7 +168,7 @@ export function DesignSystemRail({ groups }: { groups: ReadonlyArray<DesignSyste
                   <a
                     aria-current={active ? "location" : undefined}
                     className={cn(
-                      "press-static relative flex min-h-8 items-center rounded-[var(--radius-small)] px-2 text-xs leading-4 font-medium text-ink-600 hover:bg-surface-muted hover:text-ink-900 active:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring",
+                      "press-static relative flex min-h-8 items-center rounded-[var(--radius-component)] px-2 text-xs leading-4 font-medium text-ink-600 hover:bg-surface-muted hover:text-ink-900 active:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring",
                       active && "bg-primary-50 font-semibold text-primary-700 before:absolute before:inset-y-2 before:-left-3 before:w-0.5 before:rounded-full before:bg-primary-600",
                     )}
                     href={`#${item.id}`}

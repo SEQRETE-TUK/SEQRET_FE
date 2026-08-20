@@ -10,6 +10,7 @@ import { useState, type ComponentProps, type ReactNode } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { CheckIndicator } from "@/components/ui/check-indicator";
 import { ChoiceGroup } from "@/components/ui/choice-group";
 import { FilterChip, ListGroup, ListRow } from "@/components/layout/app-primitives";
 import { Input } from "@/components/ui/input";
@@ -136,10 +137,7 @@ const spacingScale = [
 ] as const;
 
 const radiusScale = [
-  { name: "작은 surface", token: "--radius-small", use: "문서 표본·조밀한 내부 영역" },
-  { name: "Control", token: "--radius-control", use: "버튼·입력·목록 묶음" },
-  { name: "Card", token: "--radius-card", use: "독립된 정보 단위" },
-  { name: "Feature", token: "--radius-feature", use: "화면당 하나의 우선 작업" },
+  { name: "Component", token: "--radius-component", use: "버튼·입력·카드·일반 surface" },
   { name: "Sheet", token: "--radius-sheet", use: "하단 시트의 상단 모서리" },
 ] as const;
 
@@ -240,7 +238,7 @@ export function DesignSystemPage() {
                 {colorGroups.map((group) => (
                   <section key={group.name}>
                     <h3 className="mb-3 text-ui-component">{group.name}</h3>
-                    <div className="grid gap-px overflow-hidden rounded-[var(--radius-small)] bg-line [grid-template-columns:repeat(auto-fit,minmax(10rem,1fr))]">
+                    <div className="grid gap-px overflow-hidden rounded-[var(--radius-component)] bg-line [grid-template-columns:repeat(auto-fit,minmax(10rem,1fr))]">
                       {group.colors.map((color) => (
                         <article className="min-w-0 bg-surface" key={color.token}>
                           <div aria-hidden="true" className="h-24 w-full sm:h-28" style={{ backgroundColor: `var(${color.token})` }} />
@@ -372,6 +370,10 @@ export function DesignSystemPage() {
                     <Badge>보조 정보</Badge>
                   </div>
                 </div>
+                <div>
+                  <h4 className="text-ui-support font-semibold">확인 표시</h4>
+                  <span className="mt-2 inline-flex items-center gap-1.5 text-ui-support font-bold text-primary-700"><CheckIndicator />시간 협의 가능</span>
+                </div>
               </div>
             </ComponentSpecimen>
 
@@ -395,7 +397,7 @@ export function DesignSystemPage() {
                   <ListRow description="차량·현장기사 배정 완료" end={<Badge variant="success">확정</Badge>}>배차</ListRow>
                   <ListRow
                     description="완료 사진과 최종 금액"
-                    leading={<img alt="완료 사진 예시" className="size-[72px] rounded-[var(--radius-control)] object-cover" height="72" loading="lazy" src="/room-after-evidence.png" width="72" />}
+                    leading={<img alt="완료 사진 예시" className="size-[72px] rounded-[var(--radius-component)] object-cover" height="72" loading="lazy" src="/room-after-evidence.png" width="72" />}
                   >완료 기록</ListRow>
                 </ListGroup>
               </div>
@@ -465,7 +467,7 @@ function ComponentSpecimen({
   return (
     <section className="scroll-mt-20 mt-8 first:mt-0" id={id}>
       <h3 className="text-ui-component leading-6 font-bold">{title}</h3>
-      <div className="mt-4 rounded-[var(--radius-small)] bg-surface p-4 md:p-5">
+      <div className="mt-4 rounded-[var(--radius-component)] bg-surface p-4 md:p-5">
         {children}
       </div>
     </section>
@@ -474,7 +476,7 @@ function ComponentSpecimen({
 
 function TypeScaleList() {
   return (
-    <ul aria-label="타이포그래피 역할" className="divide-y divide-line overflow-hidden rounded-[var(--radius-small)] bg-surface">
+    <ul aria-label="타이포그래피 역할" className="divide-y divide-line overflow-hidden rounded-[var(--radius-component)] bg-surface">
       {typeScale.map((type) => (
         <li className="grid gap-4 px-4 py-5 md:grid-cols-[minmax(0,1fr)_minmax(22rem,0.85fr)] md:items-center md:gap-8" key={type.name}>
           <p className={type.className}>{type.sample}</p>
@@ -494,7 +496,7 @@ function TypeScaleList() {
 function TokenTileList({ children, ...props }: { children: ReactNode } & ComponentProps<"ul">) {
   return (
     <ul
-      className="grid grid-cols-1 gap-px overflow-hidden rounded-[var(--radius-small)] bg-line sm:grid-cols-2 xl:grid-cols-4"
+      className="grid grid-cols-1 gap-px overflow-hidden rounded-[var(--radius-component)] bg-line sm:grid-cols-2 xl:grid-cols-4"
       {...props}
     >
       {children}
@@ -518,7 +520,7 @@ function IconRule({
 }) {
   return (
     <div className="grid min-h-20 grid-cols-[4rem_minmax(0,1fr)] items-center gap-4 border-b border-line py-4 last:border-b-0 sm:grid-cols-[6rem_10rem_minmax(0,1fr)]">
-      <span className="flex min-h-12 items-center justify-center rounded-[var(--radius-control)] bg-surface-muted text-ink-600">{example}</span>
+      <span className="flex min-h-12 items-center justify-center rounded-[var(--radius-component)] bg-surface-muted text-ink-600">{example}</span>
       <strong className="text-sm">{label}</strong>
       <span className="col-start-2 text-sm leading-5 text-ink-600 sm:col-start-auto">{description}</span>
     </div>

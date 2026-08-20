@@ -134,7 +134,7 @@ function VideoResultStage({
           </figcaption>
         </figure>
 
-        <div className="relative -mt-6 rounded-t-[var(--radius-feature)] bg-canvas px-5 pt-5">
+        <div className="relative -mt-6 rounded-t-[var(--radius-component)] bg-canvas px-5 pt-5">
           <div aria-hidden="true" className="mx-auto mb-4 h-1 w-12 rounded-full bg-ink-300" />
           <h1 className="text-center text-ui-section font-black">AI가 짐 {draftItems.length}개를 발견했어요</h1>
           <p className="mt-2 text-center text-sm text-ink-600">방과 상관없이 짐 종류별로 정리했어요.</p>
@@ -389,7 +389,7 @@ function StageRail({
   stage: 1 | 2 | 3 | 4;
 }) {
   return (
-    <div className="mt-5 rounded-[var(--radius-card)] border border-line bg-surface px-3 py-4">
+    <div className="mt-5 rounded-[var(--radius-component)] border border-line bg-surface px-3 py-4">
       <ProgressSteps
         current={complete ? 4 : stage - 1}
         items={["촬영", "확인", "분석", "검토"]}

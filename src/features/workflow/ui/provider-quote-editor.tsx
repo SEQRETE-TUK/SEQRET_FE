@@ -67,13 +67,13 @@ export function ProviderQuoteEditor({ connection, onBack, scope }: { connection:
 
   return <div className="mx-auto max-w-[var(--shell-wide)]">
     <button className="mb-4 flex min-h-11 items-center gap-2 text-ui-control text-primary-700 hover:text-primary-800" onClick={onBack} type="button"><ArrowLeft aria-hidden="true" /> 작업 큐</button>
-    {scope.scope.status === "revision_requested" ? <div className="mb-5 rounded-[var(--radius-card)] border border-warning bg-warning-bg p-4"><p className="text-ui-control text-warning-ink">고객 수정 요청</p><p className="mt-1 break-words text-ui-support text-ink-600">{scope.revision_request?.reason}</p><p className="mt-2 text-ui-micro text-warning-ink">기존 제안은 보존되고, 이번 제출은 새 버전으로 기록됩니다.</p></div> : null}
+    {scope.scope.status === "revision_requested" ? <div className="mb-5 rounded-[var(--radius-component)] border border-warning bg-warning-bg p-4"><p className="text-ui-control text-warning-ink">고객 수정 요청</p><p className="mt-1 break-words text-ui-support text-ink-600">{scope.revision_request?.reason}</p><p className="mt-2 text-ui-micro text-warning-ink">기존 제안은 보존되고, 이번 제출은 새 버전으로 기록됩니다.</p></div> : null}
     <div className="ui-card ui-card-outlined grid xl:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.65fr)]">
       <section className="min-w-0">
         <div className="border-b border-line p-5"><strong>{scope.job.customer_display_name}</strong><span className="ml-2 text-sm text-ink-600">{scope.job.origin_summary} → {scope.job.destination_summary}</span></div>
         <div className="p-4 sm:p-5">
           <div><h3 className="text-ui-section">고객 짐 목록</h3><p className="mt-1 text-ui-support text-ink-600">{items.length}개 품목</p></div>
-          <div className="mt-4 overflow-hidden rounded-[var(--radius-card)] border border-line">
+          <div className="mt-4 overflow-hidden rounded-[var(--radius-component)] border border-line">
             <div aria-hidden="true" className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 bg-surface-muted px-4 py-2 text-ui-micro text-ink-600"><span>품목</span><span>수량</span></div>
             {items.map((item) => <div className="grid min-h-14 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-t border-line px-4 py-2" key={item.item_key}>
               <strong className="min-w-0 truncate text-ui-control">{item.name}</strong>
@@ -135,7 +135,7 @@ function conditionText(key: string, value: unknown) {
 }
 
 function LocationConditions({ job, value }: { job: ScopeReview["job"]; value: ScopeLocationConditions[] }) {
-  return <section className="mt-7"><h4 className="font-extrabold">고객 입력 이사 조건</h4>{value.length ? <div className="mt-3 grid overflow-hidden rounded-[var(--radius-card)] border border-line divide-y divide-line lg:grid-cols-2 lg:divide-x lg:divide-y-0">{value.map((location) => {
+  return <section className="mt-7"><h4 className="font-extrabold">고객 입력 이사 조건</h4>{value.length ? <div className="mt-3 grid overflow-hidden rounded-[var(--radius-component)] border border-line divide-y divide-line lg:grid-cols-2 lg:divide-x lg:divide-y-0">{value.map((location) => {
     const conditions = location.conditions;
     const rows = [
       ["상세 주소", conditionText("detail_address", conditions.detail_address)],
@@ -153,7 +153,7 @@ function LocationConditions({ job, value }: { job: ScopeReview["job"]; value: Sc
 
 function MediaEvidence({ media }: { media: ScopeReview["media_previews"] }) {
   if (media.length === 0) return null;
-  return <section className="mt-7"><h4 className="flex items-center gap-2 font-extrabold"><Image aria-hidden="true" /> 촬영 근거</h4><div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">{media.map((asset, index) => asset.content_type.startsWith("image/") ? <img alt={`범위 촬영 근거 ${index + 1}`} className="aspect-[4/3] w-full rounded-[var(--radius-card)] object-cover" height="360" key={asset.media_asset_id} loading="lazy" src={asset.read_url} width="480" /> : <video className="aspect-[4/3] w-full rounded-[var(--radius-card)] bg-ink-900 object-cover" controls key={asset.media_asset_id} preload="metadata" src={asset.read_url} />)}</div></section>;
+  return <section className="mt-7"><h4 className="flex items-center gap-2 font-extrabold"><Image aria-hidden="true" /> 촬영 근거</h4><div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">{media.map((asset, index) => asset.content_type.startsWith("image/") ? <img alt={`범위 촬영 근거 ${index + 1}`} className="aspect-[4/3] w-full rounded-[var(--radius-component)] object-cover" height="360" key={asset.media_asset_id} loading="lazy" src={asset.read_url} width="480" /> : <video className="aspect-[4/3] w-full rounded-[var(--radius-component)] bg-ink-900 object-cover" controls key={asset.media_asset_id} preload="metadata" src={asset.read_url} />)}</div></section>;
 }
 
 function MoneyInput({ disabled = false, label, onChange, value }: { disabled?: boolean; label: string; onChange: (value: number) => void; value: number }) { return <label className="mt-3 grid grid-cols-[minmax(0,1fr)_minmax(6rem,7.5rem)_auto] items-center gap-2 text-sm"><span className="text-ink-600">{label}</span><Input className="h-10 text-right tabular-nums" disabled={disabled} onChange={(event) => onChange(Number(event.target.value))} type="number" value={value} /><span>원</span></label>; }

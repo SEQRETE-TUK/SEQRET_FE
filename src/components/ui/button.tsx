@@ -5,7 +5,7 @@ import type { ComponentProps } from "react";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "ui-button ui-button-text relative inline-flex touch-manipulation items-center justify-center gap-[var(--control-gap)] whitespace-nowrap rounded-[var(--radius-control)] border select-none shadow-none disabled:cursor-not-allowed disabled:border-ink-400 disabled:bg-ink-400 disabled:!text-white disabled:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "ui-button ui-button-text relative inline-flex touch-manipulation items-center justify-center gap-[var(--control-gap)] whitespace-nowrap rounded-[var(--radius-component)] border select-none shadow-none disabled:cursor-not-allowed disabled:border-ink-400 disabled:bg-ink-400 disabled:!text-white disabled:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {

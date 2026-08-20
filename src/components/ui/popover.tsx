@@ -11,7 +11,7 @@ function PopoverContent({ className, ...props }: PopoverPrimitive.Popup.Props) {
       <PopoverPrimitive.Positioner align="end" sideOffset={16}>
         <PopoverPrimitive.Popup
           className={cn(
-            "relative z-[var(--z-tooltip)] max-h-[calc(100dvh-7rem)] w-[min(24rem,calc(100vw-2rem))] overflow-y-auto rounded-[var(--radius-card)] border border-line bg-surface text-ink-900 shadow-md outline-none",
+            "relative z-[var(--z-tooltip)] max-h-[calc(100dvh-7rem)] w-[min(24rem,calc(100vw-2rem))] overflow-y-auto rounded-[var(--radius-component)] border border-line bg-surface text-ink-900 shadow-md outline-none",
             className,
           )}
           {...props}
