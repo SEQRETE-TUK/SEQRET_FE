@@ -281,6 +281,7 @@ AI 초안에는 항목 출처, confidence와 확인 필요 여부가 포함된�
 8. session 조회에서 미디어가 `READY` 또는 `FAILED`인지 확인한다.
 9. `READY` inventory 촬영을 submit해 분석을 요청한다.
 10. analysis endpoint에서 `pending`, `dispatching`, `queued`, `running`, `completed`, `failed` 상태를 조회한다.
+11. v2 AI가 수량·단위를 확정하지 못한 항목은 사용자가 항목별 확인을 눌러 기본값 `1개`를 명시적으로 수락하거나 삭제한 뒤 검토를 완료한다.
 
 ### Signed Target 규칙
 

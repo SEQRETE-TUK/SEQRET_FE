@@ -11,6 +11,7 @@ import type {
 declare global {
   interface Window {
     __SEQRET_MOCK_ANALYSIS_FAILURE__?: boolean;
+    __SEQRET_MOCK_REVIEW_REQUIRED__?: boolean;
   }
 }
 import type {
@@ -830,6 +831,7 @@ export async function mockApiRequest<T>(path: string, init: RequestInit, accessT
   if (submitCaptureMatch && method === "POST") {
     const session = state.sessions.find(({ id }) => id === submitCaptureMatch[1])!;
     const simulateFailure = window.__SEQRET_MOCK_ANALYSIS_FAILURE__ === true;
+    const simulateReviewRequired = window.__SEQRET_MOCK_REVIEW_REQUIRED__ === true;
     session.analysis = simulateFailure ? {
       analysis_run_id: crypto.randomUUID(),
       capture_session_id: session.id,
@@ -855,7 +857,21 @@ export async function mockApiRequest<T>(path: string, init: RequestInit, accessT
       submitted_at: now(),
       completed_at: now(),
     } satisfies CaptureAnalysis;
-    if (!simulateFailure) state.analysisReview = { ...state.analysisReview, analysis_run_id: session.analysis.analysis_run_id, capture_session_id: session.id, analysis_completed_at: now(), review_completed_at: null };
+    if (!simulateFailure) {
+      const nextReview = { ...state.analysisReview, analysis_run_id: session.analysis.analysis_run_id, capture_session_id: session.id, analysis_completed_at: now(), review_completed_at: null };
+      state.analysisReview = simulateReviewRequired ? {
+        ...nextReview,
+        scope_schema_version: 2,
+        items: nextReview.items.map((item) => ({
+          ...item,
+          name: item.name || item.description,
+          quantity: null,
+          review_required: true,
+          unit: null,
+          work_note: null,
+        })),
+      } : nextReview;
+    }
     return result(session.analysis) as Promise<T>;
   }
   if (path === `${jobPath}/analysis-review` && method === "GET") return result(state.analysisReview) as Promise<T>;

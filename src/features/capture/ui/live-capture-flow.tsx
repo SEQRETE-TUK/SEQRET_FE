@@ -77,9 +77,11 @@ interface ConnectedCaptureProps {
 }
 
 function VideoResultStage({
+  acknowledgedItemKeys,
   canAdd,
   draftItems,
   onAdd,
+  onAcknowledge,
   onBack,
   onChange,
   onFile,
@@ -89,9 +91,11 @@ function VideoResultStage({
   review,
   valid,
 }: {
+  acknowledgedItemKeys: ReadonlySet<string>;
   canAdd: boolean;
   draftItems: AnalysisReviewDraftItem[];
   onAdd: (description?: string) => void;
+  onAcknowledge: (itemKey: string) => void;
   onBack: () => void;
   onChange: (itemKey: string, changes: Partial<AnalysisReviewDraftItem>) => void;
   onFile: (file: File) => void;
@@ -159,17 +163,23 @@ function VideoResultStage({
               const name = item.name || item.description;
               const quantity = item.quantity ?? 1;
               const source = review.items.find((candidate) => candidate.item_key === item.itemKey);
+              const requiresAcknowledgement = review.scope_schema_version === 2
+                && Boolean(source?.review_required)
+                && !acknowledgedItemKeys.has(item.itemKey);
               return (
                 <InventoryQuantityRow
-                  disabled={!editableQuantities}
+                  disabled={!editableQuantities || pending}
                   icon={<MovingItemIcon name={name} />}
                   key={item.itemKey}
                   name={name}
                   onDecrease={() => quantity <= 1 ? onRemove(item.itemKey) : onChange(item.itemKey, { quantity: quantity - 1 })}
                   onIncrease={() => onChange(item.itemKey, { quantity: quantity + 1 })}
                   onRemove={() => onRemove(item.itemKey)}
+                  onReviewConfirm={requiresAcknowledgement ? () => onAcknowledge(item.itemKey) : undefined}
                   quantity={quantity}
-                  reviewRequired={source?.review_required}
+                  reviewRequired={review.scope_schema_version === 2
+                    ? requiresAcknowledgement
+                    : source?.review_required}
                 />
               );
             })}
@@ -260,6 +270,11 @@ interface ReviewDraftState {
   items: AnalysisReviewDraftItem[];
 }
 
+interface ReviewAcknowledgementState {
+  itemKeys: ReadonlySet<string>;
+  key: string;
+}
+
 interface RemovedReviewItem {
   index: number;
   item: AnalysisReviewDraftItem;
@@ -267,6 +282,7 @@ interface RemovedReviewItem {
 }
 
 const MAX_REVIEW_ITEMS = 500;
+const EMPTY_REVIEW_ITEM_KEYS: ReadonlySet<string> = new Set();
 
 function friendlyError(error: unknown): string {
   if (error instanceof ApiError) {
@@ -517,6 +533,8 @@ function ConnectedCapture({
     useState<RemovedReviewItem | null>(null);
   const [reviewDraftState, setReviewDraftState] =
     useState<ReviewDraftState | null>(null);
+  const [reviewAcknowledgementState, setReviewAcknowledgementState] =
+    useState<ReviewAcknowledgementState | null>(null);
   const appendReviewOnNextLoad = useRef(false);
   const previousReviewDraftItems = useRef<AnalysisReviewDraftItem[]>([]);
   const job = workflow.jobQuery.data;
@@ -598,8 +616,19 @@ function ConnectedCapture({
       }));
   const activeRemovedReviewItem =
     removedReviewItem?.key === reviewKey ? removedReviewItem : null;
+  const acknowledgedReviewItemKeys = reviewAcknowledgementState?.key === reviewKey
+    ? reviewAcknowledgementState.itemKeys
+    : EMPTY_REVIEW_ITEM_KEYS;
+  const allVideoReviewItemsAcknowledged = !reviewHasVideo
+    || review?.scope_schema_version !== 2
+    || review.items.every((source) => (
+      !source.review_required
+      || !reviewDraftItems.some((draft) => draft.itemKey === source.item_key)
+      || acknowledgedReviewItemKeys.has(source.item_key)
+    ));
   const reviewValid =
     reviewDraftItems.length > 0 &&
+    allVideoReviewItemsAcknowledged &&
     reviewDraftItems.every(
       (item) =>
         (review?.scope_schema_version === 2
@@ -932,6 +961,7 @@ function ConnectedCapture({
     if (result.isSuccess) {
       workflow.reviewMutation.reset();
       setReviewDraftState(null);
+      setReviewAcknowledgementState(null);
       setRemovedReviewItem(null);
       if (successNotice) setLocalNotice(successNotice);
     }
@@ -992,6 +1022,27 @@ function ConnectedCapture({
         item.itemKey === itemKey ? { ...item, ...changes } : item,
       ),
     );
+  };
+
+  const acknowledgeReviewItem = (itemKey: string) => {
+    if (!review || review.scope_schema_version !== 2) return;
+    const item = reviewDraftItems.find((candidate) => candidate.itemKey === itemKey);
+    if (!item) return;
+    setLocalNotice(null);
+    setReviewDraft(reviewDraftItems.map((candidate) => candidate.itemKey === itemKey
+      ? {
+          ...candidate,
+          quantity: candidate.quantity && candidate.quantity > 0 ? candidate.quantity : 1,
+          unit: candidate.unit?.trim() || "개",
+        }
+      : candidate));
+    setReviewAcknowledgementState((current) => {
+      const itemKeys = new Set(
+        current?.key === reviewKey ? current.itemKeys : EMPTY_REVIEW_ITEM_KEYS,
+      );
+      itemKeys.add(itemKey);
+      return { itemKeys, key: reviewKey };
+    });
   };
 
   const removeReviewItem = (itemKey: string) => {
@@ -1138,9 +1189,11 @@ function ConnectedCapture({
   ) {
     return (
       <VideoResultStage
+        acknowledgedItemKeys={acknowledgedReviewItemKeys}
         canAdd={reviewDraftItems.length < MAX_REVIEW_ITEMS}
         draftItems={reviewDraftItems}
         onAdd={addReviewItem}
+        onAcknowledge={acknowledgeReviewItem}
         onBack={disconnectSafely}
         onChange={changeReviewItem}
         onFile={addVideo}

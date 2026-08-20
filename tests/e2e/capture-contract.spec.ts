@@ -209,6 +209,53 @@ test("opens the native video picker from the inventory action", async ({ page })
   await expect(page.getByRole("heading", { name: "AI 초안을 확인해 주세요" })).toHaveCount(0);
 });
 
+test("lets the customer resolve AI items with missing quantity and unit", async ({ page }) => {
+  await page.addInitScript(() => {
+    window.__SEQRET_MOCK_REVIEW_REQUIRED__ = true;
+    Object.defineProperty(HTMLMediaElement.prototype, "duration", {
+      configurable: true,
+      get: () => 60,
+    });
+    Object.defineProperty(HTMLVideoElement.prototype, "videoHeight", {
+      configurable: true,
+      get: () => 1080,
+    });
+    Object.defineProperty(HTMLVideoElement.prototype, "videoWidth", {
+      configurable: true,
+      get: () => 1920,
+    });
+    Object.defineProperty(HTMLMediaElement.prototype, "load", {
+      configurable: true,
+      value(this: HTMLMediaElement) {
+        queueMicrotask(() => {
+          this.dispatchEvent(new Event("loadedmetadata"));
+          this.dispatchEvent(new Event("loadeddata"));
+        });
+      },
+    });
+  });
+  await page.goto("/consumer?tab=move&view=items");
+  const fileChooserPromise = page.waitForEvent("filechooser");
+  await page.getByRole("button", { name: "AI 영상 촬영", exact: true }).click();
+  const fileChooser = await fileChooserPromise;
+  await fileChooser.setFiles({
+    name: "review-required.mp4",
+    mimeType: "video/mp4",
+    buffer: Buffer.from("mock-video"),
+  });
+
+  const submit = page.getByRole("button", { name: "확인한 짐 11개 반영" });
+  const confirmations = page.getByRole("button", { name: /항목 확인 완료/ });
+  await expect(confirmations).toHaveCount(11);
+  await expect(submit).toBeDisabled();
+  while (await confirmations.count()) await confirmations.first().click();
+  await expect(submit).toBeEnabled();
+  await submit.click();
+
+  await expect(page).toHaveURL(/\/consumer\?tab=move&view=items&job=/);
+  await expect(page.getByRole("button", { name: "AI 영상 촬영", exact: true })).toBeVisible();
+});
+
 test("explains an AI schema failure and offers direct inventory entry", async ({ page }) => {
   await page.addInitScript(() => {
     window.__SEQRET_MOCK_ANALYSIS_FAILURE__ = true;
