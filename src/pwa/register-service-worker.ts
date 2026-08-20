@@ -5,5 +5,17 @@ export function registerServiceWorker() {
     return;
   }
 
-  registerSW({ immediate: true });
+  let reloading = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (reloading) return;
+    reloading = true;
+    window.location.reload();
+  });
+
+  registerSW({
+    immediate: true,
+    onRegisteredSW: (_url, registration) => {
+      void registration?.update();
+    },
+  });
 }
