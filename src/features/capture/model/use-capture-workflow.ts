@@ -84,9 +84,10 @@ export function useCaptureWorkflow(connection: CaptureConnection) {
     queryFn: ({ signal }) => getMediaConsentPolicy({ ...connection, signal }),
   });
 
-  const latestAnalysisStatus = sessionsQuery.data?.[0]?.analysis?.status;
+  const hasCompletedAnalysis = sessionsQuery.data
+    ?.some((session) => session.analysis?.status === "completed") ?? false;
   const reviewQuery = useQuery({
-    enabled: latestAnalysisStatus === "completed",
+    enabled: hasCompletedAnalysis,
     queryKey: reviewKey,
     queryFn: ({ signal }) => getAnalysisReview({ ...connection, signal }),
   });

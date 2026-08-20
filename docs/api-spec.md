@@ -273,9 +273,9 @@ AI 초안에는 항목 출처, confidence와 확인 필요 여부가 포함된�
 
 1. 현재 media consent policy를 조회하고 이용 목적·보관기간을 표시한다.
 2. 동의문 version과 안내 확인을 포함해 capture session을 만들거나 기존 본인 session을 조회해 복구한다.
-3. media upload target을 요청한다.
+3. 영상은 client에서 MIME·크기·2분 제한과 첫 frame decode 가능 여부를 확인한 뒤 media upload target을 요청한다.
 4. backend가 `upload_url`과 `upload_headers`를 반환한다.
-5. 받은 URL과 header를 수정하지 않고 object storage에 `PUT`한다.
+5. 받은 URL과 header가 아래 GCS V4 경계를 만족하는지 확인하고 object storage에 `PUT`한다.
 6. upload complete endpoint를 호출한다.
 7. backend worker가 object key, MIME type, 크기, generation과 hash를 검증한다.
 8. session 조회에서 미디어가 `READY` 또는 `FAILED`인지 확인한다.
@@ -284,10 +284,10 @@ AI 초안에는 항목 출처, confidence와 확인 필요 여부가 포함된�
 
 ### Signed Target 규칙
 
-- signed URL은 opaque 문자열이다.
-- decode, 재직렬화, query 정렬, hostname 변환과 기본 port 제거를 하지 않는다.
-- `upload_headers`의 모든 key와 value를 그대로 적용한다.
-- 현재 backend가 발급하는 GCS upload에는 `Content-Type`과 `x-goog-if-generation-match: 0`이 모두 포함된다.
+- signed URL은 전송할 때 opaque 문자열로 유지한다. 검증 후에도 decode, 재직렬화, query 정렬, hostname 변환과 기본 port 제거를 하지 않는다.
+- 현재 frontend는 HTTPS GCS V4 URL, 최대 15분 TTL과 `content-type;host;x-goog-if-generation-match` 서명 조합만 허용한다.
+- `upload_headers`는 `Content-Type`과 `x-goog-if-generation-match: 0`만 허용하며, 추가 header나 대소문자만 다른 중복 key는 거부한다.
+- 실제 파일 MIME·크기는 서명 header와 허용 한도에 다시 대조한 뒤 header value를 변경하지 않고 적용한다.
 - frontend가 upload complete 요청에 object generation을 직접 보내지 않는다.
 - signed URL과 header를 cache, log, analytics와 error report에 남기지 않는다.
 - 제출된 capture session에는 미디어를 추가하거나 다시 완료 처리하지 않는다.

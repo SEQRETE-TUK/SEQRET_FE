@@ -301,23 +301,64 @@ export function captureFileError(file: File): string | null {
 export async function readVideoDuration(file: File): Promise<number> {
   const video = document.createElement("video");
   const objectUrl = URL.createObjectURL(file);
-  video.preload = "metadata";
+  video.muted = true;
+  video.playsInline = true;
+  video.preload = "auto";
   try {
     const duration = await new Promise<number>((resolve, reject) => {
-      video.onloadedmetadata = () => resolve(video.duration);
-      video.onerror = () => reject(new Error("영상 길이를 확인할 수 없어요. 다시 촬영해 주세요."));
+      let decodedFirstFrame = false;
+      let metadataDuration: number | null = null;
+      const playbackError = new Error(
+        "영상 코덱을 재생할 수 없어요. H.264 MP4 영상으로 다시 촬영해 주세요.",
+      );
+      const timeout = window.setTimeout(() => fail(playbackError), 10_000);
+      const cleanup = () => {
+        window.clearTimeout(timeout);
+        video.onloadeddata = null;
+        video.onloadedmetadata = null;
+        video.onerror = null;
+      };
+      const complete = () => {
+        if (decodedFirstFrame && metadataDuration !== null) {
+          cleanup();
+          resolve(metadataDuration);
+        }
+      };
+      const fail = (error: Error) => {
+        cleanup();
+        reject(error);
+      };
+
+      video.onloadedmetadata = () => {
+        const nextDuration = video.duration;
+        if (!Number.isFinite(nextDuration) || nextDuration <= 0) {
+          fail(new Error("영상 길이를 확인할 수 없어요. 다시 촬영해 주세요."));
+          return;
+        }
+        if (nextDuration > MAX_VIDEO_DURATION_SECONDS) {
+          fail(new Error("영상은 2분 이내로 촬영해 주세요."));
+          return;
+        }
+        metadataDuration = nextDuration;
+        complete();
+      };
+      video.onloadeddata = () => {
+        if (video.videoWidth <= 0 || video.videoHeight <= 0) {
+          fail(playbackError);
+          return;
+        }
+        decodedFirstFrame = true;
+        complete();
+      };
+      video.onerror = () => fail(playbackError);
       video.src = objectUrl;
       video.load();
     });
-    if (!Number.isFinite(duration) || duration <= 0) {
-      throw new Error("영상 길이를 확인할 수 없어요. 다시 촬영해 주세요.");
-    }
-    if (duration > MAX_VIDEO_DURATION_SECONDS) {
-      throw new Error("영상은 2분 이내로 촬영해 주세요.");
-    }
     return duration;
   } finally {
+    video.pause();
     video.removeAttribute("src");
+    video.load();
     URL.revokeObjectURL(objectUrl);
   }
 }

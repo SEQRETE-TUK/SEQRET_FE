@@ -4,11 +4,15 @@ import { fileURLToPath, URL } from "node:url";
 import { defineConfig, loadEnv } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
 
+import { validateApiProxyTarget } from "./dev/api-proxy-target.ts";
 import { signedUploadProxy } from "./dev/signed-upload-proxy.ts";
 
 export default defineConfig(({ mode }) => {
-  const apiProxyTarget = loadEnv("development", process.cwd(), "VITE_").VITE_API_BASE_URL;
-  if (mode === "api" && !apiProxyTarget) throw new Error("VITE_API_BASE_URL is required for API mode");
+  const apiProxyTarget = mode === "api"
+    ? validateApiProxyTarget(
+        loadEnv(mode, process.cwd(), "SEQRET_").SEQRET_API_PROXY_TARGET,
+      )
+    : null;
 
   return {
     plugins: [
@@ -45,7 +49,7 @@ export default defineConfig(({ mode }) => {
         "@": fileURLToPath(new URL("./src", import.meta.url)),
       },
     },
-    server: mode === "api" ? {
+    server: apiProxyTarget ? {
       proxy: {
         "/api": {
           changeOrigin: true,

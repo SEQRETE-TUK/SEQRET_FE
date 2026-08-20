@@ -1,7 +1,7 @@
 import { CalendarBlankIcon as CalendarBlank, CaretDownIcon as CaretDown, CaretRightIcon as CaretRight, CaretUpIcon as CaretUp, CheckIcon as Check, CubeIcon as Cube, ElevatorIcon as Elevator, PackageIcon as Package, StairsIcon as Stairs } from "@phosphor-icons/react";
 import { useState, type ReactNode } from "react";
 
-import { movingItemAssetForName, movingItemCategoryForName } from "@/components/moving-item-assets";
+import { movingItemCategoryForName } from "@/components/moving-item-assets";
 import type { ScopeLocationConditions, ScopeReview } from "@/features/workflow/api/workflow-api";
 
 const money = (value: number | null | undefined) => value == null ? "금액 확인 중" : `${new Intl.NumberFormat("ko-KR").format(value)}원`;
@@ -44,10 +44,10 @@ function LocationDetails({ conditions, emptyLabel, summary }: { conditions: Reco
 }
 
 function InventoryDetails({ groups }: { groups: ScopeReview["scope"]["room_groups"] }) {
-  const items = groups.flatMap((group) => group.items).filter((item) => movingItemAssetForName(item.description) !== null);
+  const items = groups.flatMap((group) => group.items);
   if (!items.length) return <p>등록된 짐이 없습니다.</p>;
   const categories = ["가구", "가전", "기타"] as const;
-  const groupedItems = categories.map((category) => ({ category, items: items.filter((item) => movingItemCategoryForName(item.description) === category) })).filter((group) => group.items.length);
+  const groupedItems = categories.map((category) => ({ category, items: items.filter((item) => movingItemCategoryForName(item.name || item.description) === category) })).filter((group) => group.items.length);
   return <div className="space-y-4">{groupedItems.map(({ category, items: categoryItems }) => <section key={category}><h3 className="flex items-center justify-between font-bold"><span>{category}</span><span className="text-xs text-ink-600">{categoryItems.length}개</span></h3><ul className="mt-2 space-y-2">{categoryItems.map((item) => <li className="flex items-start justify-between gap-3" key={item.item_key}><span><span className="block">{item.name || item.description}</span>{item.work_note ? <span className="mt-0.5 block text-xs text-ink-600">{item.work_note}</span> : null}</span>{item.quantity ? <span className="shrink-0 text-ink-600">{item.quantity}{item.unit ?? ""}</span> : null}</li>)}</ul></section>)}</div>;
 }
 

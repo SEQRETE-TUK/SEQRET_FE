@@ -35,7 +35,10 @@ export function CapturePage() {
         initialVideo={videoRequested}
         initialVideoFile={initialVideoFile}
         onComplete={async () => {
-          await queryClient.invalidateQueries({ queryKey: workflowKeys.scope(captureJobId) });
+          await Promise.all([
+            queryClient.invalidateQueries({ queryKey: workflowKeys.scope(captureJobId) }),
+            queryClient.invalidateQueries({ queryKey: workflowKeys.moves(session.actor.role) }),
+          ]);
           navigate(inventoryHref, { replace: true });
         }}
         onExit={back}

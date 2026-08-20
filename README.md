@@ -44,14 +44,23 @@ VITE_API_BASE_URL=http://localhost:8000
 
 브라우저에 공개되는 Vite 환경변수이므로 비밀키나 서비스 계정 키를 넣으면 안 됩니다.
 
+실제 API 연동에서 browser와 signed upload proxy를 같은 origin으로 실행하려면 서버 전용 proxy target을 지정해 API 모드를 사용합니다.
+
+```bash
+SEQRET_API_PROXY_TARGET=http://localhost:8000 pnpm dev:api
+```
+
+`SEQRET_API_PROXY_TARGET`은 plain HTTP(S) origin만 받으며, loopback 밖의 대상은 HTTPS여야 합니다. `VITE_` prefix가 없으므로 client bundle에는 노출되지 않습니다.
+
 ## 주요 명령어
 
 | 명령어 | 용도 |
 |---|---|
 | `pnpm dev` | Vite 개발 서버 실행 |
+| `pnpm dev:api` | 실제 API와 signed upload를 same-origin proxy로 연결 |
 | `pnpm typecheck` | TypeScript 프로젝트 검사 |
 | `pnpm lint` | ESLint 검사 |
-| `pnpm test:unit` | 개발용 signed upload proxy 보안 회귀 검사 |
+| `pnpm test:unit` | browser·개발 proxy signed upload 보안 회귀 검사 |
 | `pnpm test:e2e` | Chromium 주요 사용자 흐름 검사 |
 | `pnpm build` | 타입 검사 후 정적 프로덕션 빌드 생성 |
 | `pnpm preview` | `dist/` 빌드 결과 로컬 미리보기 |

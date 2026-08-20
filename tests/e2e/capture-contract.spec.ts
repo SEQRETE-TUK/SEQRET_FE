@@ -2,7 +2,10 @@ import { expect, test } from "@playwright/test";
 
 import { analysisReviewCompletePayload, captureSessionCreatePayload, scopeProposalPayload } from "../../src/api/contract-payloads";
 import type { CaptureSession } from "../../src/features/capture/api/capture-api";
-import { findResumableVideoSession } from "../../src/features/capture/model/capture-session";
+import {
+  findPendingVideoReviewSession,
+  findResumableVideoSession,
+} from "../../src/features/capture/model/capture-session";
 
 const moveConnectionCode = "MOVE-11111111";
 
@@ -169,10 +172,21 @@ test("opens the native video picker from the inventory action", async ({ page })
       configurable: true,
       get: () => 60,
     });
+    Object.defineProperty(HTMLVideoElement.prototype, "videoHeight", {
+      configurable: true,
+      get: () => 1080,
+    });
+    Object.defineProperty(HTMLVideoElement.prototype, "videoWidth", {
+      configurable: true,
+      get: () => 1920,
+    });
     Object.defineProperty(HTMLMediaElement.prototype, "load", {
       configurable: true,
       value(this: HTMLMediaElement) {
-        queueMicrotask(() => this.dispatchEvent(new Event("loadedmetadata")));
+        queueMicrotask(() => {
+          this.dispatchEvent(new Event("loadedmetadata"));
+          this.dispatchEvent(new Event("loadeddata"));
+        });
       },
     });
   });
@@ -202,10 +216,21 @@ test("explains an AI schema failure and offers direct inventory entry", async ({
       configurable: true,
       get: () => 60,
     });
+    Object.defineProperty(HTMLVideoElement.prototype, "videoHeight", {
+      configurable: true,
+      get: () => 1080,
+    });
+    Object.defineProperty(HTMLVideoElement.prototype, "videoWidth", {
+      configurable: true,
+      get: () => 1920,
+    });
     Object.defineProperty(HTMLMediaElement.prototype, "load", {
       configurable: true,
       value(this: HTMLMediaElement) {
-        queueMicrotask(() => this.dispatchEvent(new Event("loadedmetadata")));
+        queueMicrotask(() => {
+          this.dispatchEvent(new Event("loadedmetadata"));
+          this.dispatchEvent(new Event("loadeddata"));
+        });
       },
     });
   });
@@ -245,8 +270,34 @@ test("rejects a video longer than two minutes before upload", async ({ page }) =
   await expect(page.getByText("촬영 영상을 업로드하고 있어요")).toHaveCount(0);
 });
 
+test("rejects a video that the browser cannot decode before upload", async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(HTMLMediaElement.prototype, "load", {
+      configurable: true,
+      value(this: HTMLMediaElement) {
+        queueMicrotask(() => this.dispatchEvent(new Event("error")));
+      },
+    });
+  });
+  await page.goto("/consumer?tab=move&view=items");
+  const fileChooserPromise = page.waitForEvent("filechooser");
+  await page.getByRole("button", { name: "AI 영상 촬영", exact: true }).click();
+  const fileChooser = await fileChooserPromise;
+  await fileChooser.setFiles({
+    name: "unsupported-codec.mp4",
+    mimeType: "video/mp4",
+    buffer: Buffer.from("unsupported-video"),
+  });
+
+  await expect(page.getByText(
+    "영상 코덱을 재생할 수 없어요. H.264 MP4 영상으로 다시 촬영해 주세요.",
+  )).toBeVisible();
+  await expect(page.getByText("촬영 영상을 업로드하고 있어요")).toHaveCount(0);
+});
+
 test("reuses a video session while its analysis is active", () => {
   const activeSession: CaptureSession = {
+    id: "11111111-1111-4111-8111-111111111111",
     media_assets: [{
       media_purpose: "inventory",
       status: "ready",
@@ -255,8 +306,36 @@ test("reuses a video session while its analysis is active", () => {
     analysis: { status: "running" },
   } as unknown as CaptureSession;
 
+  const completedSession = {
+    ...activeSession,
+    analysis: { ...activeSession.analysis!, status: "completed" },
+  } as CaptureSession;
+  const pendingReview = {
+    capture_session_id: completedSession.id,
+    review_scope_version_id: null,
+  } as unknown as Parameters<typeof findPendingVideoReviewSession>[1];
+  const unrelatedReadyVideoSession = {
+    ...activeSession,
+    analysis: null,
+    media_assets: [
+      { ...activeSession.media_assets[0], status: "failed" },
+      {
+        ...activeSession.media_assets[0],
+        id: "22222222-2222-4222-8222-222222222222",
+        media_purpose: "evidence",
+        status: "ready",
+      },
+    ],
+  } as CaptureSession;
+
   expect(findResumableVideoSession([activeSession])).toBe(activeSession);
-  expect(findResumableVideoSession([{ ...activeSession, analysis: { ...activeSession.analysis!, status: "completed" } }])).toBeNull();
+  expect(findResumableVideoSession([completedSession])).toBeNull();
+  expect(findResumableVideoSession([unrelatedReadyVideoSession])).toBeNull();
+  expect(findPendingVideoReviewSession([completedSession], pendingReview)).toBe(completedSession);
+  expect(findPendingVideoReviewSession(
+    [completedSession],
+    { ...pendingReview!, review_scope_version_id: "review-version" },
+  )).toBeNull();
 });
 
 test("redirects legacy capture URLs instead of showing the room flow", async ({ page }) => {

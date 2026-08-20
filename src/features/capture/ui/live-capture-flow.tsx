@@ -45,7 +45,11 @@ import {
   useCaptureWorkflow,
   type CaptureConnection,
 } from "@/features/capture/model/use-capture-workflow";
-import { findResumableVideoSession } from "@/features/capture/model/capture-session";
+import {
+  findCompletedVideoSession,
+  findPendingVideoReviewSession,
+  findResumableVideoSession,
+} from "@/features/capture/model/capture-session";
 import {
   analysisFailureCopy,
   type AnalysisFailureCopy,
@@ -519,15 +523,19 @@ function ConnectedCapture({
   const sessions = workflow.sessionsQuery.data;
   const session = sessions?.[0] ?? null;
   const resumableVideoSession = findResumableVideoSession(sessions ?? []);
+  const completedVideoSession = findCompletedVideoSession(sessions ?? []);
   const origin = job?.locations.find((location) => location.kind === "origin");
   const zones = [...(origin?.room_zones ?? [])].sort(
     (left, right) => left.sort_order - right.sort_order,
   );
-  const analysis = session?.analysis ?? null;
   const videoAnalysis = videoAnalysisSessionId
     ? sessions?.find(({ id }) => id === videoAnalysisSessionId)?.analysis ?? null
     : null;
   const review = workflow.reviewQuery.data;
+  const pendingVideoReviewSession = mockApiEnabled
+    ? null
+    : findPendingVideoReviewSession(sessions ?? [], review);
+  const analysis = pendingVideoReviewSession?.analysis ?? session?.analysis ?? null;
   const reviewHasVideo = sessions
     ?.find(({ id }) => id === review?.capture_session_id)
     ?.media_assets.some((asset) => asset.content_type === "video/mp4") ?? false;
@@ -669,7 +677,7 @@ function ConnectedCapture({
         onError: fail,
       },
     );
-    if (!session || analysis) {
+    if (!session || session.analysis) {
       workflow.createSessionMutation.mutate(undefined, {
         onSuccess: (created) => {
           setVideoAnalysisSessionId(created.id);
@@ -803,6 +811,22 @@ function ConnectedCapture({
       initialVideoStarted.current ||
       !initialVideoReady
     ) return;
+    if (pendingVideoReviewSession) {
+      initialVideoStarted.current = true;
+      const reviewTimer = window.setTimeout(() => {
+        setVideoAnalysisRequested(false);
+        setVideoAnalysisSessionId(null);
+        setVideoSubmitPendingSessionId(null);
+        setVideoMode(null);
+      }, 0);
+      return () => window.clearTimeout(reviewTimer);
+    }
+    if (
+      completedVideoSession
+      && (workflow.reviewQuery.isPending || workflow.reviewQuery.isFetching)
+    ) {
+      return;
+    }
     initialVideoStarted.current = true;
     if (!resumableVideoSession) {
       const redirectTimer = window.setTimeout(
@@ -821,7 +845,18 @@ function ConnectedCapture({
       setVideoMode("loading");
     }, 0);
     return () => window.clearTimeout(resumeTimer);
-  }, [initialVideo, initialVideoFile, initialVideoReady, onDisconnect, onResumeUnavailable, resumableVideoSession]);
+  }, [
+    completedVideoSession,
+    initialVideo,
+    initialVideoFile,
+    initialVideoReady,
+    onDisconnect,
+    onResumeUnavailable,
+    pendingVideoReviewSession,
+    resumableVideoSession,
+    workflow.reviewQuery.isFetching,
+    workflow.reviewQuery.isPending,
+  ]);
 
   if (workflow.jobQuery.isPending || workflow.sessionsQuery.isPending) {
     return (
@@ -1009,6 +1044,7 @@ function ConnectedCapture({
         })),
       },
       {
+        onSuccess: onComplete,
         onError: (error) => {
           if (error instanceof ApiError && error.status === 409) {
             void reloadReview(

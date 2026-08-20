@@ -1,4 +1,9 @@
 import { mockApiEnabled, mockApiRequest } from "@/api/mock-api";
+import {
+  SignedUploadPolicyError,
+  validateSignedUploadRequest,
+  type ValidatedSignedUploadRequest,
+} from "@/api/signed-upload-policy";
 
 const API_PREFIX = "/api/v1";
 const API_REQUEST_TIMEOUT_MS = 15_000;
@@ -227,14 +232,32 @@ export async function uploadToSignedUrl({
   uploadUrl,
 }: SignedUploadRequest): Promise<void> {
   if (mockApiEnabled && uploadUrl.startsWith("mock-upload://")) return;
+  let validatedRequest: ValidatedSignedUploadRequest;
+  try {
+    validatedRequest = validateSignedUploadRequest({
+      bodyContentType: body.type,
+      bodySize: body.size,
+      uploadHeaders,
+      uploadUrl,
+    });
+  } catch (error) {
+    throw new SignedUploadError(
+      error instanceof SignedUploadPolicyError ? error.statusCode : 400,
+    );
+  }
   const useLocalProxy = import.meta.env.DEV
     && import.meta.env.MODE === "api"
     && typeof window !== "undefined"
     && ["localhost", "127.0.0.1", "[::1]"].includes(window.location.hostname);
-  const response = await fetch(useLocalProxy ? SIGNED_UPLOAD_PROXY_PATH : uploadUrl, {
+  const response = await fetch(useLocalProxy ? SIGNED_UPLOAD_PROXY_PATH : validatedRequest.uploadUrl, {
     body,
     credentials: "omit",
-    headers: useLocalProxy ? { ...uploadHeaders, "x-seqret-upload-url": uploadUrl } : uploadHeaders,
+    headers: useLocalProxy
+      ? {
+          ...validatedRequest.uploadHeaders,
+          "x-seqret-upload-url": validatedRequest.uploadUrl,
+        }
+      : validatedRequest.uploadHeaders,
     method: "PUT",
     redirect: "error",
     signal,

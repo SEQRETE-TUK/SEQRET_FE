@@ -29,7 +29,7 @@
 | Icon | Phosphor React | 2.1.10 | 사용 중 | 같은 glyph의 regular·fill·bold·duotone weight로 탐색, 상태와 카테고리를 일관되게 구분한다. |
 | Font | Pretendard | 5.2.5 | 사용 중 | 한국어 UI 가독성을 제공한다. |
 | PWA | vite-plugin-pwa, Workbox | 1.3.0, 7.4.1 | 사용 중 | production build에서 `generateSW`·`autoUpdate` service worker를 등록한다. API runtime cache와 별도 offline UX는 없다. |
-| Test | Node test runner, Playwright | Node 22, 1.62.1 | 사용 중 | 개발용 upload proxy의 SSRF·민감 헤더 회귀를 단위 검사하고 capability secret 비저장과 주요 요청 payload 계약을 Chromium에서 검증한다. CI는 lint·unit test·build를 실행한다. |
+| Test | Node test runner, Playwright | Node 22, 1.62.1 | 사용 중 | browser·개발 proxy upload의 SSRF·민감 헤더 회귀를 단위 검사하고 capability secret 비저장, 영상 decode 사전 검사와 주요 요청 payload 계약을 Chromium에서 검증한다. CI는 lint·unit test·build를 실행한다. |
 | Hosting | Vercel | `vercel.json` | 기반만 있음 | SPA rewrite 설정은 있으나 canonical HTTPS origin과 상시 배포 검증은 남아 있다. |
 
 ### Frontend 기준 파일
@@ -41,9 +41,11 @@
 | `src/app/router.tsx` | route 구성 |
 | `src/app/providers.tsx` | TanStack Query 공통 정책 |
 | `src/api/client.ts` | HTTP 요청 공통 기반 |
+| `src/api/signed-upload-policy.ts` | browser와 개발 proxy가 공유하는 GCS V4 upload 신뢰 경계 |
+| `dev/api-proxy-target.ts` | server-only API proxy origin 검증 |
 | `dev/signed-upload-proxy.ts` | API 개발 모드의 GCS signed upload 제한 프록시 |
 | `src/app/styles.css` | 디자인 token과 global behavior |
-| `tests/unit/signed-upload-proxy.test.ts` | upload proxy의 목적지·헤더·크기 보안 회귀 검사 |
+| `tests/unit/signed-upload-proxy.test.ts` | browser·upload proxy의 목적지·헤더·크기·loopback 보안 회귀 검사 |
 | `tests/e2e/capture-contract.spec.ts` | browser 보안·요청 계약 회귀 검사 |
 | `.github/workflows/ci.yml` | pnpm install, lint, unit test와 production build 검증 |
 | `vercel.json` | SPA hosting rewrite |

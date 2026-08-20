@@ -52,8 +52,15 @@ import { Sheet, SheetClose, SheetContent, SheetDescription, SheetFooter, SheetHe
 import { Textarea } from "@/components/ui/textarea";
 import { customerDisplayNameStorageKey, useAuth } from "@/features/auth/model/auth-context";
 import { CustomerOnboardingSheet, moveDraftStorageKey } from "@/features/auth/ui/customer-onboarding-sheet";
-import { listCaptureSessions } from "@/features/capture/api/capture-api";
-import { findResumableVideoSession } from "@/features/capture/model/capture-session";
+import {
+  getAnalysisReview,
+  listCaptureSessions,
+} from "@/features/capture/api/capture-api";
+import {
+  findCompletedVideoSession,
+  findPendingVideoReviewSession,
+  findResumableVideoSession,
+} from "@/features/capture/model/capture-session";
 import { AddressSearchInput } from "@/features/consumer/ui/address-search-input";
 import {
   apiErrorMessage,
@@ -251,17 +258,27 @@ function ConnectedConsumerApp() {
   const [moveInfoEditor, setMoveInfoEditor] = useState<MoveInfoEditor | null>(null);
   const selectedJobId = params.get("job") ?? session!.actor.job_id;
   const connection: Connection = { accessToken: session!.accessToken, jobId: selectedJobId };
+  const captureResume = useCustomerCaptureResume(connection);
 
   const queryClient = useQueryClient();
   const moveListQuery = useQuery({ queryKey: workflowKeys.moves(session!.actor.role), queryFn: () => listMoveJobs(session!.accessToken) });
+  const selectedMove = moveListQuery.data?.moves.find((move) => move.job.id === selectedJobId);
   const scopeQuery = useQuery({
+    enabled: mockApiEnabled || Boolean(selectedMove && selectedMove.item_count > 0),
     queryKey: workflowKeys.scope(selectedJobId),
     queryFn: () => getScopeReview(connection),
-    refetchInterval: (query) => query.state.data ? (query.state.data.quote ? false : 2_000) : false,
+    refetchInterval: (query) => query.state.data ? (query.state.data.quote ? false : 10_000) : false,
   });
   const storedCustomerName = window.sessionStorage.getItem(customerDisplayNameStorageKey)?.trim();
   const activeCustomerName = storedCustomerName || session!.actor.display_name || scopeQuery.data?.job.customer_display_name || "고객";
-  const completionQuery = useQuery({ queryKey: workflowKeys.completion(selectedJobId), queryFn: () => getCompletionSummary(connection) });
+  const completionQuery = useQuery({
+    enabled: mockApiEnabled || Boolean(
+      selectedMove?.completion_request_status
+      || selectedMove?.job.status === "completed",
+    ),
+    queryKey: workflowKeys.completion(selectedJobId),
+    queryFn: () => getCompletionSummary(connection),
+  });
   const issuesQuery = useQuery({ queryKey: workflowKeys.fieldIssues(selectedJobId), queryFn: () => listFieldIssues(connection), refetchInterval: mockApiEnabled ? 2_000 : false });
   const notificationsQuery = useQuery({ enabled: tab === "notifications", queryKey: workflowKeys.notifications(selectedJobId), queryFn: () => listNotifications(connection) });
   const deleteMutation = useMutation({
@@ -289,6 +306,7 @@ function ConnectedConsumerApp() {
   const setMoveView = (view: ConsumerMoveView) => { setMoveInfoEditor(null); setParams({ tab: "move", view, ...(view === "list" ? {} : { job: selectedJobId }) }, { replace: true }); };
   const openAgreement = () => setMoveView("agreement");
   const openMove = (jobId: string = selectedJobId) => { setMoveInfoEditor(null); setParams({ tab: "move", view: "info", job: jobId }, { replace: true }); };
+  const resumeCapture = () => navigate(`/consumer/capture?mode=video&job=${encodeURIComponent(selectedJobId)}`);
   const disconnect = () => { clearSession(); navigate("/"); };
 
   const header = tab === "home"
@@ -306,8 +324,8 @@ function ConnectedConsumerApp() {
   return (
     <>
     <MobileAppShell current={tab} eyebrow={`고객 · ${activeCustomerName}`} header={header} items={tabs} onChange={setTab} onProfile={() => setTab("more")} showNav={tab !== "move" || moveView === "list"} title={tab === "home" ? "홈" : tab === "move" ? "내 이사" : "더보기"}>
-      {tab === "home" ? <HomeTab completion={completionQuery.data} onOpenAgreement={openAgreement} onOpenMove={() => openMove()} onStartMove={() => setMoveStartOpen(true)} scope={scopeQuery.data} /> : null}
-      {tab === "move" ? <ConsumerMoveTab completion={completionQuery.data} connection={connection} editor={moveInfoEditor} issues={issuesQuery.data} key={`${selectedJobId}:${moveListQuery.data ? "loaded" : "loading"}`} moveJobs={moveListQuery.data?.moves} onCapture={(file) => navigate(`/consumer/capture?mode=video&job=${encodeURIComponent(selectedJobId)}`, { state: { videoFile: file } })} onEditorChange={setMoveInfoEditor} onManualAdd={() => navigate(`/consumer/capture?mode=manual&job=${encodeURIComponent(selectedJobId)}`)} onNewMove={() => setMoveStartOpen(true)} onOpen={(jobId) => openMove(jobId)} onOpenCompletion={() => navigate(`/consumer/completion?job=${encodeURIComponent(selectedJobId)}`)} onOpenQuote={() => navigate(`/consumer/quote?job=${encodeURIComponent(selectedJobId)}`)} onResumeCapture={() => navigate(`/consumer/capture?mode=video&job=${encodeURIComponent(selectedJobId)}`)} onViewChange={setMoveView} scope={scopeQuery.data} view={moveView} /> : null}
+      {tab === "home" ? <HomeTab captureResumeMode={captureResume.mode} completion={completionQuery.data} onOpenAgreement={openAgreement} onOpenMove={() => openMove()} onResumeCapture={resumeCapture} onStartMove={() => setMoveStartOpen(true)} scope={scopeQuery.data} /> : null}
+      {tab === "move" ? <ConsumerMoveTab completion={completionQuery.data} connection={connection} editor={moveInfoEditor} issues={issuesQuery.data} key={`${selectedJobId}:${moveListQuery.data ? "loaded" : "loading"}`} moveJobs={moveListQuery.data?.moves} onCapture={(file) => navigate(`/consumer/capture?mode=video&job=${encodeURIComponent(selectedJobId)}`, { state: { videoFile: file } })} onEditorChange={setMoveInfoEditor} onManualAdd={() => navigate(`/consumer/capture?mode=manual&job=${encodeURIComponent(selectedJobId)}`)} onNewMove={() => setMoveStartOpen(true)} onOpen={(jobId) => openMove(jobId)} onOpenCompletion={() => navigate(`/consumer/completion?job=${encodeURIComponent(selectedJobId)}`)} onOpenQuote={() => navigate(`/consumer/quote?job=${encodeURIComponent(selectedJobId)}`)} onResumeCapture={resumeCapture} onViewChange={setMoveView} scope={scopeQuery.data} view={moveView} /> : null}
       {tab === "notifications" ? <CustomerNotifications error={notificationsQuery.error} notifications={notificationsQuery.data} pending={notificationsQuery.isPending} /> : null}
       {tab === "more" ? <ConnectedProfile displayName={activeCustomerName} expiresAt={session!.actor.expires_at} onDisconnect={disconnect} permissions={session!.actor.permissions} roleLabel="고객" /> : null}
     </MobileAppShell>
@@ -457,16 +475,82 @@ function MoveListSafeArea() {
   return <span aria-hidden="true" className="app-safe-header block bg-surface" />;
 }
 
-function HomeTab({ completion, onOpenAgreement, onOpenMove, onStartMove, scope }: { completion: CompletionSummary | undefined; onOpenAgreement: () => void; onOpenMove: () => void; onStartMove?: () => void; scope: ScopeReview | undefined }) {
+type CaptureResumeMode = "processing" | "review" | null;
+
+function useCustomerCaptureResume(connection: Connection) {
+  const rootKey = ["capture-flow", `${connection.jobId}:customer`, connection.jobId] as const;
+  const sessionsQuery = useQuery({
+    enabled: !mockApiEnabled,
+    queryKey: [...rootKey, "sessions"],
+    queryFn: ({ signal }) => listCaptureSessions({ ...connection, signal }),
+    refetchOnMount: "always",
+  });
+  const completedVideoSession = findCompletedVideoSession(sessionsQuery.data ?? []);
+  const reviewQuery = useQuery({
+    enabled: !mockApiEnabled && Boolean(completedVideoSession),
+    queryKey: [...rootKey, "analysis-review"],
+    queryFn: ({ signal }) => getAnalysisReview({ ...connection, signal }),
+  });
+  const resumableVideoSession = findResumableVideoSession(sessionsQuery.data ?? []);
+  const pendingVideoReviewSession = findPendingVideoReviewSession(
+    sessionsQuery.data ?? [],
+    reviewQuery.data,
+  );
+  let mode: CaptureResumeMode = null;
+  if (!mockApiEnabled) {
+    if (pendingVideoReviewSession) mode = "review";
+    else if (resumableVideoSession) mode = "processing";
+  }
+
+  return {
+    error: sessionsQuery.error ?? reviewQuery.error,
+    isFetching: sessionsQuery.isFetching || reviewQuery.isFetching,
+    mode,
+    refetch: async () => {
+      const sessionsResult = await sessionsQuery.refetch();
+      if (findCompletedVideoSession(sessionsResult.data ?? [])) {
+        await reviewQuery.refetch();
+      }
+    },
+  };
+}
+
+function HomeTab({ captureResumeMode, completion, onOpenAgreement, onOpenMove, onResumeCapture, onStartMove, scope }: { captureResumeMode: CaptureResumeMode; completion: CompletionSummary | undefined; onOpenAgreement: () => void; onOpenMove: () => void; onResumeCapture: () => void; onStartMove?: () => void; scope: ScopeReview | undefined }) {
   const job = scope?.job ?? completion?.job;
   const scheduledAt = job?.scheduled_at ? new Date(job.scheduled_at) : null;
   const dDay = scheduledAt ? Math.max(0, Math.ceil((scheduledAt.getTime() - renderStartedAt) / 86_400_000)) : null;
   const requiresScopeReview = scope?.scope.status === "customer_review";
   const completed = scope?.scope.status === "confirmed";
   const completionRequested = completion?.completion_request?.status === "requested";
-  const actionTitle = completionRequested ? "작업 완료 내용 확인" : requiresScopeReview ? "작업범위와 금액 확인" : completed ? "공동확인 내용 보기" : scope ? "촬영 결과 확인" : "촬영·짐 입력 시작";
-  const actionMeta = scope ? `${scope.job.company_display_name ?? "이사업체"} 제안 · ${money(scope.quote?.total_amount_krw)} · ${scope.scope.version_label}` : "짐을 촬영하거나 직접 입력해 범위를 만들어 주세요";
-  const currentStep = completionRequested || completed ? 4 : requiresScopeReview ? 3 : scope?.quote ? 2 : 1;
+  const actionTitle = completionRequested
+    ? "작업 완료 내용 확인"
+    : captureResumeMode === "review"
+      ? "촬영 결과 확인"
+      : captureResumeMode === "processing"
+        ? "AI 분석 진행 확인"
+        : requiresScopeReview
+          ? "작업범위와 금액 확인"
+          : completed
+            ? "공동확인 내용 보기"
+            : scope
+              ? "업체와 확인 시작"
+              : "촬영·짐 입력 시작";
+  const actionMeta = captureResumeMode === "review"
+    ? "AI 초안을 확인해 짐 목록에 반영해 주세요"
+    : captureResumeMode === "processing"
+      ? "업로드된 촬영의 처리 상태를 이어서 확인해요"
+      : scope
+        ? `${scope.job.company_display_name ?? "이사업체"} 제안 · ${money(scope.quote?.total_amount_krw)} · ${scope.scope.version_label}`
+        : "짐을 촬영하거나 직접 입력해 범위를 만들어 주세요";
+  const currentStep = captureResumeMode
+    ? 1
+    : completionRequested || completed
+      ? 4
+      : requiresScopeReview
+        ? 3
+        : scope?.quote
+          ? 2
+          : 1;
 
   return (
     <div className="pb-[var(--bottom-rail-height)]">
@@ -475,7 +559,7 @@ function HomeTab({ completion, onOpenAgreement, onOpenMove, onStartMove, scope }
       <div className="mx-[var(--content-gutter)]"><ActiveMoveCard heading="진행 중인 이사 1건" leading={<span className="grid size-12 shrink-0 place-items-center rounded-full bg-primary-50 text-primary-700"><Truck aria-hidden="true" size="var(--icon-md)" /></span>} meta={<>{scheduledAt ? dateFormatter.format(scheduledAt) : "일정 확인 중"} {dDay !== null ? <b className="text-primary-700">· D-{dDay}</b> : null}</>} onOpen={onOpenMove} route={job ? `${job.origin_summary ?? "출발지"} → ${job.destination_summary ?? "도착지"}` : "이사 정보를 불러오는 중"}>
         <MoveJourneyProgress current={currentStep} />
         <div className="mt-3 border-t border-line pt-3">
-          <p className="flex min-w-0 items-baseline gap-2 whitespace-nowrap"><strong className="shrink-0 text-ui-support text-primary-700">{actionTitle}</strong><span className="ml-auto min-w-0 truncate text-right text-ui-data text-ink-600">{actionMeta}</span></p><Button className="mt-2 w-full" onClick={scope ? onOpenAgreement : onOpenMove} size="cta">{scope ? "지금 확인" : "이사 정보 열기"}</Button>
+          <p className="flex min-w-0 items-baseline gap-2 whitespace-nowrap"><strong className="shrink-0 text-ui-support text-primary-700">{actionTitle}</strong><span className="ml-auto min-w-0 truncate text-right text-ui-data text-ink-600">{actionMeta}</span></p><Button className="mt-2 w-full" onClick={captureResumeMode ? onResumeCapture : scope ? onOpenAgreement : onOpenMove} size="cta">{captureResumeMode ? "이어서 확인" : scope ? "지금 확인" : "이사 정보 열기"}</Button>
         </div>
       </ActiveMoveCard></div>
 
@@ -692,26 +776,22 @@ function ConsumerInventory({ connection, onCapture, onManualAdd, onResumeCapture
   const [openCategory, setOpenCategory] = useState<MovingItemCategory | "">("");
   const [query, setQuery] = useState("");
   const [quantities, setQuantities] = useState<Record<string, number>>({});
-  const captureSessionsQuery = useQuery({
-    queryKey: ["capture-flow", `${connection.jobId}:customer`, connection.jobId, "sessions"],
-    queryFn: ({ signal }) => listCaptureSessions({ ...connection, signal }),
-    refetchOnMount: "always",
-  });
-  const resumableVideoSession = findResumableVideoSession(captureSessionsQuery.data ?? []);
+  const captureResume = useCustomerCaptureResume(connection);
   const openCapture = () => {
-    if (captureSessionsQuery.isError) {
-      void captureSessionsQuery.refetch();
+    if (captureResume.error) {
+      void captureResume.refetch();
       return;
     }
-    if (resumableVideoSession) onResumeCapture();
+    if (captureResume.mode) onResumeCapture();
     else videoInputRef.current?.click();
   };
   const groups = scope?.scope.room_groups ?? [];
-  const allItems = groups.flatMap((group) => group.items).filter((item) => movingItemAssetForName(item.description) !== null);
+  const allItems = groups.flatMap((group) => group.items);
   const categories: MovingItemCategory[] = ["가구", "가전", "기타"];
-  const quantityFor = (itemKey: string) => quantities[itemKey] ?? 1;
-  const totalCount = allItems.reduce((total, item) => total + quantityFor(item.item_key), 0);
-  const visibleItems = allItems.filter((item) => quantityFor(item.item_key) > 0 && (!openCategory || movingItemCategoryForName(item.description) === openCategory) && item.description.toLocaleLowerCase("ko-KR").includes(query.trim().toLocaleLowerCase("ko-KR")));
+  const itemName = (item: (typeof allItems)[number]) => item.name?.trim() || item.description;
+  const quantityFor = (item: (typeof allItems)[number]) => quantities[item.item_key] ?? item.quantity ?? 1;
+  const totalCount = allItems.reduce((total, item) => total + quantityFor(item), 0);
+  const visibleItems = allItems.filter((item) => quantityFor(item) > 0 && (!openCategory || movingItemCategoryForName(itemName(item)) === openCategory) && itemName(item).toLocaleLowerCase("ko-KR").includes(query.trim().toLocaleLowerCase("ko-KR")));
   const updateQuantity = (itemKey: string, next: number) => setQuantities((current) => ({ ...current, [itemKey]: Math.max(0, next) }));
 
   return <div className="flex min-h-[calc(100dvh-var(--header-height))] flex-col gap-2 bg-canvas">
@@ -724,23 +804,25 @@ function ConsumerInventory({ connection, onCapture, onManualAdd, onResumeCapture
     </section>
     <section className="min-h-52 flex-1 bg-surface px-[var(--content-gutter)] pb-24 pt-4">
       <div className="space-y-2">
-        {visibleItems.map((item) => { const quantity = quantityFor(item.item_key); return <InventoryQuantityRow icon={<InventoryItemIcon name={item.description} />} key={item.item_key} name={item.description} onDecrease={() => updateQuantity(item.item_key, quantity - 1)} onIncrease={() => updateQuantity(item.item_key, quantity + 1)} onRemove={() => updateQuantity(item.item_key, 0)} quantity={quantity} reviewRequired={item.review_required} />; })}
+        {visibleItems.map((item) => { const name = itemName(item); const quantity = quantityFor(item); return <InventoryQuantityRow icon={<InventoryItemIcon name={name} />} key={item.item_key} name={name} onDecrease={() => updateQuantity(item.item_key, quantity - 1)} onIncrease={() => updateQuantity(item.item_key, quantity + 1)} onRemove={() => updateQuantity(item.item_key, 0)} quantity={quantity} reviewRequired={item.review_required} />; })}
         {visibleItems.length === 0 ? <div className="px-4 py-8 text-center"><Package aria-hidden="true" className="mx-auto text-ink-400" size="var(--icon-category)" /><p className="mt-3 font-extrabold">짐이 없습니다.</p><p className="mt-1 text-sm text-ink-600">품목 직접 선택이나 AI 영상 촬영으로 짐을 추가해 주세요.</p></div> : null}
       </div>
     </section>
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[calc(var(--z-sticky)-1)] flex justify-center">
       <div className="pointer-events-auto grid w-full max-w-[var(--shell-mobile)] grid-cols-2 gap-2 bg-surface px-[var(--content-gutter)] pt-2.5 pb-[max(10px,env(safe-area-inset-bottom))]">
         <Button className="min-w-0" onClick={onManualAdd} size="cta" variant="outline"><Cube aria-hidden="true" /> 품목 직접 선택</Button>
-        <Button className="min-w-0" disabled={captureSessionsQuery.isFetching} onClick={openCapture} size="cta">{captureSessionsQuery.isFetching ? <LoaderCircle aria-hidden="true" className="demo-spin" /> : <Camera aria-hidden="true" weight="fill" />} {captureSessionsQuery.isFetching ? "촬영 상태 확인 중" : "AI 영상 촬영"}</Button>
+        <Button className="min-w-0" disabled={captureResume.isFetching} onClick={openCapture} size="cta">{captureResume.isFetching ? <LoaderCircle aria-hidden="true" className="demo-spin" /> : <Camera aria-hidden="true" weight="fill" />} {captureResume.isFetching ? "촬영 상태 확인 중" : captureResume.mode === "review" ? "촬영 결과 확인" : captureResume.mode === "processing" ? "분석 상태 확인" : "AI 영상 촬영"}</Button>
         <input aria-label="AI 영상 촬영 파일" ref={videoInputRef} accept="video/mp4,video/*" capture="environment" className="sr-only" onChange={(event) => { const file = event.currentTarget.files?.[0]; event.currentTarget.value = ""; if (file) onCapture(file); }} type="file" />
       </div>
     </div>
-    {captureSessionsQuery.isError ? <ErrorToast message={apiErrorMessage(captureSessionsQuery.error)} /> : null}
+    {captureResume.error ? <ErrorToast message={apiErrorMessage(captureResume.error)} /> : null}
   </div>;
 }
 
 function InventoryItemIcon({ name }: { name: string }) {
-  return <MovingItemIcon name={name} />;
+  return movingItemAssetForName(name)
+    ? <MovingItemIcon name={name} />
+    : <Package aria-hidden="true" className="text-ink-400" size="var(--icon-md)" />;
 }
 
 function ConsumerAgreement({ completion, connection, fallbackItemCount, fallbackLocationConditions, issues, onOpenCompletion, onOpenQuote, scope }: { completion: CompletionSummary | undefined; connection: Connection; fallbackItemCount: number | undefined; fallbackLocationConditions: ScopeLocationConditions[]; issues: FieldIssue[] | undefined; onOpenCompletion: () => void; onOpenQuote: () => void; scope: ScopeReview | undefined }) {

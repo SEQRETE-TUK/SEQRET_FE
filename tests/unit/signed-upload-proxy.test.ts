@@ -4,13 +4,19 @@ import { createServer, type IncomingHttpHeaders } from "node:http";
 import type { AddressInfo } from "node:net";
 import { test } from "node:test";
 
+import { validateApiProxyTarget } from "../../dev/api-proxy-target.ts";
 import {
   createSignedUploadProxyMiddleware,
+  isLoopbackRemoteAddress,
   SIGNED_UPLOAD_PROXY_PATH,
   type SignedUploadFetch,
   UploadProxyRequestError,
   validatedUploadHeaders,
 } from "../../dev/signed-upload-proxy.ts";
+import {
+  SignedUploadPolicyError,
+  validateSignedUploadRequest,
+} from "../../src/api/signed-upload-policy.ts";
 
 function signedUploadUrl(hostname = "storage.googleapis.com"): string {
   const query = new URLSearchParams({
@@ -159,4 +165,122 @@ test("enforces the backend media size limits before streaming", () => {
       error instanceof UploadProxyRequestError && error.statusCode === 413
     ),
   );
+});
+
+test("validates the direct browser upload target and exact signed headers", () => {
+  const target = signedUploadUrl();
+  const request = validateSignedUploadRequest({
+    bodyContentType: "video/mp4",
+    bodySize: 11,
+    uploadHeaders: {
+      "Content-Type": "video/mp4",
+      "x-goog-if-generation-match": "0",
+    },
+    uploadUrl: target,
+  });
+
+  assert.equal(request.uploadUrl, target);
+  assert.deepEqual(request.uploadHeaders, {
+    "Content-Type": "video/mp4",
+    "x-goog-if-generation-match": "0",
+  });
+});
+
+test("rejects unsafe browser destinations and backend-provided extra headers", () => {
+  const validInput = {
+    bodyContentType: "video/mp4",
+    bodySize: 11,
+    uploadHeaders: {
+      "Content-Type": "video/mp4",
+      "x-goog-if-generation-match": "0",
+    },
+  };
+
+  for (const input of [
+    { ...validInput, uploadUrl: signedUploadUrl("example.com") },
+    {
+      ...validInput,
+      uploadHeaders: {
+        ...validInput.uploadHeaders,
+        Authorization: "Bearer must-not-leak",
+      },
+      uploadUrl: signedUploadUrl(),
+    },
+    {
+      ...validInput,
+      uploadHeaders: {
+        ...validInput.uploadHeaders,
+        "content-type": "video/mp4",
+      },
+      uploadUrl: signedUploadUrl(),
+    },
+  ]) {
+    assert.throws(
+      () => validateSignedUploadRequest(input),
+      (error: unknown) => (
+        error instanceof SignedUploadPolicyError && error.statusCode === 400
+      ),
+    );
+  }
+});
+
+test("rejects browser body metadata that differs from the signed request", () => {
+  const target = signedUploadUrl();
+  const uploadHeaders = {
+    "Content-Type": "video/mp4",
+    "x-goog-if-generation-match": "0",
+  };
+
+  assert.throws(
+    () => validateSignedUploadRequest({
+      bodyContentType: "image/jpeg",
+      bodySize: 11,
+      uploadHeaders,
+      uploadUrl: target,
+    }),
+    (error: unknown) => (
+      error instanceof SignedUploadPolicyError && error.statusCode === 400
+    ),
+  );
+  assert.throws(
+    () => validateSignedUploadRequest({
+      bodyContentType: "video/mp4",
+      bodySize: 200 * 1024 * 1024 + 1,
+      uploadHeaders,
+      uploadUrl: target,
+    }),
+    (error: unknown) => (
+      error instanceof SignedUploadPolicyError && error.statusCode === 413
+    ),
+  );
+});
+
+test("accepts only actual loopback socket addresses", () => {
+  for (const address of ["127.0.0.1", "127.10.20.30", "::1", "::ffff:127.0.0.1"]) {
+    assert.equal(isLoopbackRemoteAddress(address), true);
+  }
+  for (const address of [undefined, "0.0.0.0", "192.168.1.50", "::ffff:192.168.1.50"]) {
+    assert.equal(isLoopbackRemoteAddress(address), false);
+  }
+});
+
+test("keeps the API proxy target server-only and origin-scoped", () => {
+  assert.equal(
+    validateApiProxyTarget(" http://127.0.0.1:8000/ "),
+    "http://127.0.0.1:8000",
+  );
+  assert.equal(
+    validateApiProxyTarget("https://api.seqret.example:8443"),
+    "https://api.seqret.example:8443",
+  );
+
+  for (const target of [
+    undefined,
+    "http://192.168.1.50:8000",
+    "https://user:password@api.seqret.example",
+    "https://api.seqret.example/path",
+    "file:///private/etc/passwd",
+  ]) {
+    assert.throws(() => validateApiProxyTarget(target));
+  }
 });

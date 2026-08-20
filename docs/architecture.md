@@ -175,7 +175,8 @@ sequenceDiagram
 
 핵심 불변식:
 
-- signed URL과 header는 frontend가 해석·재정렬·정규화하지 않는다.
+- signed URL은 재직렬화하지 않으며, frontend와 개발 proxy가 허용 GCS host·V4 서명 header·TTL·MIME·크기 경계를 동일하게 검증한다.
+- 영상은 upload target 발급 전에 browser가 metadata와 첫 frame을 10초 안에 읽을 수 있는지 확인한다.
 - 저장된 object generation을 검증·열람·삭제까지 유지한다.
 - AI 결과는 승인본을 직접 만들거나 사용자 수정값을 덮어쓰지 않는다.
 - AI 또는 업로드 실패가 이미 성공한 텍스트와 파일을 제거하지 않는다.

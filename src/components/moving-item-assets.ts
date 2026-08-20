@@ -22,34 +22,38 @@ const movingItemAssets = {
 
 export type MovingItemCategory = "가구" | "가전" | "기타";
 
+function includesAny(value: string, candidates: string[]): boolean {
+  return candidates.some((candidate) => value.includes(candidate));
+}
+
 export function movingItemCategoryForName(name: string): MovingItemCategory {
   const normalized = name.toLocaleLowerCase("ko-KR");
-  if (["침대", "매트리스", "소파", "옷장", "서랍", "책장", "책상", "테이블", "식탁", "의자", "스탠드", "조명"].some((item) => normalized.includes(item))) return "가구";
-  if (["tv", "텔레비전", "세탁기", "전자레인지", "선풍기", "냉장고", "주방 가전"].some((item) => normalized.includes(item))) return "가전";
+  if (includesAny(normalized, ["침대", "매트리스", "소파", "옷장", "서랍", "책장", "책상", "테이블", "식탁", "의자", "스탠드", "조명", "bed", "mattress", "sofa", "couch", "wardrobe", "closet", "drawer", "dresser", "bookshelf", "bookcase", "desk", "table", "chair", "lamp"])) return "가구";
+  if (includesAny(normalized, ["tv", "텔레비전", "세탁기", "전자레인지", "선풍기", "냉장고", "주방 가전", "television", "washing machine", "washer", "microwave", "fan", "fridge", "refrigerator", "freezer", "kitchen appliance"])) return "가전";
   return "기타";
 }
 
 export function movingItemAssetForName(name: string) {
   const normalized = name.toLocaleLowerCase("ko-KR");
 
-  if (normalized.includes("침대") || normalized.includes("매트리스")) return movingItemAssets.bed;
-  if (normalized.includes("소파")) return movingItemAssets.sofa;
-  if (normalized.includes("옷장")) return movingItemAssets.wardrobe;
-  if (normalized.includes("서랍")) return movingItemAssets.drawer;
-  if (normalized.includes("책장")) return movingItemAssets.bookshelf;
-  if (normalized.includes("책상")) return movingItemAssets.desk;
-  if (normalized.includes("테이블") || normalized.includes("식탁")) return movingItemAssets.table;
-  if (normalized.includes("사무용 의자")) return movingItemAssets.officeChair;
-  if (normalized.includes("의자")) return movingItemAssets.chair;
-  if (normalized.includes("스탠드") || normalized.includes("조명")) return movingItemAssets.lamp;
-  if (normalized.includes("tv") || normalized.includes("텔레비전")) return movingItemAssets.tv;
-  if (normalized.includes("세탁기")) return movingItemAssets.washingMachine;
-  if (normalized.includes("전자레인지")) return movingItemAssets.microwave;
-  if (normalized.includes("선풍기")) return movingItemAssets.fan;
-  if (normalized.includes("냉장고")) return movingItemAssets.fridge;
-  if (normalized.includes("신발장")) return movingItemAssets.cabinet;
-  if (normalized.includes("주방 가전")) return movingItemAssets.kitchen;
-  if (normalized.includes("이사 박스") || normalized.includes("박스")) return movingItemAssets.movingBox;
-  if (normalized.includes("책")) return movingItemAssets.book;
+  if (includesAny(normalized, ["침대", "매트리스", "bed", "mattress"])) return movingItemAssets.bed;
+  if (includesAny(normalized, ["소파", "sofa", "couch"])) return movingItemAssets.sofa;
+  if (includesAny(normalized, ["옷장", "wardrobe", "closet"])) return movingItemAssets.wardrobe;
+  if (includesAny(normalized, ["서랍", "drawer", "dresser"])) return movingItemAssets.drawer;
+  if (includesAny(normalized, ["책장", "bookshelf", "bookcase"])) return movingItemAssets.bookshelf;
+  if (includesAny(normalized, ["책상", "desk"])) return movingItemAssets.desk;
+  if (includesAny(normalized, ["테이블", "식탁", "table"])) return movingItemAssets.table;
+  if (includesAny(normalized, ["사무용 의자", "office chair"])) return movingItemAssets.officeChair;
+  if (includesAny(normalized, ["의자", "chair"])) return movingItemAssets.chair;
+  if (includesAny(normalized, ["스탠드", "조명", "lamp"])) return movingItemAssets.lamp;
+  if (includesAny(normalized, ["tv", "텔레비전", "television"])) return movingItemAssets.tv;
+  if (includesAny(normalized, ["세탁기", "washing machine", "washer"])) return movingItemAssets.washingMachine;
+  if (includesAny(normalized, ["전자레인지", "microwave"])) return movingItemAssets.microwave;
+  if (includesAny(normalized, ["선풍기", "fan"])) return movingItemAssets.fan;
+  if (includesAny(normalized, ["냉장고", "fridge", "refrigerator", "freezer"])) return movingItemAssets.fridge;
+  if (includesAny(normalized, ["신발장", "cabinet"])) return movingItemAssets.cabinet;
+  if (includesAny(normalized, ["주방 가전", "kitchen appliance"])) return movingItemAssets.kitchen;
+  if (includesAny(normalized, ["이사 박스", "박스", "moving box", "carton"])) return movingItemAssets.movingBox;
+  if (includesAny(normalized, ["책", "book"])) return movingItemAssets.book;
   return null;
 }
