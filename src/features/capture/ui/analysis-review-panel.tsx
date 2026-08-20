@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import type { AnalysisReview } from "@/features/capture/api/capture-api";
+import { movingItemCatalog } from "@/features/capture/model/moving-item-catalog";
 import { FilterChip } from "@/components/layout/app-primitives";
 import {
   movingItemCategoryForName,
@@ -54,27 +55,6 @@ const manualCategoryTone: Record<ManualCategory, string> = {
   가전: "text-success-ink",
   기타: "text-warning-ink",
 };
-const manualCatalog: Array<{ category: ManualCategory; icon: string; label: string }> = [
-  { category: "가구", icon: "/moving-items/bed.png", label: "침대" },
-  { category: "가구", icon: "/moving-items/sofa.png", label: "소파" },
-  { category: "가구", icon: "/moving-items/wardrobe.png", label: "옷장" },
-  { category: "가구", icon: "/moving-items/cabinet.png", label: "신발장" },
-  { category: "가구", icon: "/moving-items/drawer.png", label: "서랍장" },
-  { category: "가구", icon: "/moving-items/bookshelf.png", label: "책장" },
-  { category: "가구", icon: "/moving-items/desk.png", label: "책상" },
-  { category: "가구", icon: "/moving-items/table.png", label: "테이블" },
-  { category: "가구", icon: "/moving-items/chair.png", label: "의자" },
-  { category: "가구", icon: "/moving-items/office-chair.png", label: "사무용 의자" },
-  { category: "가구", icon: "/moving-items/lamp.png", label: "스탠드" },
-  { category: "가전", icon: "/moving-items/tv.png", label: "TV" },
-  { category: "가전", icon: "/moving-items/washing-machine.png", label: "세탁기" },
-  { category: "가전", icon: "/moving-items/microwave.png", label: "전자레인지" },
-  { category: "가전", icon: "/moving-items/fan.png", label: "선풍기" },
-  { category: "가전", icon: "/moving-items/kitchen.png", label: "주방 가전" },
-  { category: "기타", icon: "/moving-items/moving-box.png", label: "이사 박스" },
-  { category: "기타", icon: "/moving-items/book.png", label: "책" },
-];
-
 export function ManualScopeEditor({
   draftItems,
   onAdd,
@@ -95,7 +75,7 @@ export function ManualScopeEditor({
   return (
     <form id={MANUAL_SCOPE_FORM_ID} onSubmit={(event) => { event.preventDefault(); onSubmit(); }}>
       <section>
-        {(["가구", "가전", "기타"] as ManualCategory[]).map((category) => <section className="mt-7 first:mt-0" key={category}><h3 className="text-ui-section font-black">{category}</h3><div className="mt-3 grid grid-cols-4 gap-2">{manualCatalog.filter((item) => item.category === category).map(({ icon, label }) => { const active = selected.has(label); return <button aria-pressed={active} className={`press-static relative flex min-h-[104px] min-w-0 flex-col items-center justify-center rounded-xl px-0.5 text-center ${active ? "bg-primary-50 text-primary-800" : "bg-surface text-ink-900"}`} key={label} onClick={() => toggle(label)} type="button"><span className={`grid size-10 place-items-center ${manualCategoryTone[category]}`}><img alt="" aria-hidden="true" className="size-10 object-contain" src={icon} /></span><span className="mt-1 line-clamp-2 text-xs leading-4">{label}</span>{active ? <span className="absolute right-1.5 top-1.5 grid size-4 place-items-center rounded-full bg-primary-600 text-white"><Check aria-hidden="true" className="size-3" weight="bold" /></span> : null}</button>; })}</div></section>)}
+        {(["가구", "가전", "기타"] as ManualCategory[]).map((category) => <section className="mt-7 first:mt-0" key={category}><h3 className="text-ui-section font-black">{category}</h3><div className="mt-3 grid grid-cols-4 gap-2">{movingItemCatalog.filter((item) => item.category === category).map(({ icon, label }) => { const active = selected.has(label); return <button aria-pressed={active} className={`press-static relative flex min-h-[104px] min-w-0 flex-col items-center justify-center rounded-xl px-0.5 text-center ${active ? "bg-primary-50 text-primary-800" : "bg-surface text-ink-900"}`} key={label} onClick={() => toggle(label)} type="button"><span className={`grid size-10 place-items-center ${manualCategoryTone[category]}`}><img alt="" aria-hidden="true" className="size-10 object-contain" src={icon} /></span><span className="mt-1 line-clamp-2 text-xs leading-4">{label}</span>{active ? <span className="absolute right-1.5 top-1.5 grid size-4 place-items-center rounded-full bg-primary-600 text-white"><Check aria-hidden="true" className="size-3" weight="bold" /></span> : null}</button>; })}</div></section>)}
       </section>
     </form>
   );
@@ -133,7 +113,7 @@ export function AnalysisReviewPanel({
       categoryFilter === "전체" ||
       movingItemCategoryForName(item.name || item.description) === categoryFilter,
   );
-  const selectedCatalog = manualCatalog.filter(
+  const selectedCatalog = movingItemCatalog.filter(
     (item) => categoryFilter === "전체" || item.category === categoryFilter,
   );
   const selectedLabels = new Set(

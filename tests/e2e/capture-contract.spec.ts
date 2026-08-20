@@ -140,6 +140,9 @@ test("opens the native video picker from the inventory action", async ({ page })
   await expect(page.getByRole("heading", { name: "AI 분석 중" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "출발지 구역을 촬영해 주세요" })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "집 전체 촬영" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: /AI가 짐 \d+개를 발견했어요/ })).toBeVisible();
+  await expect(page.getByRole("img", { name: "분석한 영상 미리보기" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "AI 초안을 확인해 주세요" })).toHaveCount(0);
 });
 
 test("reuses a video session while its analysis is active", () => {

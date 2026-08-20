@@ -72,18 +72,20 @@ export default defineConfig(({ mode }) => {
       VitePWA({
         registerType: "autoUpdate",
         injectRegister: false,
-        includeAssets: ["icon-192.png", "icon-512.png", "icon-android-192.png", "icon-android-512.png"],
+        includeAssets: ["icon-192.png", "icon-512.png", "icon-android-192.png", "icon-android-512.png", "icon-maskable-192.png", "icon-maskable-512.png"],
         manifest: {
-          name: "짐로그",
+          name: "\u200B",
           short_name: "짐로그",
           description: "고객, 이사업체, 현장기사가 같은 작업범위와 현장 상태를 확인하는 서비스",
           start_url: "/",
           display: "standalone",
-          background_color: "#F4F5F9",
+          background_color: "#FFFFFF",
           theme_color: "#F4F5F9",
           icons: [
             { src: "/icon-android-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
             { src: "/icon-android-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+            { src: "/icon-maskable-192.png", sizes: "192x192", type: "image/png", purpose: "maskable" },
+            { src: "/icon-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
           ],
         },
       }),

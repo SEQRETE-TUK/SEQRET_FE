@@ -275,7 +275,7 @@ function createState(jobId = JOB_ID, customerAccessToken = mockAccessSecrets.cus
   };
   const sessionId = crypto.randomUUID();
   const analysisRunId = crypto.randomUUID();
-  const media: MediaAsset = { id: crypto.randomUUID(), capture_session_id: sessionId, room_zone_id: ORIGIN_ZONE_ID, media_purpose: "inventory", status: "ready", content_type: "image/jpeg", expected_size_bytes: 1024, actual_size_bytes: 1024, sha256_hex: null, created_at: createdAt, uploaded_at: createdAt };
+  const media: MediaAsset = { id: crypto.randomUUID(), capture_session_id: sessionId, room_zone_id: ORIGIN_ZONE_ID, media_purpose: "inventory", status: "ready", content_type: "video/mp4", expected_size_bytes: 1024, actual_size_bytes: 1024, sha256_hex: null, created_at: createdAt, uploaded_at: createdAt };
   const consent: CaptureSession["media_processing_consent"] = { policy_version: "2026-08-17.v1", processing_purposes: ["inventory_analysis", "condition_record", "field_change_evidence", "completion_record"], privacy_notice_acknowledged: true, retention_days_after_job_completion: 30, consented_at: createdAt };
   const sessions: CaptureSession[] = [{ id: sessionId, job_id: jobId, created_by_participant_id: CUSTOMER_ID, created_at: createdAt, media_processing_consent: consent, media_assets: [media], analysis: { analysis_run_id: analysisRunId, capture_session_id: sessionId, status: "completed", scope_version_id: SCOPE_ID, failure_code: null, retryable: null, submitted_at: createdAt, completed_at: createdAt } }];
   const analysisReview: AnalysisReview = {
@@ -289,6 +289,7 @@ function createState(jobId = JOB_ID, customerAccessToken = mockAccessSecrets.cus
     scope_schema_version: 1,
     zones: scope.scope.room_groups.map((group, index) => ({ room_zone_id: group.room_zone_id, name: group.label, sort_order: index, total_media_count: index === 0 ? 1 : 0, ready_media_count: index === 0 ? 1 : 0, failed_media_count: 0 })),
     items: scope.scope.room_groups.flatMap((group) => group.items).map((item) => ({ ...item, scope_source: item.source, source: "ai" as const, confidence: 0.94 })),
+    video_preview: { media_asset_id: media.id, content_type: "image/png", read_url: "/room-after-evidence.png", expires_at: future() },
     location_conditions: [],
     location_condition_suggestions: [],
   };

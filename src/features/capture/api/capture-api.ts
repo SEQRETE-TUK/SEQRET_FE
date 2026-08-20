@@ -131,6 +131,12 @@ export interface AnalysisReview {
   scope_schema_version: 1 | 2;
   zones: AnalysisReviewZone[];
   items: AnalysisReviewItem[];
+  video_preview: {
+    media_asset_id: string;
+    content_type: string;
+    read_url: string;
+    expires_at: string;
+  } | null;
   location_conditions: ScopeLocationConditions[];
   location_condition_suggestions: Array<Record<string, unknown>>;
 }

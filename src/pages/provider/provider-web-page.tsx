@@ -135,10 +135,6 @@ function ProviderWebConsole({ connections, onConnect, onDisconnect, onSelect, se
     }
   };
   const viewTitle = jobMode === "quote" ? "범위·견적" : view === "jobs" ? "작업" : view === "issues" ? "현장 이슈" : "기사·배차";
-  const activeJobHeader = scope?.job ?? linkedJobs.find((item) => item.session.actor.job_id === session?.actor.job_id)?.completion?.job;
-  const viewContext = view === "jobs" && jobMode === "detail"
-    ? `연결 ${visibleConnections.length}건`
-    : activeJobHeader?.customer_display_name ?? "선택 작업 없음";
   const nextMockProviderSecret = mockApiEnabled
     ? [mockConnectionCodes.main, mockConnectionCodes.draft, mockConnectionCodes.revision, mockConnectionCodes.completed][Math.min(connections.length, 3)]
     : "";
@@ -146,7 +142,7 @@ function ProviderWebConsole({ connections, onConnect, onDisconnect, onSelect, se
   return (
     <div className="provider-console min-h-dvh bg-canvas pb-20 text-ink-900 md:grid md:grid-cols-[15rem_minmax(0,1fr)] md:pb-0">
       <aside className="sticky top-0 hidden h-dvh min-h-0 flex-col border-r border-line bg-surface px-4 py-5 md:flex">
-        <div className="px-3"><strong className="tracking-[var(--tracking-brand)] text-primary-800">SEQRET</strong></div>
+        <div className="px-3"><strong className="tracking-[var(--tracking-brand)] text-primary-800">짐로그</strong></div>
         <nav aria-label="업체 메뉴" className="mt-7">
           <ProviderNav active={view === "jobs"} icon={<Clipboard aria-hidden="true" />} label="작업" onClick={() => changeView("jobs")} />
           {session ? <div className="mt-5 border-t border-line pt-3">
@@ -163,7 +159,7 @@ function ProviderWebConsole({ connections, onConnect, onDisconnect, onSelect, se
 
       <div className="min-w-0">
         <header className="sticky top-0 z-[var(--z-sticky)] flex min-h-[4.5rem] items-center justify-between gap-4 border-b border-line bg-surface/96 px-4 backdrop-blur sm:px-6 md:min-h-20 xl:px-8">
-          <div className="min-w-0"><p className="truncate text-ui-micro text-ink-500">{viewContext}</p><h1 className="mt-0.5 truncate text-ui-section">{viewTitle}</h1></div>
+          <div className="min-w-0"><h1 className="truncate text-ui-section">{viewTitle}</h1></div>
           <div className="flex items-center gap-2">
             {view === "jobs" && jobMode === "detail" ? <label className="hidden h-[var(--control-touch)] min-w-[17rem] items-center gap-2 rounded-[var(--radius-control)] border border-input bg-surface px-4 focus-within:border-primary-400 focus-within:ring-3 focus-within:ring-primary-100 lg:flex"><Search aria-hidden="true" className="text-ink-600" /><input aria-label="고객명, 주소 검색" autoComplete="off" className="min-w-0 flex-1 bg-transparent text-ui-control outline-none placeholder:text-ink-400" data-slot="input-proxy" name="providerSearch" onChange={(event) => setSearch(event.target.value)} placeholder="고객명, 주소 검색…" type="search" value={search} /></label> : null}
             {session ? <Popover onOpenChange={handleNotificationsOpenChange} open={notificationsOpen || viewParam === "notifications"}>
