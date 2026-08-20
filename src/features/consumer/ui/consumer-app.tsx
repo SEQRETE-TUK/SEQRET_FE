@@ -718,7 +718,7 @@ function ConsumerInventory({ connection, onCapture, onManualAdd, onResumeCapture
         {categories.map((category) => <FilterChip active={openCategory === category} key={category} onClick={() => setOpenCategory(category)}>{category}</FilterChip>)}
       </div>
     </section>
-    <section className="min-h-52 flex flex-1 flex-col bg-surface px-[var(--content-gutter)] pb-24 pt-4">
+    <section className="min-h-52 flex flex-1 flex-col bg-surface px-[var(--content-gutter)] pb-24 pt-0">
       {visibleItems.length === 0 ? <div className="flex flex-1 flex-col items-center justify-center text-center"><img alt="" aria-hidden="true" className="size-12 object-contain" decoding="async" src="/moving-items/moving-box.png" /><p className="mt-3 font-extrabold">짐이 없습니다.</p></div> : <div className="-mx-[var(--content-gutter)] space-y-2">{visibleItemGroups.map(({ category, items }) => <section aria-labelledby={`inventory-category-${category}`} className="bg-surface px-[var(--content-gutter)] py-4" key={category}><h2 className="text-[17px] leading-6 font-black" id={`inventory-category-${category}`}>{category}</h2><div className="mt-3 space-y-2">{items.map((item) => { const quantity = quantityFor(item.item_key); return <InventoryQuantityRow icon={<InventoryItemIcon name={item.description} />} key={item.item_key} name={item.description} onDecrease={() => updateQuantity(item.item_key, quantity - 1)} onIncrease={() => updateQuantity(item.item_key, quantity + 1)} onRemove={() => updateQuantity(item.item_key, 0)} quantity={quantity} reviewRequired={item.review_required} />; })}</div></section>)}</div>}
     </section>
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[calc(var(--z-sticky)-1)] flex justify-center">

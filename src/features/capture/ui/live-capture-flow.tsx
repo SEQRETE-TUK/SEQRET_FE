@@ -1241,7 +1241,7 @@ function ConnectedCapture({
       </main>
 
       {manualMode && !manualValid ? null : (
-        <SheetFooter className="grid gap-2 bg-surface/95 pt-4 backdrop-blur">
+        <SheetFooter className="grid gap-2 bg-surface/95 backdrop-blur">
           {manualMode ? (
             workflow.manualScopeMutation.isSuccess ? null : (
               <><Button className="w-full" disabled={!manualValid || workflow.manualScopeMutation.isPending} form={MANUAL_SCOPE_FORM_ID} size="cta" type="submit">
@@ -1255,7 +1255,7 @@ function ConnectedCapture({
                 {manualValid
                   ? `선택한 짐 ${manualDraftItems.length}개 저장`
                   : "짐을 선택해 주세요"}
-              </Button><button className="mx-auto flex min-h-11 items-center gap-2 px-4 text-sm font-semibold text-ink-600" onClick={() => setManualDraftItems([])} type="button"><RotateCcw aria-hidden="true" size="var(--icon-xs)" />선택 초기화</button></>
+              </Button><button className="mx-auto inline-flex min-h-9 items-center gap-2 rounded-md border-0 bg-transparent px-2 py-1 text-sm font-semibold text-ink-600 shadow-none transition-colors hover:text-ink-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring" onClick={() => setManualDraftItems([])} type="button"><RotateCcw aria-hidden="true" size="var(--icon-xs)" />선택 초기화</button></>
             )
           ) : analysis?.status === "completed" ? (
             workflow.reviewQuery.isPending || recoveringReview ? (
