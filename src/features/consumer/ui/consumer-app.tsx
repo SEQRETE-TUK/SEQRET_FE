@@ -585,22 +585,22 @@ function MoveInfo({ canEdit, editor, onChange, onEditorChange, scope, value }: {
   if (editor) return <MoveStopPage draft={stopDraft} onDraftChange={setStopDraft} onSave={saveStop} />;
 
   return (
-    <div className="space-y-2 bg-canvas pb-28 pt-2">
+    <div className="space-y-2 bg-canvas pb-28">
       <section className="bg-surface px-[var(--content-gutter)] py-5">
-        <h2 className="text-ui-section font-black">이사 일정</h2>
-        <div className="mt-4 flex items-center gap-3">
-          <span className="grid size-12 shrink-0 place-items-center rounded-[var(--radius-control)] border border-primary-400 bg-primary-50 text-primary-700">
+        <h2 className="text-ui-component font-black">이사 일정</h2>
+        <button aria-label={canEdit ? "이사 일정 수정" : undefined} className="mt-4 flex min-h-11 w-full items-center gap-2 text-left disabled:cursor-default" disabled={!canEdit} onClick={() => onEditorChange("schedule")} type="button">
+          <span className="grid size-8 shrink-0 place-items-center text-primary-700">
             <Calendar aria-hidden="true" size="var(--icon-md)" weight="bold" />
           </span>
           <span className="min-w-0 flex-1 text-ui-body font-bold leading-6">{scheduledAt ? fullDateFormatter.format(scheduledAt) : "일정을 입력해 주세요"}</span>
           {dDay !== null ? <span className="whitespace-nowrap rounded-lg bg-primary-50 px-2 py-1.5 text-ui-data text-primary-700">D-{dDay}</span> : null}
-          {canEdit ? <button aria-label="이사 일정 수정" className="grid size-11 shrink-0 place-items-center rounded-full text-primary-700" onClick={() => onEditorChange("schedule")} type="button"><CaretRight aria-hidden="true" size="var(--icon-sm)" weight="bold" /></button> : null}
-        </div>
+          {canEdit ? <CaretRight aria-hidden="true" className="shrink-0 text-ink-400" size="var(--icon-sm)" weight="bold" /> : null}
+        </button>
       </section>
       <section className="bg-surface px-[var(--content-gutter)] py-5">
-        <h2 className="text-ui-section font-black">이동 경로</h2>
+        <h2 className="text-ui-component font-black">이동 경로</h2>
         <div className="relative mt-4">
-          <span aria-hidden="true" className="absolute bottom-6 left-[23px] top-6 w-px bg-primary-500" />
+          <span aria-hidden="true" className="absolute bottom-6 left-[15px] top-6 w-px bg-primary-500" />
           <RoutePoint label="출발지" onEdit={canEdit ? () => onEditorChange("origin") : undefined} stop={getStop("origin")} />
           <RoutePoint destination label="도착지" onEdit={canEdit ? () => onEditorChange("destination") : undefined} stop={getStop("destination")} />
         </div>
@@ -667,12 +667,12 @@ function RoutePoint({ destination = false, label, onEdit, stop }: { destination?
   ];
   const Icon = destination ? Package : Truck;
   return <div className={destination ? "relative mt-7" : "relative"}>
-    <button className="relative z-10 flex min-h-12 w-full items-center gap-3 text-left disabled:cursor-default" disabled={!onEdit} onClick={onEdit} type="button">
-      <span className="grid size-12 shrink-0 place-items-center rounded-[var(--radius-control)] border border-primary-400 bg-surface text-primary-700"><Icon aria-hidden="true" size="var(--icon-md)" weight="fill" /></span>
+    <button className="relative z-10 flex min-h-11 w-full items-center gap-2 text-left disabled:cursor-default" disabled={!onEdit} onClick={onEdit} type="button">
+      <span className="grid size-8 shrink-0 place-items-center bg-surface text-primary-700"><Icon aria-hidden="true" size="var(--icon-md)" weight="fill" /></span>
       <span className="min-w-0 flex-1 text-ui-component font-black">{label}</span>
       {onEdit ? <CaretRight aria-hidden="true" className="shrink-0 text-ink-400" size="var(--icon-sm)" weight="bold" /> : null}
     </button>
-    <div className="ml-[60px] mt-3 rounded-[var(--radius-feature)] border border-line bg-surface px-4 py-4">
+    <div className="ml-10 mt-3 rounded-[var(--radius-feature)] border border-line bg-surface px-4 py-4">
       <strong className="block break-keep text-ui-component font-black leading-6">{stop.address || `${label}를 입력해 주세요`}</strong>
       {stop.detailAddress ? <span className="mt-1 block text-sm leading-5 text-ink-600">{stop.detailAddress}</span> : null}
       <p className="mt-3 text-sm font-semibold text-ink-600">{[stop.floor, stop.residenceType].filter(Boolean).join(" · ")}</p>
@@ -713,16 +713,20 @@ function ConsumerInventory({ connection, onCapture, onManualAdd, onResumeCapture
   const visibleItems = allItems.filter((item) => quantityFor(item.item_key) > 0 && (!openCategory || movingItemCategoryForName(item.description) === openCategory) && item.description.toLocaleLowerCase("ko-KR").includes(query.trim().toLocaleLowerCase("ko-KR")));
   const updateQuantity = (itemKey: string, next: number) => setQuantities((current) => ({ ...current, [itemKey]: Math.max(0, next) }));
 
-  return <div className="px-[var(--content-gutter)] pb-24 pt-4">
-    <label className="flex min-h-12 items-center gap-2 rounded-[var(--radius-control)] border border-line bg-surface px-3 focus-within:border-primary-400 focus-within:ring-3 focus-within:ring-primary-100" htmlFor="inventory-search"><MagnifyingGlass aria-hidden="true" className="shrink-0 text-ink-400" size="var(--icon-md)" /><input className="min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-ink-400" data-slot="input-proxy" id="inventory-search" onChange={(event) => setQuery(event.target.value)} placeholder="짐 이름 검색" type="search" value={query} /></label>
-    <div className="no-scrollbar -mx-[var(--content-gutter)] mt-4 flex gap-2 overflow-x-auto px-[var(--content-gutter)] pb-1">
-      <FilterChip active={!openCategory} onClick={() => setOpenCategory("")}>전체 {totalCount}</FilterChip>
-      {categories.map((category) => <FilterChip active={openCategory === category} key={category} onClick={() => setOpenCategory(category)}>{category}</FilterChip>)}
-    </div>
-    <div className="mt-4 space-y-2">
-      {visibleItems.map((item) => { const quantity = quantityFor(item.item_key); return <InventoryQuantityRow icon={<InventoryItemIcon name={item.description} />} key={item.item_key} name={item.description} onDecrease={() => updateQuantity(item.item_key, quantity - 1)} onIncrease={() => updateQuantity(item.item_key, quantity + 1)} onRemove={() => updateQuantity(item.item_key, 0)} quantity={quantity} reviewRequired={item.review_required} />; })}
-      {visibleItems.length === 0 ? <div className="rounded-2xl border border-line bg-surface px-4 py-8 text-center"><Package aria-hidden="true" className="mx-auto text-ink-400" size="var(--icon-category)" /><p className="mt-3 font-extrabold">짐이 없습니다.</p><p className="mt-1 text-sm text-ink-600">품목 직접 선택이나 AI 영상 촬영으로 짐을 추가해 주세요.</p></div> : null}
-    </div>
+  return <div className="flex min-h-[calc(100dvh-var(--header-height))] flex-col gap-2 bg-canvas">
+    <section className="bg-surface px-[var(--content-gutter)] py-4">
+      <label className="flex min-h-12 items-center gap-2 rounded-[var(--radius-control)] border border-line bg-surface px-3 focus-within:border-primary-400 focus-within:ring-3 focus-within:ring-primary-100" htmlFor="inventory-search"><MagnifyingGlass aria-hidden="true" className="shrink-0 text-ink-400" size="var(--icon-md)" /><input className="min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-ink-400" data-slot="input-proxy" id="inventory-search" onChange={(event) => setQuery(event.target.value)} placeholder="짐 이름 검색" type="search" value={query} /></label>
+      <div className="no-scrollbar -mx-[var(--content-gutter)] mt-4 flex gap-2 overflow-x-auto px-[var(--content-gutter)] pb-1">
+        <FilterChip active={!openCategory} onClick={() => setOpenCategory("")}>전체 {totalCount}</FilterChip>
+        {categories.map((category) => <FilterChip active={openCategory === category} key={category} onClick={() => setOpenCategory(category)}>{category}</FilterChip>)}
+      </div>
+    </section>
+    <section className="min-h-52 flex-1 bg-surface px-[var(--content-gutter)] pb-24 pt-4">
+      <div className="space-y-2">
+        {visibleItems.map((item) => { const quantity = quantityFor(item.item_key); return <InventoryQuantityRow icon={<InventoryItemIcon name={item.description} />} key={item.item_key} name={item.description} onDecrease={() => updateQuantity(item.item_key, quantity - 1)} onIncrease={() => updateQuantity(item.item_key, quantity + 1)} onRemove={() => updateQuantity(item.item_key, 0)} quantity={quantity} reviewRequired={item.review_required} />; })}
+        {visibleItems.length === 0 ? <div className="px-4 py-8 text-center"><Package aria-hidden="true" className="mx-auto text-ink-400" size="var(--icon-category)" /><p className="mt-3 font-extrabold">짐이 없습니다.</p><p className="mt-1 text-sm text-ink-600">품목 직접 선택이나 AI 영상 촬영으로 짐을 추가해 주세요.</p></div> : null}
+      </div>
+    </section>
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[calc(var(--z-sticky)-1)] flex justify-center">
       <div className="pointer-events-auto grid w-full max-w-[var(--shell-mobile)] grid-cols-2 gap-2 bg-surface px-[var(--content-gutter)] pt-2.5 pb-[max(10px,env(safe-area-inset-bottom))]">
         <Button className="min-w-0" onClick={onManualAdd} size="cta" variant="outline"><Cube aria-hidden="true" /> 품목 직접 선택</Button>
@@ -854,7 +858,7 @@ function CompanyInvitationEmpty({ connectionCode, itemCount }: { connectionCode:
     await copyInvite();
   };
   const sharingDisabled = itemCount === 0;
-  return <main className="px-[var(--content-gutter)] pb-28 pt-8">
+  return <div className="flex min-h-[calc(100dvh-var(--header-height))] flex-col"><main className="px-[var(--content-gutter)] pb-8 pt-8">
     <h1 className="whitespace-nowrap text-ui-component font-black tracking-[var(--tracking-display)]">업체와 함께 확인할 차례예요</h1>
     <p className="mt-4 max-w-[340px] text-sm leading-6 text-ink-600">이사업체를 초대해 검수 결과를 함께 확인하고 정확한 견적을 받아보세요.</p>
 
@@ -866,12 +870,8 @@ function CompanyInvitationEmpty({ connectionCode, itemCount }: { connectionCode:
       </div>
     </section>
 
-    <div className="mt-6 space-y-2.5">
-      <Button className="w-full" disabled={sharingDisabled} onClick={() => void shareInvite()} size="cta"><ShareNetwork aria-hidden="true" />공유</Button>
-      <Button className="w-full" disabled={sharingDisabled} onClick={() => void copyInvite()} size="cta" variant="outline">{copied ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}코드 복사</Button>
-    </div>
     <div className="mt-7 flex items-start gap-3 rounded-[var(--radius-control)] bg-primary-50 px-4 py-4 text-sm leading-5 text-ink-600"><ShieldCheck aria-hidden="true" className="mt-0.5 shrink-0 text-success-ink" size="var(--icon-sm)" /><p><strong className="block text-ink-900">연결 해제 후에도 다시 들어올 수 있어요</strong><span className="mt-1 block">이 코드를 보관했다가 역할을 선택해 같은 이사에 다시 연결하세요.</span></p></div>
-  </main>;
+  </main><SheetFooter className="mt-auto grid grid-cols-2 gap-2"><Button className="min-w-0" disabled={sharingDisabled} onClick={() => void copyInvite()} size="cta" variant="outline">{copied ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}코드 복사</Button><Button className="min-w-0" disabled={sharingDisabled} onClick={() => void shareInvite()} size="cta"><ShareNetwork aria-hidden="true" />공유</Button></SheetFooter></div>;
 }
 
 function CompletionReportCard({ completion, onOpen }: { completion: CompletionSummary; onOpen: () => void }) {
