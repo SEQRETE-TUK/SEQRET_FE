@@ -1,9 +1,12 @@
 import { useQueries, useQuery } from "@tanstack/react-query";
 import {
+  ArrowRightIcon as ArrowRight,
   CaretRightIcon as CaretRight,
   BellIcon as Bell,
+  CalendarBlankIcon as Calendar,
   CheckCircleIcon as CheckCircle,
   ClipboardTextIcon as Clipboard,
+  CopyIcon as Copy,
   ClockCounterClockwiseIcon as History,
   KeyIcon as Key,
   MagnifyingGlassIcon as Search,
@@ -52,8 +55,25 @@ const moneyFormatter = new Intl.NumberFormat("ko-KR");
 const money = (amount: number | null | undefined) => amount == null ? "–" : `${moneyFormatter.format(amount)}원`;
 const day = new Intl.DateTimeFormat("ko-KR", { month: "numeric", day: "numeric", weekday: "short" });
 const schedule = new Intl.DateTimeFormat("ko-KR", { month: "long", day: "numeric", weekday: "short", hour: "2-digit", minute: "2-digit" });
+const fullSchedule = new Intl.DateTimeFormat("ko-KR", { year: "numeric", month: "long", day: "numeric", weekday: "short", hour: "numeric", minute: "2-digit" });
+const providerPageRenderedAt = Date.now();
 function upsertProviderConnection(connections: AuthSession[], next: AuthSession) {
   return [next, ...connections.filter((item) => item.actor.job_id !== next.actor.job_id)];
+}
+
+function customerName(name: string | null | undefined) {
+  const displayName = name?.trim() || "고객";
+  return displayName.endsWith("님") ? displayName : `${displayName}님`;
+}
+
+function ProviderMoveRoute({ destination, origin }: { destination: string; origin: string }) {
+  return <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_32px_minmax(0,1fr)] items-center gap-2"><div className="min-w-0"><span className="block text-ui-micro !font-medium text-ink-400">출발지</span><strong className="mt-0.5 block truncate text-ui-component text-ink-900">{origin}</strong></div><span className="grid size-8 place-items-center text-primary-700"><ArrowRight aria-hidden="true" size="var(--icon-md)" weight="bold" /></span><div className="min-w-0"><span className="block text-ui-micro !font-medium text-ink-400">도착지</span><strong className="mt-0.5 block truncate text-ui-component text-ink-900">{destination}</strong></div></div>;
+}
+
+function ProviderMoveSchedule({ scheduledAt }: { scheduledAt: string | null | undefined }) {
+  const date = scheduledAt ? new Date(scheduledAt) : null;
+  const dDay = date ? Math.max(0, Math.ceil((date.getTime() - providerPageRenderedAt) / 86_400_000)) : null;
+  return <div className="flex min-w-0 flex-1 items-center gap-2 rounded-[var(--radius-component)] border border-line bg-surface px-2.5 py-2 text-ui-control text-ink-900"><Calendar aria-hidden="true" className="shrink-0 text-primary-700" size="var(--icon-sm)" weight="bold" /><time className="min-w-0 flex-1 truncate" dateTime={scheduledAt ?? undefined}>{date ? fullSchedule.format(date) : "일정 확인 중"}</time>{dDay !== null ? <b className="shrink-0 rounded-[var(--radius-component)] bg-primary-50 px-2.5 py-1.5 font-[var(--weight-button)] text-primary-700">D-{dDay}</b> : null}</div>;
 }
 
 export function ProviderWebPage() {
@@ -142,7 +162,7 @@ function ProviderWebConsole({ connections, onConnect, onDisconnect, onSelect, se
   return (
     <div className="provider-console min-h-dvh bg-canvas pb-20 text-ink-900 md:grid md:grid-cols-[15rem_minmax(0,1fr)] md:pb-0">
       <aside className="sticky top-0 hidden h-dvh min-h-0 flex-col border-r border-line bg-surface px-4 py-5 md:flex">
-        <div className="px-3"><strong className="tracking-[var(--tracking-brand)] text-primary-800">짐로그</strong></div>
+        <div className="flex items-center gap-2 px-3"><img alt="" aria-hidden="true" className="size-5 object-contain" height="20" src="/jimlog-brand-mark.png" width="20" /><strong className="tracking-[var(--tracking-brand)] text-primary-800">짐로그</strong></div>
         <nav aria-label="업체 메뉴" className="mt-7">
           <ProviderNav active={view === "jobs"} icon={<Clipboard aria-hidden="true" />} label="작업" onClick={() => changeView("jobs")} />
           {session ? <div className="mt-5 border-t border-line pt-3">
@@ -152,23 +172,23 @@ function ProviderWebConsole({ connections, onConnect, onDisconnect, onSelect, se
             </div>
           </div> : null}
         </nav>
-        <div className="mt-auto border-t border-line px-2 pt-4">
-          <Button className="w-full justify-start" onClick={() => setDisconnectOpen(true)} size="chip" variant="ghost"><SignOut aria-hidden="true" /> 연결 해제</Button>
+        <div className="mt-auto px-2 pt-4">
+          <Button className="w-full justify-start" onClick={() => setDisconnectOpen(true)} size="chip" variant="ghost"><span className="flex size-5 shrink-0 items-center justify-center"><SignOut aria-hidden="true" /></span><span>연결 해제</span></Button>
         </div>
       </aside>
 
       <div className="min-w-0">
-        <header className="sticky top-0 z-[var(--z-sticky)] flex min-h-[4.5rem] items-center justify-between gap-4 border-b border-line bg-surface/96 px-4 backdrop-blur sm:px-6 md:min-h-20 xl:px-8">
+        <header className="sticky top-0 z-[var(--z-sticky)] flex min-h-16 items-center justify-between gap-4 border-b border-line bg-surface/96 px-4 backdrop-blur sm:px-6 xl:px-8">
           <div className="min-w-0"><h1 className="truncate text-ui-section">{viewTitle}</h1></div>
           <div className="flex items-center gap-2">
-            {view === "jobs" && jobMode === "detail" ? <label className="hidden h-[var(--control-touch)] min-w-[17rem] items-center gap-2 rounded-[var(--radius-component)] border border-input bg-surface px-4 focus-within:border-primary-400 focus-within:ring-3 focus-within:ring-primary-100 lg:flex"><Search aria-hidden="true" className="text-ink-600" /><input aria-label="고객명, 주소 검색" autoComplete="off" className="min-w-0 flex-1 bg-transparent text-ui-control outline-none placeholder:text-ink-400" data-slot="input-proxy" name="providerSearch" onChange={(event) => setSearch(event.target.value)} placeholder="고객명, 주소 검색…" type="search" value={search} /></label> : null}
+            {view === "jobs" && jobMode === "detail" ? <div className="relative hidden min-w-[17rem] lg:block"><Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-ink-600" size="var(--icon-sm)" /><Input aria-label="고객명, 주소 검색" autoComplete="off" className="pl-10" name="providerSearch" onChange={(event) => setSearch(event.target.value)} placeholder="고객명, 주소 검색…" type="search" value={search} /></div> : null}
             {session ? <Popover onOpenChange={handleNotificationsOpenChange} open={notificationsOpen || viewParam === "notifications"}>
-              <PopoverTrigger render={<Button aria-label={`알림 ${notificationsQuery.data?.length ?? 0}건`} className="relative px-3" variant="outline"><Bell aria-hidden="true" />{notificationsQuery.data?.length ? <span className="min-w-4 text-ui-micro text-primary-700">{notificationsQuery.data.length}</span> : null}</Button>} />
+              <PopoverTrigger render={<Button aria-label={`알림 ${notificationsQuery.data?.length ?? 0}건`} className="size-9 rounded-full p-0 text-ink-900 hover:bg-surface-muted [&_svg]:size-5" size="icon" variant="ghost"><Bell aria-hidden="true" /></Button>} />
               <PopoverContent aria-label="작업 알림">
                 <ProviderNotificationsPanel compact error={notificationsQuery.error} notifications={notificationsQuery.data} pending={notificationsQuery.isPending} />
               </PopoverContent>
             </Popover> : null}
-            <Button aria-label="연결 코드 추가" className="px-3 xl:px-4" onClick={() => setConnectionOpen(true)} variant="outline"><Key aria-hidden="true" /><span className="hidden xl:inline">연결 코드 추가</span></Button>
+            <Button aria-label="연결 코드 추가" className="size-9 rounded-full p-0 text-ink-900 hover:bg-surface-muted [&_svg]:size-5" onClick={() => setConnectionOpen(true)} size="icon" variant="ghost"><Key aria-hidden="true" /></Button>
           </div>
         </header>
 
@@ -275,12 +295,8 @@ function JobDashboard({ issues, jobs: linkedJobs, onConnect, onIssue, onQuote, o
       <label className="flex h-[var(--control-touch)] items-center gap-2 rounded-[var(--radius-component)] border border-input bg-surface px-4 focus-within:border-primary-400 focus-within:ring-3 focus-within:ring-primary-100 lg:hidden"><Search aria-hidden="true" className="text-ink-600" /><input aria-label="고객명, 주소 검색" autoComplete="off" className="min-w-0 flex-1 bg-transparent text-ui-control outline-none placeholder:text-ink-400" name="providerSearchMobile" onChange={(event) => onSearchChange(event.target.value)} placeholder="고객명, 주소 검색…" type="search" value={search} /></label>
 
       {linkedJobs.length === 0 ? <section className="ui-card ui-card-outlined mt-4 px-5 lg:mt-0"><ProviderConnectionEmpty onConnect={onConnect} /></section> : <section className="ui-card ui-card-outlined mt-4 overflow-hidden lg:mt-0 xl:grid xl:grid-cols-[minmax(22rem,0.92fr)_minmax(0,1.08fr)]">
-        <section aria-labelledby="provider-job-list-title" className="min-w-0 border-b border-line xl:border-b-0 xl:border-r">
-          <div className="flex items-center justify-between gap-3 px-4 py-4">
-            <div className="flex min-w-0 items-baseline gap-2"><h2 className="text-ui-component" id="provider-job-list-title">작업 큐</h2><span className="text-ui-data tabular-nums text-ink-600">{currentTab === "active" ? activeJobs.length : historyJobs.length}</span></div>
-            {actionableIssues.length > 0 ? <button className="min-h-11 shrink-0 whitespace-nowrap text-ui-data text-ink-600 hover:text-primary-700" onClick={onIssue} type="button">현장 이슈 <span className="tabular-nums">{actionableIssues.length}</span></button> : null}
-          </div>
-          <div aria-label="업체 작업 목록" className="grid grid-cols-2 border-t border-line" role="tablist">
+        <section aria-label="작업 목록" className="min-w-0 border-b border-line xl:border-b-0 xl:border-r">
+          <div aria-label="업체 작업 목록" className="grid grid-cols-2" role="tablist">
             <button aria-selected={currentTab === "active"} className={`relative min-h-11 text-ui-control ${currentTab === "active" ? "text-primary-700 after:absolute after:inset-x-6 after:bottom-0 after:h-0.5 after:bg-primary-600" : "text-ink-600"}`} onClick={() => changeListTab("active")} role="tab" type="button">진행 중 {activeJobs.length}</button>
             <button aria-selected={currentTab === "history"} className={`relative min-h-11 text-ui-control ${currentTab === "history" ? "text-primary-700 after:absolute after:inset-x-6 after:bottom-0 after:h-0.5 after:bg-primary-600" : "text-ink-600"}`} onClick={() => changeListTab("history")} role="tab" type="button">기록 {historyJobs.length}</button>
           </div>
@@ -291,8 +307,7 @@ function JobDashboard({ issues, jobs: linkedJobs, onConnect, onIssue, onQuote, o
             <FilterChip active={filter === "confirmed"} onClick={() => setFilter("confirmed")}>공동확정 {statusCounts.confirmed}</FilterChip>
           </div> : null}
           <div aria-label="작업 목록" className="border-t border-line">
-            {queueGroups.length ? queueGroups.map((group) => <section aria-labelledby={`provider-job-group-${group.key}`} key={group.key}>
-              <div className="flex items-center justify-between bg-surface-muted px-4 py-2.5"><h3 className="text-ui-data text-ink-600" id={`provider-job-group-${group.key}`}>{group.label}</h3><span className="text-ui-micro tabular-nums text-ink-500">{group.jobs.length}</span></div>
+            {queueGroups.length ? queueGroups.map((group) => <section aria-label={group.label} key={group.key}>
               {group.jobs.map((job) => <button aria-pressed={job.current} className={`grid min-h-[4.75rem] w-full grid-cols-[3.75rem_minmax(0,1fr)] items-center gap-x-3 gap-y-2 border-b border-l-2 border-b-line px-4 py-3 text-left sm:grid-cols-[4.5rem_minmax(0,1fr)_auto] ${job.current ? "border-l-primary-600 bg-primary-50/70" : "border-l-transparent hover:bg-surface-muted"}`} key={job.session.actor.job_id} onClick={() => onSelect(job.session)} type="button">
                 <time className="text-center text-ui-data tabular-nums text-ink-600 sm:row-span-1">{job.date ? day.format(new Date(job.date)) : "–"}</time>
                 <span className="min-w-0"><strong className="block truncate text-ui-list-title">{job.customer}</strong><span className="mt-0.5 block truncate text-ui-list-detail text-ink-600">{job.route}</span></span>
@@ -303,13 +318,14 @@ function JobDashboard({ issues, jobs: linkedJobs, onConnect, onIssue, onQuote, o
         </section>
 
         <article aria-label="선택 작업 상세" className="min-w-0 p-5 sm:p-6">
-          {connectionCode ? <div className="mb-4 flex justify-end"><Button onClick={() => void copyConnectionCode()} size="chip" variant="outline"><Clipboard aria-hidden="true" /> {connectionCode} · {connectionCopied ? "복사됨" : "복사"}</Button></div> : null}
           {scope ? <>
             <header className="min-w-0 border-b border-line pb-4">
-              <div className="flex min-w-0 items-start justify-between gap-3"><h3 className="truncate text-ui-section">{scope.job.customer_display_name ?? "고객"}</h3><StatusTag tone={statusTone(selectedJob?.status ?? scope.scope.status)}>{statusLabel(selectedJob?.status ?? scope.scope.status)}</StatusTag></div>
-              <p className="mt-1 break-words text-ui-support text-ink-600">{scope.job.origin_summary ?? "출발지"} → {scope.job.destination_summary ?? "도착지"}</p>
-              <div className="mt-3 flex flex-wrap items-center justify-between gap-2"><time className="text-ui-data text-ink-600">{scope.job.scheduled_at ? schedule.format(new Date(scope.job.scheduled_at)) : "일정 확인 중"}</time><div className="flex flex-wrap justify-end gap-1"><Button onClick={() => setHistoryOpen(true)} size="chip" variant="ghost"><History aria-hidden="true" /> 이력</Button>{!needsQuoteAction ? <Button onClick={onQuote} size="chip" variant="outline">범위·견적</Button> : null}</div></div>
+              <div className="flex min-w-0 items-center justify-between gap-3"><h3 className="truncate text-ui-section">{customerName(scope.job.customer_display_name)}</h3>{connectionCode ? <Button aria-label={`${connectionCode} ${connectionCopied ? "복사됨" : "복사"}`} className="shrink-0" onClick={() => void copyConnectionCode()} size="chip" variant="outline"><Copy aria-hidden="true" />{connectionCode}</Button> : null}</div>
+              <div className="mt-4"><ProviderMoveRoute destination={scope.job.destination_summary ?? "도착지"} origin={scope.job.origin_summary ?? "출발지"} /></div>
+              <div className="mt-4"><ProviderMoveSchedule scheduledAt={scope.job.scheduled_at} /></div>
             </header>
+
+            <div className="flex justify-end gap-1 pt-2"><Button onClick={() => setHistoryOpen(true)} size="chip" variant="ghost"><History aria-hidden="true" /> 이력</Button>{!needsQuoteAction ? <Button onClick={onQuote} size="chip" variant="outline">범위·견적</Button> : null}</div>
 
             {selectedJob?.status === "completed" && selectedJob.completion ? <section className="mt-5 rounded-[var(--radius-component)] bg-success-bg p-4 text-success-ink">
               <div className="flex items-center justify-between gap-3"><h4 className="text-ui-component">완료 기록</h4><StatusTag tone="success">고객 확인 완료</StatusTag></div>
@@ -321,10 +337,14 @@ function JobDashboard({ issues, jobs: linkedJobs, onConnect, onIssue, onQuote, o
               </dl>
             </section> : null}
 
-            {priority ? <section className="mt-5 flex flex-col gap-4 border-y border-line py-4 sm:flex-row sm:items-center">
+            {priority ? <section className="mt-5 flex flex-col gap-4 rounded-[var(--radius-component)] bg-primary-50 px-4 py-4 sm:flex-row sm:items-center sm:px-5">
               <div className="min-w-0 flex-1"><h4 className="text-ui-component">{priority.title}</h4><p className="mt-1 break-words text-ui-support text-ink-600">{priority.description}</p></div>
               <Button className="w-full shrink-0 sm:w-auto" onClick={priority.onClick}>{priority.action}<CaretRight aria-hidden="true" /></Button>
             </section> : null}
+
+            <section className="mt-5">
+              <MoveJourneyProgress current={progress} steps={["범위 검토", "업체 제안", "고객 확인", "공동확정"]} />
+            </section>
 
             <section className="border-b border-line py-5">
               <div className="flex flex-wrap items-end justify-between gap-3"><p className="text-ui-data text-ink-600">제안 금액</p><strong className="text-ui-step-title text-primary-700">{money(scope.quote?.total_amount_krw)}</strong></div>
@@ -336,17 +356,12 @@ function JobDashboard({ issues, jobs: linkedJobs, onConnect, onIssue, onQuote, o
               </dl>
             </section>
 
-            <section className="mt-5" aria-labelledby="provider-progress-title">
-              <h4 className="text-ui-control" id="provider-progress-title">공동확인 진행</h4>
-              <MoveJourneyProgress current={progress} steps={["범위 검토", "업체 제안", "고객 확인", "공동확정"]} />
-            </section>
-
             {!needsQuoteAction ? <p className={"mt-5 flex items-start gap-2 border-t border-line pt-4 text-ui-support " + (selectedJob?.status === "completed" || scope.scope.status === "confirmed" ? "text-success-ink" : "text-primary-800")}><CheckCircle aria-hidden="true" className="mt-0.5 shrink-0" />{selectedJob?.status === "completed" ? "고객의 완료 확인이 기록되었습니다." : scope.scope.status === "customer_review" ? "고객이 현재 제안을 확인하고 있습니다." : "고객과 업체가 같은 범위와 금액을 확인했습니다."}</p> : null}
           </> : selectedJob?.header ? <>
             <header className="min-w-0 border-b border-line pb-4">
-              <div className="flex min-w-0 items-start justify-between gap-3"><h3 className="truncate text-ui-section">{selectedJob.header.customer_display_name ?? "고객"}</h3><StatusTag tone="warning">범위 준비 중</StatusTag></div>
-              <p className="mt-1 break-words text-ui-support text-ink-600">{selectedJob.header.origin_summary ?? "출발지"} → {selectedJob.header.destination_summary ?? "도착지"}</p>
-              <time className="mt-3 block text-ui-data text-ink-600">{selectedJob.header.scheduled_at ? schedule.format(new Date(selectedJob.header.scheduled_at)) : "일정 확인 중"}</time>
+              <div className="flex min-w-0 items-center justify-between gap-3"><h3 className="truncate text-ui-section">{customerName(selectedJob.header.customer_display_name)}</h3>{connectionCode ? <Button aria-label={`${connectionCode} ${connectionCopied ? "복사됨" : "복사"}`} className="shrink-0" onClick={() => void copyConnectionCode()} size="chip" variant="outline"><Copy aria-hidden="true" />{connectionCode}</Button> : null}</div>
+              <div className="mt-4"><ProviderMoveRoute destination={selectedJob.header.destination_summary ?? "도착지"} origin={selectedJob.header.origin_summary ?? "출발지"} /></div>
+              <div className="mt-4"><ProviderMoveSchedule scheduledAt={selectedJob.header.scheduled_at} /></div>
             </header>
             <section className="py-10 text-center"><h4 className="text-ui-component">고객이 작업범위를 준비하고 있어요</h4><p className="mx-auto mt-2 max-w-md text-ui-support text-ink-600">촬영과 짐 검수가 끝나면 이 화면에서 범위와 견적을 검토할 수 있습니다.</p></section>
           </> : <ProviderConnectionEmpty onConnect={onConnect} />}
@@ -395,5 +410,5 @@ function ProviderDisconnectDialog({ onConfirm, onOpenChange, open }: { onConfirm
 
 
 function OperationsPanel() { return <LiveProviderWorkflow embedded wide />; }
-function ProviderNav({ active, badge, icon, label, onClick }: { active: boolean; badge?: number; icon: ReactNode; label: string; onClick: () => void }) { return <button aria-current={active ? "page" : undefined} className={`flex min-h-11 w-full items-center gap-3 rounded-[var(--radius-component)] px-4 text-left text-ui-control ${active ? "bg-primary-50 text-primary-700" : "text-ink-600 hover:bg-surface-muted hover:text-ink-900"}`} onClick={onClick} type="button"><span className="size-5">{icon}</span><span className="flex-1">{label}</span>{badge ? <span className="grid size-5 place-items-center rounded-full bg-danger text-ui-micro text-white">{badge}</span> : null}</button>; }
+function ProviderNav({ active, badge, icon, label, onClick }: { active: boolean; badge?: number; icon: ReactNode; label: string; onClick: () => void }) { return <Button aria-current={active ? "page" : undefined} className="w-full justify-start" onClick={onClick} size="chip" variant={active ? "secondary" : "ghost"}><span className="flex size-5 shrink-0 items-center justify-center">{icon}</span><span className="flex-1 text-left">{label}</span>{badge ? <span className="grid size-5 place-items-center rounded-full bg-danger text-ui-micro text-white">{badge}</span> : null}</Button>; }
 function ProviderMobileNav({ active, badge, icon, label, onClick }: { active: boolean; badge?: number; icon: ReactNode; label: string; onClick: () => void }) { return <button aria-current={active ? "page" : undefined} className={`relative grid min-h-12 place-items-center text-xs font-bold ${active ? "text-primary-700" : "text-ink-500"}`} onClick={onClick} type="button"><span className="relative">{icon}{badge ? <span className="absolute -right-3 -top-2 grid size-4 place-items-center rounded-full bg-danger text-[10px] text-white">{badge}</span> : null}</span><span>{label}</span></button>; }

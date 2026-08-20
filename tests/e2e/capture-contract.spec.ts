@@ -145,8 +145,9 @@ test("loads provider mock data only after adding an invite key", async ({ page }
   await expect(page.getByRole("heading", { name: "연결된 이사가 없어요" })).toBeVisible();
   await page.locator("#main-content").getByRole("button", { name: "연결 코드 추가" }).click();
   await page.getByRole("button", { name: "작업 추가" }).click();
-  await expect(page.getByRole("heading", { name: "작업 큐" })).toBeVisible();
-  await expect(page.getByRole("button", { name: `${moveConnectionCode} · 복사` })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "진행 중 1" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "작업 큐" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: `${moveConnectionCode} 복사` })).toBeVisible();
 });
 
 test("lets a connected customer choose a new move or invite code", async ({ page }) => {

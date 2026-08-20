@@ -237,7 +237,7 @@ p {
 
 .text-ui-section {
   font-size: var(--text-xl);
-  font-weight: var(--weight-strong);
+  font-weight: var(--weight-component);
   line-height: var(--line-section);
   letter-spacing: var(--tracking-none);
 }

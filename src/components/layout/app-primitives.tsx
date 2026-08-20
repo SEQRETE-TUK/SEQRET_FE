@@ -1,4 +1,4 @@
-import { CaretRightIcon as ChevronRight, CheckIcon as Check, MinusIcon as Minus, PlusIcon as Plus, XIcon as X } from "@phosphor-icons/react";
+import { ArrowRightIcon as ArrowRight, CalendarBlankIcon as Calendar, CaretRightIcon as ChevronRight, CheckIcon as Check, MinusIcon as Minus, PlusIcon as Plus, XIcon as X } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
 
 import { Badge } from "@/components/ui/badge";
@@ -75,12 +75,21 @@ export function FilterChip({ active = false, children, onClick }: { active?: boo
   return <button aria-pressed={active} className={`min-h-9 whitespace-nowrap rounded-full border px-[var(--filter-padding-x)] text-ui-support ${active ? "border-primary-600 bg-primary-50 text-primary-700" : "border-line bg-surface text-ink-600"}`} onClick={onClick} type="button">{children}</button>;
 }
 
-export function ActiveMoveCard({ children, heading, leading, meta, onOpen, route }: { children?: ReactNode; heading: ReactNode; leading?: ReactNode; meta: ReactNode; onOpen: () => void; route: ReactNode }) {
-  return <div className="mt-6"><h2 className="text-ui-component font-black">{heading}</h2><section className="mt-2 ui-card p-3 shadow-[var(--shadow-card)]"><button className="flex min-h-13 w-full items-center gap-3 text-left" onClick={onOpen} type="button">{leading}<span className="min-w-0 flex-1"><strong className="block truncate text-ui-component">{route}</strong><span className="mt-1 block text-sm text-ink-600">{meta}</span></span><ChevronRight aria-hidden="true" className="shrink-0 text-ink-400" size="var(--icon-md)" /></button>{children}</section></div>;
+export function ActiveMoveCard({ children, heading, headingClassName, leading, meta, onOpen, prelude, route, showChevron = true }: { children?: ReactNode; heading: ReactNode; headingClassName?: string; leading?: ReactNode; meta: ReactNode; onOpen: () => void; prelude?: ReactNode; route: ReactNode; showChevron?: boolean }) {
+  const card = <section className={cn("ui-card p-3 shadow-[var(--shadow-card)]", !prelude && "mt-4")}><button className="flex min-h-13 w-full items-center gap-3 text-left" onClick={onOpen} type="button">{leading}<span className="min-w-0 flex-1"><strong className="block truncate text-ui-component">{route}</strong><span className="mt-1 block text-sm text-ink-600">{meta}</span></span>{showChevron ? <ChevronRight aria-hidden="true" className="shrink-0 text-ink-400" size="var(--icon-md)" /> : null}</button>{children}</section>;
+  return <div className="mt-6"><h2 className={cn("text-ui-component font-black", headingClassName)}>{heading}</h2>{prelude ? <div className="mt-4 rounded-[var(--radius-component)] bg-[var(--color-stage)] pb-2 shadow-[var(--shadow-card)]">{card}<div className="px-3 [&>ol]:mt-2">{prelude}</div></div> : card}</div>;
 }
 
-export function MoveJourneyProgress({ current, steps = ["촬영과\n짐 검수", "업체 제안", "내 확인", "공동확인 완료"] }: { current: number; steps?: string[] }) {
-  return <ol aria-label="공동확인 진행 단계" className="mt-3 grid" style={{ gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))` }}>{steps.map((label, index) => { const step = index + 1; const done = step < current; const active = step === current; return <li aria-current={active ? "step" : undefined} className="relative min-w-0 text-center" key={label}>{index > 0 ? <span aria-hidden="true" className={`absolute top-3.5 right-1/2 h-0.5 w-full ${step <= current ? "bg-success" : "bg-line"}`} /> : null}<span className={`relative z-10 mx-auto grid size-7 place-items-center rounded-full border-2 text-xs font-black ${done ? "border-success bg-success text-white" : active ? "border-primary-600 bg-primary-600 text-white" : "border-line bg-surface text-ink-400"}`}>{done ? <Check aria-hidden="true" size="var(--icon-xs)" weight="bold" /> : step}</span><span className={`mt-1.5 block break-keep whitespace-pre-line px-1 text-ui-micro leading-3.5 !font-bold ${active ? "text-primary-700" : done ? "text-ink-900" : "text-ink-600"}`}>{label}</span></li>; })}</ol>;
+export function MoveRouteSummary({ destination, origin }: { destination: string; origin: string }) {
+  return <span className="grid min-w-0 grid-cols-[minmax(0,1fr)_32px_minmax(0,1fr)] items-center gap-2 whitespace-normal"><span className="min-w-0"><span className="block text-ui-micro !font-medium text-ink-400">출발지</span><span className="mt-0.5 block truncate text-ui-component text-ink-900">{origin}</span></span><span className="grid size-8 place-items-center text-primary-700"><ArrowRight aria-hidden="true" size="var(--icon-md)" weight="bold" /></span><span className="min-w-0"><span className="block text-ui-micro !font-medium text-ink-400">도착지</span><span className="mt-0.5 block truncate text-ui-component text-ink-900">{destination}</span></span></span>;
+}
+
+export function MoveSummaryCard({ badge, destination, meta, onOpen, origin, stats }: { badge?: ReactNode; destination: string; meta: ReactNode; onOpen: () => void; origin: string; stats: Array<{ icon: ReactNode; label: ReactNode }> }) {
+  return <button className="press-static w-full ui-card p-3 text-left shadow-[var(--shadow-card)]" onClick={onOpen} type="button"><strong className="block text-ui-component"><MoveRouteSummary destination={destination} origin={origin} /></strong><span className="mt-4 flex min-w-0 items-center gap-2 rounded-[var(--radius-component)] border border-line bg-surface px-2.5 py-2 text-ui-control text-ink-900"><Calendar aria-hidden="true" className="shrink-0 text-primary-700" size="var(--icon-sm)" weight="bold" /><span className="min-w-0 flex-1 truncate">{meta}</span>{badge ? <b className="shrink-0 rounded-[var(--radius-component)] bg-primary-50 px-2.5 py-1.5 font-[var(--weight-button)] text-primary-700">{badge}</b> : null}</span><span className="mt-4 grid divide-x divide-line text-center text-xs text-ink-600" style={{ gridTemplateColumns: `repeat(${stats.length}, minmax(0, 1fr))` }}>{stats.map((stat, index) => <span className="flex flex-col items-center gap-1" key={index}>{stat.icon}{stat.label}</span>)}</span></button>;
+}
+
+export function MoveJourneyProgress({ current, steps = ["짐 목록 확인", "업체 제안", "내 확인", "공동확인 완료"] }: { current: number; steps?: string[] }) {
+  return <ol aria-label="공동확인 진행 단계" className="mt-3 grid" style={{ gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))` }}>{steps.map((label, index) => { const step = index + 1; const done = step < current; const active = step === current; return <li aria-current={active ? "step" : undefined} className="relative min-w-0 text-center" key={label}>{index > 0 ? <span aria-hidden="true" className={`absolute top-3 right-1/2 h-0.5 w-full ${step <= current ? "bg-primary-600" : "bg-ink-400/25"}`} /> : null}<span className={`relative z-10 mx-auto grid size-6 place-items-center rounded-full border-2 text-xs font-semibold ${done ? "border-primary-600 bg-primary-600 text-white" : active ? "border-primary-600 bg-primary-50 text-primary-700" : "border-ink-400/25 bg-surface text-ink-400"}`}>{done ? <Check aria-hidden="true" size="var(--icon-xs)" weight="bold" /> : step}</span><span className={`mt-1.5 block break-keep whitespace-pre-line px-1 text-xs font-[var(--weight-button)] leading-4 ${active || done ? "text-primary-700" : "text-ink-600"}`}>{label}</span></li>; })}</ol>;
 }
 
 export function SectionHeader({ aside, children, className }: { aside?: ReactNode; children: ReactNode; className?: string }) {
@@ -119,6 +128,7 @@ export function ListGroup({
 }
 
 export function ListRow({
+  className,
   children,
   description,
   end,
@@ -126,6 +136,7 @@ export function ListRow({
   onClick,
   selected = false,
 }: {
+  className?: string;
   children: ReactNode;
   description?: ReactNode;
   end?: ReactNode;
@@ -146,6 +157,7 @@ export function ListRow({
   );
   const classes = cn(
     "interactive-row flex min-h-[var(--list-row-min)] w-full items-center gap-3 border-b border-line px-[var(--list-row-padding-x)] py-[var(--list-row-padding-y)] text-left last:border-b-0",
+    className,
     selected && "bg-primary-50/70",
   );
   return onClick ? <button className={classes} onClick={onClick} type="button">{content}</button> : <div className={classes}>{content}</div>;

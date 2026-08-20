@@ -108,7 +108,7 @@ const colorGroups = [
 const typeScale = [
   { name: "페이지 제목", className: "text-ui-title-lg", sample: "짐확정 디자인 시스템", sizeToken: "--text-title-lg", lineToken: "--line-screen", weightToken: "--display-weight", trackingToken: "--tracking-display" },
   { name: "단계 제목", className: "text-ui-step-title", sample: "업체와 함께 확인할 차례예요", sizeToken: "--text-step-title", lineToken: "--line-screen", weightToken: "--display-weight", trackingToken: "--tracking-display" },
-  { name: "섹션 제목", className: "text-ui-section", sample: "확인할 내용", sizeToken: "--text-xl", lineToken: "--line-section", weightToken: "--weight-strong", trackingToken: "--tracking-none" },
+  { name: "섹션 제목", className: "text-ui-section", sample: "확인할 내용", sizeToken: "--text-xl", lineToken: "--line-section", weightToken: "--weight-component", trackingToken: "--tracking-none" },
   { name: "컴포넌트 제목", className: "text-ui-component", sample: "작업 범위와 금액", sizeToken: "--text-component", lineToken: "--line-component", weightToken: "--weight-component", trackingToken: "--tracking-none" },
   { name: "목록 제목", className: "text-ui-list-title", sample: "범위와 견적", sizeToken: "--text-list-title", lineToken: "--line-list-title", weightToken: "--weight-list-title", trackingToken: "--tracking-none" },
   { name: "본문", className: "text-ui-body", sample: "현재 상태와 다음 작업을 설명합니다.", sizeToken: "--text-md", lineToken: "--line-body", weightToken: "--weight-body", trackingToken: "--tracking-none" },

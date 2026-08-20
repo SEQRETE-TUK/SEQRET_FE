@@ -1,8 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  ArrowRightIcon as ArrowRight,
-  ArchiveIcon as Archive,
-  BellIcon as Bell,
   BuildingApartmentIcon,
   BuildingOfficeIcon,
   CalendarBlankIcon as Calendar,
@@ -20,9 +17,7 @@ import {
   MagnifyingGlassIcon as MagnifyingGlass,
   NotepadIcon as Notepad,
   PackageIcon as Package,
-  PlusCircleIcon as PlusCircle,
   ShareNetworkIcon as ShareNetwork,
-  ShieldCheckIcon as ShieldCheck,
   SquaresFourIcon as SquaresFour,
   StairsIcon as Stairs,
   TrendUpIcon as TrendUp,
@@ -30,17 +25,17 @@ import {
   TruckIcon as Truck,
   WarningCircleIcon as WarningCircle,
 } from "@phosphor-icons/react";
-import { useRef, useState } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { mockApiEnabled, mockConnectionCodes } from "@/api/mock-api";
 import { movingItemAssetForName, movingItemCategoryForName, type MovingItemCategory } from "@/components/moving-item-assets";
 import { MovingItemIcon } from "@/components/moving-item-icon";
 import { AgreementOverview } from "@/components/layout/agreement-overview";
-import { ActiveMoveCard, FilterChip, InventoryQuantityRow, MoveJourneyProgress } from "@/components/layout/app-primitives";
+import { ActiveMoveCard, FilterChip, InventoryQuantityRow, MoveJourneyProgress, MoveRouteSummary, MoveSummaryCard } from "@/components/layout/app-primitives";
 import { ConnectedProfile } from "@/components/layout/connected-profile";
 import { AgreementHistorySheet } from "@/components/layout/agreement-history-sheet";
-import { MobileAppShell, MobileDetailHeader, MobileDetailTabs, MobilePageHeader, type MobileNavItem } from "@/components/layout/mobile-app-shell";
+import { MobileAppShell, MobileBrandHeader, MobileDetailHeader, MobileDetailTabs, MobileListHeader, MobilePageHeader, type MobileNavItem } from "@/components/layout/mobile-app-shell";
 import { Button } from "@/components/ui/button";
 import { CheckIndicator } from "@/components/ui/check-indicator";
 import { ChoiceGroup } from "@/components/ui/choice-group";
@@ -89,7 +84,6 @@ type MoveInfoEditor = "schedule" | MoveStopKind;
 
 const moneyFormatter = new Intl.NumberFormat("ko-KR");
 const renderStartedAt = Date.now();
-const dateFormatter = new Intl.DateTimeFormat("ko-KR", { month: "long", day: "numeric" });
 const fullDateFormatter = new Intl.DateTimeFormat("ko-KR", {
   year: "numeric",
   month: "long",
@@ -217,7 +211,7 @@ function NewCustomerApp() {
   const disconnect = () => { window.sessionStorage.removeItem(customerDisplayNameStorageKey); navigate("/"); };
 
   return <>
-    <MobileAppShell current={tab} eyebrow={`고객 · ${customerName}`} header={tab === "home" ? <HomeHeader customerName={customerName} onBell={() => setTab("notifications")} /> : tab === "move" ? <MoveListSafeArea /> : tab === "notifications" ? <NotificationsHeader onBack={() => setTab("home")} /> : false} items={tabs} onChange={setTab} title={tab === "home" ? "홈" : tab === "move" ? "내 이사" : tab === "notifications" ? "알림" : "더보기"}>
+    <MobileAppShell current={tab} eyebrow={`고객 · ${customerName}`} header={tab === "home" ? <MobileBrandHeader onBell={() => setTab("notifications")} /> : tab === "move" ? false : tab === "notifications" ? <NotificationsHeader onBack={() => setTab("home")} /> : false} items={tabs} onChange={setTab} title={tab === "home" ? "홈" : tab === "move" ? "내 이사" : tab === "notifications" ? "알림" : "더보기"}>
       {tab === "home" ? <EmptyCustomerHome onStart={() => setMoveStartOpen(true)} /> : null}
       {tab === "move" ? <EmptyMoveList onNewMove={() => setMoveStartOpen(true)} /> : null}
       {tab === "more" ? <ConnectedProfile connected={false} displayName={customerName} onDisconnect={disconnect} roleLabel="고객" /> : null}
@@ -229,12 +223,16 @@ function NewCustomerApp() {
 }
 
 function EmptyCustomerHome({ onStart }: { onStart: () => void }) {
-  return <div className="pb-[var(--bottom-rail-height)]"><section className="px-[var(--content-gutter)]"><NewMoveHero onStart={onStart} /></section><section className="mx-[var(--content-gutter)] mt-4 ui-card p-5 shadow-[var(--shadow-card)]"><h2 className="text-ui-component font-black">진행 중인 이사가 없어요</h2><p className="mt-2 text-sm leading-6 text-ink-600">새 이사를 만들면 촬영부터 공동확인까지 한곳에서 이어집니다.</p></section><PreventionSection /></div>;
+  return <div className="pb-[var(--bottom-rail-height)]"><HomeGreeting /><section className="px-[var(--content-gutter)]"><NewMoveHero onStart={onStart} /></section><section className="mx-[var(--content-gutter)] mt-4 ui-card p-5 shadow-[var(--shadow-card)]"><h2 className="text-ui-component font-black">진행 중인 이사가 없어요</h2><p className="mt-2 text-sm leading-6 text-ink-600">새 이사를 만들면 촬영부터 공동확인까지 한곳에서 이어집니다.</p></section><PreventionSection /></div>;
 }
 
 function EmptyMoveList({ onNewMove }: { onNewMove: () => void }) {
   const [listTab, setListTab] = useState<"active" | "history">("active");
-  return <div className="pb-28"><div className="bg-surface px-[var(--content-gutter)] pt-5"><div className="flex items-center justify-between gap-3"><h1 className="text-ui-section">내 이사</h1><button className="inline-flex min-h-11 items-center gap-1 whitespace-nowrap px-2 text-ui-control text-primary-700" onClick={onNewMove} type="button"><PlusCircle aria-hidden="true" size="var(--icon-xs)" weight="bold" />새 이사</button></div><div className="mt-6 grid grid-cols-2 border-b border-line" role="tablist" aria-label="이사 목록"><button aria-selected={listTab === "active"} className={`relative min-h-11 text-ui-control ${listTab === "active" ? "text-primary-700 after:absolute after:inset-x-6 after:bottom-0 after:h-0.5 after:bg-primary-600" : "text-ink-600"}`} onClick={() => setListTab("active")} role="tab" type="button">진행 중 0</button><button aria-selected={listTab === "history"} className={`relative min-h-11 text-ui-control ${listTab === "history" ? "text-primary-700 after:absolute after:inset-x-6 after:bottom-0 after:h-0.5 after:bg-primary-600" : "text-ink-600"}`} onClick={() => setListTab("history")} role="tab" type="button">기록 0</button></div></div><div className="px-[var(--content-gutter)]"><section className="mt-8 ui-card px-5 py-8 text-center shadow-[var(--shadow-card)]"><Archive aria-hidden="true" className="mx-auto text-ink-400" size="var(--icon-category)" /><h2 className="mt-4 text-ui-component">{listTab === "active" ? "진행 중인 이사가 없어요" : "아직 이사 기록이 없어요"}</h2><p className="mt-2 text-ui-support text-ink-600">{listTab === "active" ? "새 이사를 시작하면 진행 상황을 여기에서 확인할 수 있어요." : "이사가 완료되면 최종 기록을 여기에서 확인할 수 있어요."}</p><Button className="mt-5 w-full" onClick={onNewMove}>새 이사 시작</Button></section></div></div>;
+  return <div className="flex min-h-dvh flex-col pb-[var(--bottom-rail-height)]"><MoveListHeader listTab={listTab} onNewMove={onNewMove} onTabChange={setListTab} /><div className="flex flex-1 px-[var(--content-gutter)]"><section className="flex flex-1 flex-col items-center justify-center text-center"><img alt="" aria-hidden="true" className="size-12 object-contain" decoding="async" src="/moving-items/warehouse.png" /><h2 className="mt-4 text-ui-component">{listTab === "active" ? "진행 중인 이사가 없어요" : "아직 이사 기록이 없어요"}</h2></section></div></div>;
+}
+
+function MoveListHeader({ listTab, onNewMove, onTabChange }: { listTab: "active" | "history"; onNewMove?: () => void; onTabChange: (tab: "active" | "history") => void }) {
+  return <MobileListHeader actionLabel="새 이사 시작" current={listTab} items={[{ id: "active", label: "진행 중" }, { id: "history", label: "이사 기록" }]} label="이사 목록" onAction={onNewMove} onChange={onTabChange} />;
 }
 
 function ConnectedConsumerApp() {
@@ -292,12 +290,12 @@ function ConnectedConsumerApp() {
   const disconnect = () => { clearSession(); navigate("/"); };
 
   const header = tab === "home"
-    ? <HomeHeader customerName={activeCustomerName} onBell={() => setTab("notifications")} />
+    ? <MobileBrandHeader onBell={() => setTab("notifications")} />
     : tab === "move"
       ? moveInfoEditor
         ? <MobilePageHeader onBack={() => setMoveInfoEditor(null)} title={moveInfoEditor === "schedule" ? "서비스 예정 일시" : moveInfoEditor === "origin" ? "출발지 정보 수정" : "도착지 정보 수정"} />
         : moveView === "list"
-        ? <MoveListSafeArea />
+        ? false
         : <MoveHeader onBack={() => setMoveView("list")} onMore={() => setMoveActionsOpen(true)} scope={scopeQuery.data} />
        : tab === "notifications"
          ? <NotificationsHeader onBack={() => setTab("home")} />
@@ -306,7 +304,7 @@ function ConnectedConsumerApp() {
   return (
     <>
     <MobileAppShell current={tab} eyebrow={`고객 · ${activeCustomerName}`} header={header} items={tabs} onChange={setTab} onProfile={() => setTab("more")} showNav={tab !== "move" || moveView === "list"} title={tab === "home" ? "홈" : tab === "move" ? "내 이사" : "더보기"}>
-      {tab === "home" ? <HomeTab completion={completionQuery.data} onOpenAgreement={openAgreement} onOpenMove={() => openMove()} onStartMove={() => setMoveStartOpen(true)} scope={scopeQuery.data} /> : null}
+      {tab === "home" ? <HomeTab completion={completionQuery.data} moveJobs={moveListQuery.data?.moves} selectedJobId={selectedJobId} onOpenAgreement={openAgreement} onOpenMove={() => openMove()} onStartMove={() => setMoveStartOpen(true)} scope={scopeQuery.data} /> : null}
       {tab === "move" ? <ConsumerMoveTab completion={completionQuery.data} connection={connection} editor={moveInfoEditor} issues={issuesQuery.data} key={`${selectedJobId}:${moveListQuery.data ? "loaded" : "loading"}`} moveJobs={moveListQuery.data?.moves} onCapture={(file) => navigate(`/consumer/capture?mode=video&job=${encodeURIComponent(selectedJobId)}`, { state: { videoFile: file } })} onEditorChange={setMoveInfoEditor} onManualAdd={() => navigate(`/consumer/capture?mode=manual&job=${encodeURIComponent(selectedJobId)}`)} onNewMove={() => setMoveStartOpen(true)} onOpen={(jobId) => openMove(jobId)} onOpenCompletion={() => navigate(`/consumer/completion?job=${encodeURIComponent(selectedJobId)}`)} onOpenQuote={() => navigate(`/consumer/quote?job=${encodeURIComponent(selectedJobId)}`)} onResumeCapture={() => navigate(`/consumer/capture?mode=video&job=${encodeURIComponent(selectedJobId)}`)} onViewChange={setMoveView} scope={scopeQuery.data} view={moveView} /> : null}
       {tab === "notifications" ? <CustomerNotifications error={notificationsQuery.error} notifications={notificationsQuery.data} pending={notificationsQuery.isPending} /> : null}
       {tab === "more" ? <ConnectedProfile displayName={activeCustomerName} expiresAt={session!.actor.expires_at} onDisconnect={disconnect} permissions={session!.actor.permissions} roleLabel="고객" /> : null}
@@ -318,13 +316,8 @@ function ConnectedConsumerApp() {
   );
 }
 
-function HomeHeader({ customerName, onBell }: { customerName: string; onBell?: () => void }) {
-  return (
-    <header className="flex items-center justify-between bg-canvas px-[var(--content-gutter)] pb-4 pt-[max(16px,env(safe-area-inset-top))]">
-      <h1 className="text-ui-section leading-8 font-extrabold tracking-[var(--tracking-display)]">{customerName}님,<br />어떤 이사를 준비할까요?</h1>
-      {onBell ? <button aria-label="알림 확인" className="grid size-9 place-items-center rounded-full text-ink-900 hover:bg-surface-muted" onClick={onBell} type="button"><Bell aria-hidden="true" size="var(--icon-sm)" /></button> : null}
-    </header>
-  );
+function HomeGreeting() {
+  return <h1 className="mb-4 mt-1 px-[var(--content-gutter)] text-ui-component">어떤 이사를 준비할까요?</h1>;
 }
 
 function NotificationsHeader({ onBack }: { onBack: () => void }) {
@@ -333,7 +326,7 @@ function NotificationsHeader({ onBack }: { onBack: () => void }) {
 
 function CustomerNotifications({ error, notifications, pending }: { error?: unknown; notifications?: Awaited<ReturnType<typeof listNotifications>>; pending?: boolean }) {
   const items = [...(notifications ?? [])].sort((a, b) => b.created_at.localeCompare(a.created_at));
-  return <div className="px-[var(--content-gutter)] pb-28">{pending ? <p className="py-10 text-center text-sm text-ink-600">알림을 불러오는 중입니다.</p> : error ? <p className="mt-6 rounded-xl bg-danger-bg p-4 text-sm font-bold text-danger-ink" role="alert">{apiErrorMessage(error)}</p> : items.length ? <div className="divide-y divide-line">{items.map((notification) => { const copy = notificationCopy[notification.event_type]; const warning = notification.event_type === "analysis_failed.v1" || notification.event_type === "change_requested.v1"; return <article className="flex gap-3 py-5" key={notification.id}><span className={`grid size-11 shrink-0 place-items-center rounded-xl ${warning ? "bg-warning-bg text-warning-ink" : "bg-primary-50 text-primary-700"}`}>{warning ? <WarningCircle aria-hidden="true" size="var(--icon-md)" /> : <Notepad aria-hidden="true" size="var(--icon-md)" />}</span><div className="min-w-0"><span className={`text-xs font-extrabold ${warning ? "text-warning-ink" : "text-primary-700"}`}>{copy.label}</span><h3 className="mt-1 text-ui-component font-black">{copy.title}</h3><p className="mt-1 text-sm leading-5 text-ink-600">{copy.description}</p><p className="mt-2 text-ui-micro text-ink-400">{notificationDateFormatter.format(new Date(notification.created_at))}</p></div></article>; })}</div> : <section className="py-10 text-center"><Bell aria-hidden="true" className="mx-auto text-ink-400" size="var(--icon-category)" /><p className="mt-3 font-extrabold">알림이 없어요</p></section>}</div>;
+  return <div className="px-[var(--content-gutter)] pb-28">{pending ? <p className="py-10 text-center text-sm text-ink-600">알림을 불러오는 중입니다.</p> : error ? <p className="mt-6 rounded-xl bg-danger-bg p-4 text-sm font-bold text-danger-ink" role="alert">{apiErrorMessage(error)}</p> : items.length ? <div className="divide-y divide-line">{items.map((notification) => { const copy = notificationCopy[notification.event_type]; const warning = notification.event_type === "analysis_failed.v1" || notification.event_type === "change_requested.v1"; return <article className="flex gap-3 py-5" key={notification.id}><span className={`grid size-11 shrink-0 place-items-center rounded-xl ${warning ? "bg-warning-bg text-warning-ink" : "bg-primary-50 text-primary-700"}`}>{warning ? <WarningCircle aria-hidden="true" size="var(--icon-md)" /> : <Notepad aria-hidden="true" size="var(--icon-md)" />}</span><div className="min-w-0"><span className={`text-xs font-extrabold ${warning ? "text-warning-ink" : "text-primary-700"}`}>{copy.label}</span><h3 className="mt-1 text-ui-component font-black">{copy.title}</h3><p className="mt-1 text-sm leading-5 text-ink-600">{copy.description}</p><p className="mt-2 text-ui-micro text-ink-400">{notificationDateFormatter.format(new Date(notification.created_at))}</p></div></article>; })}</div> : <section className="flex min-h-[calc(100dvh-var(--header-height)-var(--bottom-rail-height))] flex-col items-center justify-center text-center"><img alt="" aria-hidden="true" className="size-12 object-contain" decoding="async" src="/moving-items/notification-bell.svg" /><p className="mt-4 font-extrabold">알림이 없어요</p></section>}</div>;
 }
 
 function MoveHeader({ onBack, onMore, scope }: { onBack: () => void; onMore?: () => void; scope: ScopeReview | undefined }) {
@@ -397,7 +390,7 @@ function CustomerMoveStartSheet({ connect, onConnected, onNewMove, onOpenChange,
       <SheetContent>
         <SheetHeader>
           <SheetTitle>{mode === "confirm" ? `${customerName}님의 이사를 불러올까요?` : "이사를 시작해요"}</SheetTitle>
-          <SheetDescription>{mode === "choice" ? "새로 시작하거나 이사 연결 코드로 기존 이사를 불러올 수 있어요." : mode === "code" ? "공유받은 이사 연결 코드를 입력해 주세요." : "시작하면 연결된 이사의 이름과 정보를 사용합니다."}</SheetDescription>
+          {mode === "choice" ? null : <SheetDescription>{mode === "code" ? "공유받은 이사 연결 코드를 입력해 주세요." : "시작하면 연결된 이사의 이름과 정보를 사용합니다."}</SheetDescription>}
         </SheetHeader>
         {mode === "choice" ? (
           <div className="grid grid-cols-2 gap-3 px-4 pb-5">
@@ -453,29 +446,33 @@ function MoveActionsSheet({ canDelete, connectionCode, error, onDelete, onOpenCh
   return <Sheet onOpenChange={onOpenChange} open={open}><SheetContent><SheetHeader><SheetTitle>{showCode ? "이사 연결 코드" : "이사를 삭제할까요?"}</SheetTitle><SheetDescription>{showCode ? "이 코드를 고객·업체·기사에게 공유하면 같은 이사에 다시 연결할 수 있어요." : canDelete ? "견적서를 받기 전인 이사만 삭제할 수 있어요." : "이미 견적서를 받아 삭제할 수 없어요."}</SheetDescription></SheetHeader>{showCode ? <><div className="mx-5 mt-2 rounded-[var(--radius-component)] border border-line bg-primary-50 px-4 py-5 text-center"><span className="text-sm text-ink-600">이사 연결 코드</span><strong className="mt-2 block font-mono text-xl tracking-wide text-primary-800">{connectionCode ?? "코드 준비 중"}</strong></div><SheetFooter><Button className="w-full" disabled={!connectionCode} onClick={() => void copyCode()}><Copy aria-hidden="true" />{copied ? "복사됨" : "코드 복사"}</Button></SheetFooter></> : <SheetFooter className="grid grid-cols-2 gap-2"><SheetClose render={<Button variant="secondary" />}>계속 사용</SheetClose><Button disabled={!canDelete || pending} onClick={onDelete} variant="destructive"><Trash aria-hidden="true" />{pending ? "삭제하는 중" : "이사 삭제"}</Button></SheetFooter>}{error ? <ErrorToast message={apiErrorMessage(error)} /> : null}</SheetContent></Sheet>;
 }
 
-function MoveListSafeArea() {
-  return <span aria-hidden="true" className="app-safe-header block bg-surface" />;
-}
-
-function HomeTab({ completion, onOpenAgreement, onOpenMove, onStartMove, scope }: { completion: CompletionSummary | undefined; onOpenAgreement: () => void; onOpenMove: () => void; onStartMove?: () => void; scope: ScopeReview | undefined }) {
-  const job = scope?.job ?? completion?.job;
-  const scheduledAt = job?.scheduled_at ? new Date(job.scheduled_at) : null;
+function HomeTab({ completion, moveJobs, onOpenAgreement, onOpenMove, onStartMove, scope, selectedJobId }: { completion: CompletionSummary | undefined; moveJobs: MockMoveSummary[] | undefined; onOpenAgreement: () => void; onOpenMove: () => void; onStartMove?: () => void; scope: ScopeReview | undefined; selectedJobId: string }) {
+  const fallbackMove = moveJobs?.find((move) => move.job.id === selectedJobId) ?? moveJobs?.find((move) => move.job.status !== "completed" && move.job.status !== "canceled") ?? moveJobs?.[0];
+  const headerJob = scope?.job ?? completion?.job;
+  const fallbackJob = fallbackMove?.job;
+  const scheduledAtValue = headerJob?.scheduled_at ?? fallbackJob?.scheduled_at;
+  const scheduledAt = scheduledAtValue ? new Date(scheduledAtValue) : null;
+  const fallbackOrigin = fallbackJob?.locations[0]?.label ?? "출발지";
+  const fallbackDestination = fallbackJob?.locations[1]?.label ?? "도착지";
+  const route = headerJob
+    ? <MoveRouteSummary destination={headerJob.destination_summary ?? "도착지"} origin={headerJob.origin_summary ?? "출발지"} />
+    : fallbackJob
+      ? <MoveRouteSummary destination={fallbackDestination} origin={fallbackOrigin} />
+      : "이사 정보를 불러오는 중";
   const dDay = scheduledAt ? Math.max(0, Math.ceil((scheduledAt.getTime() - renderStartedAt) / 86_400_000)) : null;
   const requiresScopeReview = scope?.scope.status === "customer_review";
   const completed = scope?.scope.status === "confirmed";
   const completionRequested = completion?.completion_request?.status === "requested";
-  const actionTitle = completionRequested ? "작업 완료 내용 확인" : requiresScopeReview ? "작업범위와 금액 확인" : completed ? "공동확인 내용 보기" : scope ? "촬영 결과 확인" : "촬영·짐 입력 시작";
-  const actionMeta = scope ? `${scope.job.company_display_name ?? "이사업체"} 제안 · ${money(scope.quote?.total_amount_krw)} · ${scope.scope.version_label}` : "짐을 촬영하거나 직접 입력해 범위를 만들어 주세요";
   const currentStep = completionRequested || completed ? 4 : requiresScopeReview ? 3 : scope?.quote ? 2 : 1;
 
   return (
     <div className="pb-[var(--bottom-rail-height)]">
+      <HomeGreeting />
       {onStartMove ? <section className="px-[var(--content-gutter)]"><NewMoveHero onStart={onStartMove} /></section> : null}
 
-      <div className="mx-[var(--content-gutter)]"><ActiveMoveCard heading="진행 중인 이사 1건" leading={<span className="grid size-12 shrink-0 place-items-center rounded-full bg-primary-50 text-primary-700"><Truck aria-hidden="true" size="var(--icon-md)" /></span>} meta={<>{scheduledAt ? dateFormatter.format(scheduledAt) : "일정 확인 중"} {dDay !== null ? <b className="text-primary-700">· D-{dDay}</b> : null}</>} onOpen={onOpenMove} route={job ? `${job.origin_summary ?? "출발지"} → ${job.destination_summary ?? "도착지"}` : "이사 정보를 불러오는 중"}>
-        <MoveJourneyProgress current={currentStep} />
-        <div className="mt-3 border-t border-line pt-3">
-          <p className="flex min-w-0 items-baseline gap-2 whitespace-nowrap"><strong className="shrink-0 text-ui-support text-primary-700">{actionTitle}</strong><span className="ml-auto min-w-0 truncate text-right text-ui-data text-ink-600">{actionMeta}</span></p><Button className="mt-2 w-full" onClick={scope ? onOpenAgreement : onOpenMove} size="cta">{scope ? "지금 확인" : "이사 정보 열기"}</Button>
+      <div className="mx-[var(--content-gutter)]"><ActiveMoveCard heading="진행 중인 이사 1건" headingClassName="text-ui-component" meta={<span className="mt-4 flex min-w-0 items-center gap-2 rounded-[var(--radius-component)] border border-line bg-surface px-2.5 py-2 text-ui-control text-ink-900"><Calendar aria-hidden="true" className="shrink-0 text-primary-700" size="var(--icon-sm)" weight="bold" /><span className="min-w-0 flex-1 truncate">{scheduledAt ? fullDateFormatter.format(scheduledAt) : "일정 확인 중"}</span>{dDay !== null ? <b className="shrink-0 rounded-[var(--radius-component)] bg-primary-50 px-2.5 py-1.5 font-[var(--weight-button)] text-primary-700">D-{dDay}</b> : null}</span>} onOpen={onOpenMove} prelude={<MoveJourneyProgress current={currentStep} />} route={route} showChevron={false}>
+        <div className="mt-4">
+          <Button className="w-full" onClick={scope ? onOpenAgreement : onOpenMove} size="cta">{scope ? "지금 확인" : "이사 정보 열기"}</Button>
         </div>
       </ActiveMoveCard></div>
 
@@ -486,15 +483,15 @@ function HomeTab({ completion, onOpenAgreement, onOpenMove, onStartMove, scope }
 }
 
 function NewMoveHero({ onStart }: { onStart: () => void }) {
-  return <button className="ui-card ui-card-outlined ui-card-tinted press-static relative min-h-[174px] w-full overflow-hidden rounded-[var(--radius-component)] px-5 py-4 text-left" onClick={onStart} type="button"><span className="relative z-10 block max-w-[62%]"><strong className="block text-ui-component font-extrabold tracking-[var(--tracking-display)]">60초 촬영으로<br />준비를 시작해요</strong><span className="mt-1.5 block text-ui-data leading-5 text-ink-600">짐 목록과 작업조건 초안을 만들어요</span><span className="mt-4 flex items-center gap-1 whitespace-nowrap text-ui-control text-primary-700">새 이사 시작하기 <ArrowRight aria-hidden="true" size="var(--icon-xs)" weight="bold" /></span></span><img alt="휴대폰으로 이삿짐 상자를 촬영하는 모습" className="absolute -right-2 bottom-0 w-[140px] max-w-none" height="213" src="/move-capture-hero.png" width="170" /></button>;
+  return <button className="ui-card ui-card-outlined ui-card-tinted press-static relative min-h-[174px] w-full overflow-hidden rounded-[var(--radius-component)] text-left" onClick={onStart} type="button"><span className="absolute inset-y-0 left-0 z-10 flex w-[65%] flex-col px-5 py-4"><strong className="block text-ui-component font-extrabold tracking-[var(--tracking-display)]">60초 촬영으로<br />준비를 시작해요</strong><span className="mt-1.5 block text-ui-data leading-5 text-ink-600">짐 목록과 작업조건 초안을 만들어요</span><span className="mt-auto flex items-center gap-1 whitespace-nowrap text-ui-control text-primary-700">새 이사 시작하기 <CaretRight aria-hidden="true" size="var(--icon-xs)" weight="bold" /></span></span><img alt="휴대폰으로 이삿짐 상자를 촬영하는 모습" className="absolute -bottom-1 right-1 w-[140px] max-w-none" height="213" src="/move-capture-hero.png" width="170" /></button>;
 }
 
 function PreventionSection() {
-  return <section className="mt-4 px-[var(--content-gutter)] py-5"><h2 className="text-ui-component">추가금이 생기는 순간</h2><p className="mt-1 text-sm text-ink-600">미리 확인하면 당일 변경을 줄일 수 있어요</p><div className="no-scrollbar -mx-[var(--content-gutter)] mt-4 flex snap-x scroll-px-[var(--content-gutter)] gap-3 overflow-x-auto px-[var(--content-gutter)] pb-1"><PreventionCard iconSrc="/prevention-elevator.png" label="작업조건 차이" title="엘리베이터·계단 조건이 달랐어요" /><PreventionCard iconSrc="/prevention-package-box.png" label="짐 목록 차이" title="촬영 후 큰 짐이 추가됐어요" /><PreventionCard iconSrc="/prevention-toolbox.png" label="추가 작업" title="분해·설치 작업이 빠졌어요" /></div></section>;
+  return <section className="mt-6 px-[var(--content-gutter)] pb-5 pt-0"><h2 className="text-ui-component">미리 확인해 추가금을 줄여보세요</h2><div className="no-scrollbar -mx-[var(--content-gutter)] mt-4 flex snap-x scroll-px-[var(--content-gutter)] gap-3 overflow-x-auto px-[var(--content-gutter)] pb-1"><PreventionCard iconSrc="/prevention-elevator.png" label="작업조건 차이" title={<>엘리베이터·계단<br />조건이 달랐어요</>} /><PreventionCard iconSrc="/prevention-package-box.png" label="짐 목록 차이" title={<>촬영 후 큰 짐이<br />추가됐어요</>} /><PreventionCard iconSrc="/prevention-toolbox.png" label="추가 작업" title={<>분해·설치 작업이<br />빠졌어요</>} /></div></section>;
 }
 
-function PreventionCard({ iconSrc, label, title }: { iconSrc: string; label: string; title: string }) {
-  return <article className="flex min-h-[160px] w-[156px] shrink-0 snap-start flex-col items-center ui-card p-3 text-center shadow-[var(--shadow-card)]"><span className="grid size-14 place-items-center"><img alt="" aria-hidden="true" className="size-14 object-contain" height="56" loading="lazy" src={iconSrc} width="56" /></span><div className="mt-auto pt-3"><p className="text-xs font-extrabold text-primary-700">{label}</p><h3 className="mt-1.5 text-ui-support leading-5 font-extrabold">{title}</h3></div></article>;
+function PreventionCard({ iconSrc, label, title }: { iconSrc: string; label: string; title: ReactNode }) {
+  return <article className="flex min-h-[144px] w-[156px] shrink-0 snap-start flex-col items-center ui-card p-3 text-center shadow-[var(--shadow-card)]"><span className="grid size-12 place-items-center"><img alt="" aria-hidden="true" className="size-12 object-contain" height="48" loading="lazy" src={iconSrc} width="48" /></span><div className="mt-auto pt-2"><p className="text-xs font-semibold text-primary-700">{label}</p><h3 className="mt-1.5 text-xs font-[var(--weight-button)] leading-4">{title}</h3></div></article>;
 }
 
 function ConsumerMoveList({ moveJobs, onNewMove, onOpen }: { moveJobs: MockMoveSummary[] | undefined; onNewMove?: () => void; onOpen: (jobId: string) => void }) {
@@ -502,13 +499,10 @@ function ConsumerMoveList({ moveJobs, onNewMove, onOpen }: { moveJobs: MockMoveS
   const activeMoves = moveJobs?.filter((move) => move.job.status !== "completed" && move.job.status !== "canceled") ?? [];
   const historyMoves = moveJobs?.filter((move) => move.job.status === "completed") ?? [];
   const visibleMoves = listTab === "active" ? activeMoves : historyMoves;
-  return <div className="pb-28">
-    <div className="bg-surface px-[var(--content-gutter)] pt-5"><div className="flex items-center justify-between gap-3"><h1 className="text-ui-section">내 이사</h1>{onNewMove ? <button className="inline-flex min-h-11 items-center gap-1 whitespace-nowrap px-2 text-ui-control text-primary-700" onClick={onNewMove} type="button"><PlusCircle aria-hidden="true" size="var(--icon-xs)" weight="bold" />새 이사</button> : null}</div>
-    <div className="mt-6 grid grid-cols-2 border-b border-line" role="tablist" aria-label="이사 목록">
-      <button aria-selected={listTab === "active"} className={`relative min-h-11 text-ui-control ${listTab === "active" ? "text-primary-700 after:absolute after:inset-x-6 after:bottom-0 after:h-0.5 after:bg-primary-600" : "text-ink-600"}`} onClick={() => setListTab("active")} role="tab" type="button">진행 중 {activeMoves.length}</button>
-      <button aria-selected={listTab === "history"} className={`relative min-h-11 text-ui-control ${listTab === "history" ? "text-primary-700 after:absolute after:inset-x-6 after:bottom-0 after:h-0.5 after:bg-primary-600" : "text-ink-600"}`} onClick={() => setListTab("history")} role="tab" type="button">기록 {historyMoves.length}</button>
-    </div></div><div className="px-[var(--content-gutter)]">
-    {visibleMoves.length ? <div className="mt-5 space-y-3">{visibleMoves.map((move) => <MockMoveCard key={move.job.id} move={move} onOpen={() => onOpen(move.job.id)} />)}</div> : <section className="mt-5 ui-card px-5 py-8 text-center"><Archive aria-hidden="true" className="mx-auto text-ink-400" size="var(--icon-category)" /><h2 className="mt-3 text-ui-component">{listTab === "active" ? "진행 중인 이사가 없어요" : "완료된 이사가 없어요"}</h2></section>}
+  return <div className="flex min-h-dvh flex-col pb-[var(--bottom-rail-height)]">
+    <MoveListHeader listTab={listTab} onNewMove={onNewMove} onTabChange={setListTab} />
+    <div className="flex flex-1 px-[var(--content-gutter)]">
+    {visibleMoves.length ? <div className="mt-5 space-y-3">{visibleMoves.map((move) => <MockMoveCard key={move.job.id} move={move} onOpen={() => onOpen(move.job.id)} />)}</div> : <section className="flex flex-1 flex-col items-center justify-center text-center"><img alt="" aria-hidden="true" className="size-12 object-contain" decoding="async" src="/moving-items/warehouse.png" /><h2 className="mt-4 text-ui-component">{listTab === "active" ? "진행 중인 이사가 없어요" : "완료된 이사가 없어요"}</h2></section>}
     </div>
   </div>;
 }
@@ -516,10 +510,8 @@ function ConsumerMoveList({ moveJobs, onNewMove, onOpen }: { moveJobs: MockMoveS
 function MockMoveCard({ move, onOpen }: { move: MockMoveSummary; onOpen: () => void }) {
   const scheduledAt = move.job.scheduled_at ? new Date(move.job.scheduled_at) : null;
   const hasQuote = Boolean(move.quote);
-  const completionArrived = move.completion_request_status === "requested";
-  const statusLabel = completionArrived ? "확인서 도착" : hasQuote ? "견적서 도착" : move.company_participation_status === "company_not_invited" ? "링크 보내기 전" : "업체 연결됨 · 견적 대기";
-  const currentStep = completionArrived || move.scope_status === "confirmed" ? 4 : move.scope_status === "customer_review" || move.scope_status === "revision_requested" ? 3 : move.quote ? 2 : 1;
-  return <button className="press-static w-full ui-card p-5 text-left shadow-[var(--shadow-card)]" onClick={onOpen} type="button"><span className={`inline-flex h-[var(--status-height)] items-center rounded-full px-3 text-ui-status ${completionArrived ? "bg-warning-bg text-warning-ink" : hasQuote ? "bg-primary-50 text-primary-700" : "bg-surface-muted text-ink-600"}`}>{statusLabel}</span><strong className="mt-3 flex items-center justify-between gap-3 text-ui-section"><span className="min-w-0 truncate">{move.job.locations[0]?.label ?? "출발지"} → {move.job.locations[1]?.label ?? "도착지"}</span><CaretRight aria-hidden="true" className="shrink-0 text-ink-400" size="var(--icon-sm)" /></strong><span className="mt-2 block text-ui-support text-ink-600">{scheduledAt ? fullDateFormatter.format(scheduledAt) : "일정 확인 중"}</span><span className="mt-5 block border-t border-line pt-4 text-sm">{hasQuote ? <>현재 확인서 <b>{move.version_label}</b><span className="mx-2 text-line">|</span><b className="text-primary-700">{money(move.quote?.total_amount_krw)}</b></> : <span className="text-ink-600">아직 견적서를 받지 않았어요</span>}</span>{hasQuote ? <MoveJourneyProgress current={currentStep} /> : null}<span className="mt-4 grid grid-cols-3 divide-x divide-line text-center text-xs text-ink-600"><span><Package aria-hidden="true" className="mx-auto mb-1" size="var(--icon-sm)" />짐 {move.item_count}개</span><span><Notepad aria-hidden="true" className="mx-auto mb-1" size="var(--icon-sm)" />{hasQuote ? `확인서 ${move.version_label}` : "초안"}</span><span><TrendUp aria-hidden="true" className="mx-auto mb-1" size="var(--icon-sm)" />변경 {move.adjustment_count}건</span></span></button>;
+  const dDay = scheduledAt ? Math.max(0, Math.ceil((scheduledAt.getTime() - renderStartedAt) / 86_400_000)) : null;
+  return <MoveSummaryCard badge={dDay !== null ? `D-${dDay}` : undefined} destination={move.job.locations[1]?.label ?? "도착지"} meta={scheduledAt ? fullDateFormatter.format(scheduledAt) : "일정 확인 중"} onOpen={onOpen} origin={move.job.locations[0]?.label ?? "출발지"} stats={[{ icon: <Package aria-hidden="true" size="var(--icon-sm)" />, label: <>짐 {move.item_count}개</> }, { icon: <Notepad aria-hidden="true" size="var(--icon-sm)" />, label: hasQuote ? `확인서 ${move.version_label}` : "초안" }, { icon: <TrendUp aria-hidden="true" size="var(--icon-sm)" />, label: <>변경 {move.adjustment_count}건</> }]} />;
 }
 
 function storedMoveInfoOverrides(jobId: string): MoveInfoOverrides {
@@ -586,7 +578,7 @@ function MoveInfo({ canEdit, editor, onChange, onEditorChange, scope, value }: {
   if (editor) return <MoveStopPage draft={stopDraft} onDraftChange={setStopDraft} onSave={saveStop} />;
 
   return (
-    <div className="space-y-2 bg-canvas pb-28">
+    <div className="space-y-0 bg-canvas pb-28">
       <section className="bg-surface px-[var(--content-gutter)] py-5">
         <h2 className="text-ui-component">이사 일정</h2>
         <button aria-label={canEdit ? "이사 일정 수정" : undefined} className="mt-4 flex min-h-11 w-full items-center gap-2 text-left disabled:cursor-default" disabled={!canEdit} onClick={() => onEditorChange("schedule")} type="button">
@@ -598,15 +590,14 @@ function MoveInfo({ canEdit, editor, onChange, onEditorChange, scope, value }: {
           {canEdit ? <CaretRight aria-hidden="true" className="shrink-0 text-ink-400" size="var(--icon-sm)" weight="bold" /> : null}
         </button>
       </section>
-      <section className="bg-surface px-[var(--content-gutter)] py-5">
+      <section className="mt-2 bg-surface px-[var(--content-gutter)] py-5">
         <h2 className="text-ui-component">이동 경로</h2>
-        <div className="relative mt-4">
-          <span aria-hidden="true" className="absolute bottom-6 left-[15px] top-6 w-px bg-primary-500" />
+        <div className="relative mt-3">
           <RoutePoint label="출발지" onEdit={canEdit ? () => onEditorChange("origin") : undefined} stop={getStop("origin")} />
           <RoutePoint destination label="도착지" onEdit={canEdit ? () => onEditorChange("destination") : undefined} stop={getStop("destination")} />
         </div>
       </section>
-      <aside className="mx-[var(--content-gutter)] flex items-center gap-3 rounded-2xl bg-surface-muted px-4 py-3 text-sm text-ink-600"><TrendUp aria-hidden="true" size="var(--icon-sm)" /> {canEdit ? "견적이 확정되기 전까지 기본정보를 수정할 수 있어요." : "견적이 생성되어 기본정보가 잠겼어요."}</aside>
+      <aside className="mx-[var(--content-gutter)] mt-4 flex items-start gap-1.5 px-1 text-xs leading-5 text-ink-400"><WarningCircle aria-hidden="true" className="mt-0.5 shrink-0" size="var(--icon-xs)" /><span>{canEdit ? "견적이 확정되기 전까지 기본정보를 수정할 수 있어요." : "견적이 생성되어 기본정보가 잠겼어요."}</span></aside>
     </div>
   );
 }
@@ -650,7 +641,7 @@ function ScheduleEditor({ onChange, value }: { onChange: (value: string) => void
         return <button aria-label={`${month.getMonth() + 1}월 ${day}일`} aria-pressed={active} className={`relative mx-auto grid size-11 place-items-center rounded-full text-ui-component font-bold ${active ? "border border-primary-600 bg-primary-50 text-primary-700" : weekday === 0 ? "text-danger-ink" : weekday === 6 ? "text-primary-700" : "text-ink-900"}`} key={day} onClick={() => chooseDate(day)} type="button">{day}</button>;
       })}
     </div>
-    <section className="-mx-[var(--content-gutter)] mt-8 border-t-8 border-canvas px-[var(--content-gutter)] pt-7">
+    <section className="-mx-[var(--content-gutter)] mt-8 border-t-8 border-canvas px-[var(--content-gutter)] pt-5">
       <div className="flex items-center justify-between gap-3"><h3 className="text-ui-component">서비스 시작 시간</h3><span className="inline-flex items-center gap-1.5 text-sm font-bold text-primary-700"><CheckIndicator />시간 협의 가능</span></div>
       <Select aria-label="서비스 시작 시간" className="mt-4" disabled={!selected} onChange={(event) => chooseTime(event.target.value)} value={timeValue}>
         {!selected ? <option value="">날짜를 먼저 선택해 주세요</option> : null}
@@ -668,6 +659,7 @@ function RoutePoint({ destination = false, label, onEdit, stop }: { destination?
   ];
   const Icon = destination ? Package : Truck;
   return <div className={destination ? "relative mt-7" : "relative"}>
+    {!destination ? <span aria-hidden="true" className="absolute -bottom-[50px] left-4 top-9 z-0 w-[1.5px] bg-primary-400" /> : null}
     <button className="relative z-10 flex min-h-11 w-full items-center gap-2 text-left disabled:cursor-default" disabled={!onEdit} onClick={onEdit} type="button">
       <span className="grid size-8 shrink-0 place-items-center bg-surface text-primary-700"><Icon aria-hidden="true" size="var(--icon-md)" weight="fill" /></span>
       <span className="min-w-0 flex-1 text-ui-component font-black">{label}</span>
@@ -712,6 +704,10 @@ function ConsumerInventory({ connection, onCapture, onManualAdd, onResumeCapture
   const quantityFor = (itemKey: string) => quantities[itemKey] ?? 1;
   const totalCount = allItems.reduce((total, item) => total + quantityFor(item.item_key), 0);
   const visibleItems = allItems.filter((item) => quantityFor(item.item_key) > 0 && (!openCategory || movingItemCategoryForName(item.description) === openCategory) && item.description.toLocaleLowerCase("ko-KR").includes(query.trim().toLocaleLowerCase("ko-KR")));
+  const visibleItemGroups = categories.map((category) => ({
+    category,
+    items: visibleItems.filter((item) => movingItemCategoryForName(item.description) === category),
+  })).filter((group) => group.items.length > 0);
   const updateQuantity = (itemKey: string, next: number) => setQuantities((current) => ({ ...current, [itemKey]: Math.max(0, next) }));
 
   return <div className="flex min-h-[calc(100dvh-var(--header-height))] flex-col gap-2 bg-canvas">
@@ -722,16 +718,13 @@ function ConsumerInventory({ connection, onCapture, onManualAdd, onResumeCapture
         {categories.map((category) => <FilterChip active={openCategory === category} key={category} onClick={() => setOpenCategory(category)}>{category}</FilterChip>)}
       </div>
     </section>
-    <section className="min-h-52 flex-1 bg-surface px-[var(--content-gutter)] pb-24 pt-4">
-      <div className="space-y-2">
-        {visibleItems.map((item) => { const quantity = quantityFor(item.item_key); return <InventoryQuantityRow icon={<InventoryItemIcon name={item.description} />} key={item.item_key} name={item.description} onDecrease={() => updateQuantity(item.item_key, quantity - 1)} onIncrease={() => updateQuantity(item.item_key, quantity + 1)} onRemove={() => updateQuantity(item.item_key, 0)} quantity={quantity} reviewRequired={item.review_required} />; })}
-        {visibleItems.length === 0 ? <div className="px-4 py-8 text-center"><Package aria-hidden="true" className="mx-auto text-ink-400" size="var(--icon-category)" /><p className="mt-3 font-extrabold">짐이 없습니다.</p><p className="mt-1 text-sm text-ink-600">품목 직접 선택이나 AI 영상 촬영으로 짐을 추가해 주세요.</p></div> : null}
-      </div>
+    <section className="min-h-52 flex flex-1 flex-col bg-surface px-[var(--content-gutter)] pb-24 pt-4">
+      {visibleItems.length === 0 ? <div className="flex flex-1 flex-col items-center justify-center text-center"><img alt="" aria-hidden="true" className="size-12 object-contain" decoding="async" src="/moving-items/moving-box.png" /><p className="mt-3 font-extrabold">짐이 없습니다.</p></div> : <div className="-mx-[var(--content-gutter)] space-y-2">{visibleItemGroups.map(({ category, items }) => <section aria-labelledby={`inventory-category-${category}`} className="bg-surface px-[var(--content-gutter)] py-4" key={category}><h2 className="text-[17px] leading-6 font-black" id={`inventory-category-${category}`}>{category}</h2><div className="mt-3 space-y-2">{items.map((item) => { const quantity = quantityFor(item.item_key); return <InventoryQuantityRow icon={<InventoryItemIcon name={item.description} />} key={item.item_key} name={item.description} onDecrease={() => updateQuantity(item.item_key, quantity - 1)} onIncrease={() => updateQuantity(item.item_key, quantity + 1)} onRemove={() => updateQuantity(item.item_key, 0)} quantity={quantity} reviewRequired={item.review_required} />; })}</div></section>)}</div>}
     </section>
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[calc(var(--z-sticky)-1)] flex justify-center">
       <div className="pointer-events-auto grid w-full max-w-[var(--shell-mobile)] grid-cols-2 gap-2 bg-surface px-[var(--content-gutter)] pt-2.5 pb-[max(10px,env(safe-area-inset-bottom))]">
         <Button className="min-w-0" onClick={onManualAdd} size="cta" variant="outline"><Cube aria-hidden="true" /> 품목 직접 선택</Button>
-        <Button className="min-w-0" disabled={captureSessionsQuery.isFetching} onClick={openCapture} size="cta">{captureSessionsQuery.isFetching ? <LoaderCircle aria-hidden="true" className="demo-spin" /> : <Camera aria-hidden="true" weight="fill" />} {captureSessionsQuery.isFetching ? "촬영 상태 확인 중" : "AI 영상 촬영"}</Button>
+        <Button className="min-w-0" disabled={captureSessionsQuery.isFetching} onClick={openCapture} size="cta">{captureSessionsQuery.isFetching ? <LoaderCircle aria-hidden="true" className="demo-spin" /> : <Camera aria-hidden="true" weight="regular" />} {captureSessionsQuery.isFetching ? "촬영 상태 확인 중" : "AI 영상 촬영"}</Button>
         <input aria-label="AI 영상 촬영 파일" ref={videoInputRef} accept="video/mp4,video/*" capture="environment" className="sr-only" onChange={(event) => { const file = event.currentTarget.files?.[0]; event.currentTarget.value = ""; if (file) onCapture(file); }} type="file" />
       </div>
     </div>
@@ -860,18 +853,13 @@ function CompanyInvitationEmpty({ connectionCode, itemCount }: { connectionCode:
   };
   const sharingDisabled = itemCount === 0;
   return <div className="flex min-h-[calc(100dvh-var(--header-height))] flex-col"><main className="px-[var(--content-gutter)] pb-8 pt-8">
-    <h1 className="whitespace-nowrap text-ui-component font-black tracking-[var(--tracking-display)]">업체와 함께 확인할 차례예요</h1>
-    <p className="mt-4 max-w-[340px] text-sm leading-6 text-ink-600">이사업체를 초대해 검수 결과를 함께 확인하고 정확한 견적을 받아보세요.</p>
+    <div className="text-center"><img alt="이삿짐을 운반하는 창고와 트럭" className="mx-auto size-16 object-contain" decoding="async" src="/moving-items/warehouse.png" /><h1 className="mt-2 text-ui-component font-black tracking-[var(--tracking-display)]">업체를 연결해 주세요</h1><p className="mx-auto mt-3 max-w-[340px] text-sm leading-6 text-ink-600">연결 코드를 업체에 공유하면 같은 이사를<br />함께 확인할 수 있어요.</p></div>
 
-    <section className="mt-8">
-      <h2 className="text-ui-component font-black">이사 연결 코드</h2>
-      <div className="mt-3 rounded-[var(--radius-component)] border border-line bg-surface px-4">
-        <div className="flex min-h-[76px] items-center gap-3 border-b border-line"><span className="grid size-10 shrink-0 place-items-center rounded-full bg-primary-50 text-primary-700"><Key aria-hidden="true" size="var(--icon-md)" /></span><span className="min-w-0 flex-1"><strong className="block font-mono text-base tracking-wide">{connectionCode}</strong><span className="mt-1 block text-sm text-ink-600">고객·업체·기사가 같은 코드를 사용해요</span></span></div>
-        <div className="flex min-h-[76px] items-center gap-3"><span className="grid size-10 shrink-0 place-items-center rounded-full bg-success-bg text-success-ink"><ShieldCheck aria-hidden="true" size="var(--icon-md)" weight="fill" /></span><span className="min-w-0 flex-1"><strong className="block text-sm">열람 가능한 정보</strong><span className="mt-1 block text-sm text-ink-600">작업범위 · 촬영 근거 · 견적 작성</span></span></div>
-      </div>
+    <section className="mt-8 ui-card ui-card-outlined ui-card-tinted p-4 shadow-[var(--shadow-card)]">
+      <h2 className="flex items-center justify-center gap-1 text-ui-support font-black text-ink-900"><Key aria-hidden="true" className="shrink-0 text-ink-900" size="var(--icon-xs)" />이사 연결 코드</h2>
+      <strong className="mt-2 block text-center font-mono text-xl tracking-[0.08em] text-primary-800">{connectionCode}</strong>
     </section>
-
-    <div className="mt-7 flex items-start gap-3 rounded-[var(--radius-component)] bg-primary-50 px-4 py-4 text-sm leading-5 text-ink-600"><ShieldCheck aria-hidden="true" className="mt-0.5 shrink-0 text-success-ink" size="var(--icon-sm)" /><p><strong className="block text-ink-900">연결 해제 후에도 다시 들어올 수 있어요</strong><span className="mt-1 block">이 코드를 보관했다가 역할을 선택해 같은 이사에 다시 연결하세요.</span></p></div>
+    <p className="mt-7 flex items-start gap-1.5 px-1 text-xs leading-5 text-ink-400"><WarningCircle aria-hidden="true" className="mt-0.5 shrink-0" size="var(--icon-xs)" /><span>연결 해제 후에도 다시 들어올 수 있어요. 이 코드를 보관했다가 역할을 선택해 같은 이사에 다시 연결하세요.</span></p>
   </main><SheetFooter className="mt-auto grid grid-cols-2 gap-2"><Button className="min-w-0" disabled={sharingDisabled} onClick={() => void copyInvite()} size="cta" variant="outline">{copied ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}코드 복사</Button><Button className="min-w-0" disabled={sharingDisabled} onClick={() => void shareInvite()} size="cta"><ShareNetwork aria-hidden="true" />공유</Button></SheetFooter></div>;
 }
 

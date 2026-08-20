@@ -3,9 +3,10 @@ import {
   BellIcon as Bell,
   ArrowLeftIcon as ArrowLeft,
   DotsThreeVerticalIcon as MoreVertical,
+  PlusCircleIcon as PlusCircle,
   UserCircleIcon as UserCircle,
 } from "@phosphor-icons/react";
-import type { ComponentProps, ReactNode } from "react";
+import { useEffect, useState, type ComponentProps, type ReactNode } from "react";
 
 import type { AppIcon } from "@/components/icons";
 import { cn } from "@/lib/utils";
@@ -22,15 +23,40 @@ export function MobileHeaderButton({ ariaLabel, className, ...props }: Component
 
 export function MobilePageHeader({ className, description, left, onBack, right, title }: { className?: string; description?: ReactNode; left?: ReactNode; onBack?: () => void; right?: ReactNode; title: ReactNode }) {
   const resolvedLeft = left ?? (onBack ? <MobileHeaderButton ariaLabel="뒤로가기" onClick={onBack}><ArrowLeft aria-hidden="true" size="var(--icon-sm)" /></MobileHeaderButton> : null);
-  return <header className={cn("app-safe-header sticky top-0 z-[var(--z-sticky)] grid min-h-14 grid-cols-[48px_minmax(0,1fr)_48px] items-center bg-surface px-2", className)}><div className="flex min-w-0 items-center">{resolvedLeft}</div><div className="min-w-0 text-center"><h1 className="truncate text-ui-component font-extrabold leading-6 tracking-[var(--tracking-display)]">{title}</h1>{description ? <p className="mt-0.5 truncate text-xs leading-4 text-ink-600">{description}</p> : null}</div><div className="flex min-w-0 justify-end">{right}</div></header>;
+  return <header className={cn("app-safe-header sticky top-0 z-[var(--z-sticky)] grid min-h-[var(--header-height)] grid-cols-[48px_minmax(0,1fr)_48px] items-center bg-surface px-2", className)}><div className="flex min-w-0 items-center">{resolvedLeft}</div><div className="min-w-0 text-center"><h1 className="truncate text-ui-component font-extrabold leading-6 tracking-[var(--tracking-display)]">{title}</h1>{description ? <p className="mt-0.5 truncate text-xs leading-4 text-ink-600">{description}</p> : null}</div><div className="flex min-w-0 justify-end">{right}</div></header>;
 }
 
 export function MobileDetailHeader({ backLabel, onBack, onMore, title }: { backLabel: string; onBack: () => void; onMore?: () => void; title: ReactNode }) {
   return <MobilePageHeader className="sticky top-0 z-[var(--z-sticky)] border-b-0 bg-surface/98 backdrop-blur" left={<MobileHeaderButton ariaLabel={backLabel} onClick={onBack}><ArrowLeft aria-hidden="true" size="var(--icon-sm)" /></MobileHeaderButton>} right={onMore ? <MobileHeaderButton ariaLabel="더보기" onClick={onMore}><MoreVertical aria-hidden="true" size="var(--icon-md)" weight="bold" /></MobileHeaderButton> : null} title={title} />;
 }
 
+export function MobileBrandHeader({ onBell }: { onBell?: () => void }) {
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const update = () => setScrolled(window.scrollY > 0);
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    return () => window.removeEventListener("scroll", update);
+  }, []);
+
+  return (
+    <header className={cn("app-safe-header sticky top-0 z-[var(--z-sticky)] flex min-h-[var(--header-height)] items-center justify-between px-[var(--content-gutter)] transition-colors", scrolled ? "bg-surface/98 backdrop-blur" : "bg-canvas")}>
+      <span className="flex items-center gap-2">
+        <img alt="" aria-hidden="true" className="size-5 object-contain" height="20" src="/jimlog-brand-mark.png" width="20" />
+        <strong className="text-ui-component font-black tracking-[var(--tracking-display)] text-primary-700">짐로그</strong>
+      </span>
+      {onBell ? <MobileHeaderButton ariaLabel="알림 확인" onClick={onBell}><Bell aria-hidden="true" size="var(--icon-sm)" /></MobileHeaderButton> : null}
+    </header>
+  );
+}
+
 export function MobileDetailTabs<T extends string>({ current, items, label, onChange }: { current: T; items: Array<{ id: T; label: string }>; label: string; onChange: (id: T) => void }) {
-  return <div aria-label={label} className="sticky top-14 z-[calc(var(--z-sticky)-1)] grid border-b border-line bg-surface" role="tablist" style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}>{items.map((item) => { const active = item.id === current; return <button aria-selected={active} className={cn("relative min-h-11 whitespace-nowrap text-sm font-semibold", active ? "text-primary-700 after:absolute after:inset-x-4 after:bottom-0 after:h-0.5 after:bg-primary-600" : "text-ink-600")} key={item.id} onClick={() => onChange(item.id)} role="tab" type="button">{item.label}</button>; })}</div>;
+  return <div aria-label={label} className="sticky top-[var(--header-height)] z-[calc(var(--z-sticky)-1)] grid border-b border-line bg-surface" role="tablist" style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}>{items.map((item) => { const active = item.id === current; return <button aria-selected={active} className={cn("relative min-h-11 whitespace-nowrap text-sm font-semibold", active ? "text-primary-700 after:absolute after:inset-x-4 after:bottom-0 after:h-0.5 after:bg-primary-600" : "text-ink-600")} key={item.id} onClick={() => onChange(item.id)} role="tab" type="button">{item.label}</button>; })}</div>;
+}
+
+export function MobileListHeader<T extends string>({ actionLabel, current, items, label, onAction, onChange }: { actionLabel?: string; current: T; items: Array<{ id: T; label: string }>; label: string; onAction?: () => void; onChange: (id: T) => void }) {
+  return <header className="app-safe-header sticky top-0 z-[var(--z-sticky)] grid min-h-[var(--header-height)] grid-cols-[minmax(0,1fr)_48px] items-center border-b border-line bg-surface px-[var(--content-gutter)]"><div className="flex w-fit min-w-0 gap-1 self-stretch" role="tablist" aria-label={label}>{items.map((item) => { const active = item.id === current; return <button aria-selected={active} className={cn("relative min-h-11 px-2 text-ui-component", active ? "font-bold text-primary-700 after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:bg-primary-600" : "font-normal text-ink-400")} key={item.id} onClick={() => onChange(item.id)} role="tab" type="button">{item.label}</button>; })}</div>{onAction && actionLabel ? <MobileHeaderButton ariaLabel={actionLabel} className="justify-self-end text-primary-700" onClick={onAction}><PlusCircle aria-hidden="true" size="var(--icon-sm)" weight="bold" /></MobileHeaderButton> : null}</header>;
 }
 
 export function MobileAppShell<T extends string>({

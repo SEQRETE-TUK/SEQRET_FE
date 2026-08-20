@@ -49,7 +49,7 @@
   --weight-status: 500;
   --weight-micro: 600;
   --weight-strong: 700;
-  --display-weight: 800;
+  --display-weight: 700;
   --tracking-display: 0;
   --tracking-body: 0;
   --tracking-brand: -0.025em;
@@ -125,7 +125,7 @@
   /* Product layout */
   --shell-mobile: 27rem;
   --shell-wide: 80rem;
-  --header-height: 5.25rem;
+  --header-height: 3rem;
   --bottom-rail-height: 3.5rem;
   --content-gutter: clamp(0.75rem, 3vw, 1rem);
 

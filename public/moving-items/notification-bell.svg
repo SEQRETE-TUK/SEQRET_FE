@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-labelledby="title">
+  <title>Notification bell</title>
+  <path fill="#8c84ef" d="m48 9 9 5-9 5-9-5 9-5Z"/>
+  <path fill="#6c63d7" d="M48 9v10l-9-5 9-5Z"/>
+  <path fill="#c8c4ff" d="M48 19c-13.3 0-24 10.7-24 24v14l-8 10h32V19Z"/>
+  <path fill="#9b93f1" d="M48 19c13.3 0 24 10.7 24 24v14l8 10H48V19Z"/>
+  <path fill="#e0deff" d="M31 43c0-8.2 6.4-15.2 15-16v34H24V43c0-8.2 3.8-15.5 10-20.1A23.8 23.8 0 0 0 31 43Z"/>
+  <path fill="#746bdc" d="M16 67h64l-7 9H23l-7-9Z"/>
+  <path fill="#a59df8" d="M23 76h50l-8 7H31l-8-7Z"/>
+  <path fill="#6c63d7" d="M41 83h14a7 7 0 0 1-14 0Z"/>
+</svg>

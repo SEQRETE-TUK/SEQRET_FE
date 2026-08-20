@@ -58,8 +58,8 @@ export function RoleEntry() {
   return (
     <div className="mobile-stage">
       <MobileFrame className="flex min-h-dvh flex-col bg-canvas">
-        <header className="app-safe-header flex min-h-16 items-center justify-between gap-3 px-[var(--content-gutter)]">
-          <strong className="text-xl font-black tracking-[var(--tracking-brand)] text-primary-800">짐로그</strong>
+        <header className="app-safe-header sticky top-0 z-[var(--z-sticky)] flex min-h-[var(--header-height)] items-center justify-between gap-3 bg-canvas px-[var(--content-gutter)]">
+          <span className="flex items-center gap-2"><img alt="" aria-hidden="true" className="size-5 object-contain" height="20" src="/jimlog-brand-mark.png" width="20" /><strong className="text-ui-component font-black tracking-[var(--tracking-display)] text-primary-700">짐로그</strong></span>
           <span className="inline-flex min-h-8 items-center gap-1.5 rounded-[var(--radius-pill)] border border-line bg-surface px-3 text-ui-data text-ink-600">
             {mockApiEnabled ? "Mock 모드" : "보안 연결"}
           </span>
@@ -71,7 +71,7 @@ export function RoleEntry() {
             </section>
 
             <div className="pt-4">
-              {entryStep === "name" ? <div className="pt-4"><label className="sr-only" htmlFor="customer-display-name">이름</label><Input autoComplete="name" autoFocus id="customer-display-name" maxLength={100} onChange={(event) => setDisplayName(event.target.value)} placeholder="이름 입력" value={displayName} /></div> : <fieldset>
+              {entryStep === "name" ? <div><label className="sr-only" htmlFor="customer-display-name">이름</label><Input autoComplete="name" autoFocus id="customer-display-name" maxLength={100} onChange={(event) => setDisplayName(event.target.value)} placeholder="이름 입력" value={displayName} /></div> : <fieldset>
                 <legend className="sr-only">연결 역할</legend>
                 <div className="grid grid-cols-3 gap-2">
                   {primaryRoles.map((item) => {

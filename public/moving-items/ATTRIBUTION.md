@@ -12,6 +12,11 @@ Source collections:
 - [Freepik 2000+ Isometric Icons Set](https://smashingstocks.com/downloads/2000-isometric-icons-set/)
 - [Flaticon Smashing Stocks Isometric icons](https://www.flaticon.com/free-icon/bed_6543683)
 - [Freepik Secured letter Generic Isometric icon](https://www.freepik.com/icon/secured-letter_6056690)
+- [Magnific Warehouse Generic Isometric icon](https://www.magnific.com/icon/warehouse_2821904)
+
+Notification empty state:
+
+- Bell silhouette researched from [Magnific Notification bell icon](https://www.magnific.com/icon/notification-bell_8743029), then redrawn locally in the [Generic Isometric collection](https://www.magnific.com/icon/warehouse_2821904) style as `notification-bell.svg` to keep the app self-contained.
 
 Prevention card icons:
 

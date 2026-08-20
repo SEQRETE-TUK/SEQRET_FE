@@ -12,12 +12,14 @@ import { useNavigate } from "react-router-dom";
 
 import { mockApiEnabled } from "@/api/mock-api";
 import { Button } from "@/components/ui/button";
+import { CheckIndicator } from "@/components/ui/check-indicator";
 import { MobilePageHeader } from "@/components/layout/mobile-app-shell";
 import { ChoiceGroup } from "@/components/ui/choice-group";
 import { ErrorToast } from "@/components/ui/error-toast";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetFooter } from "@/components/ui/sheet";
+import { Select } from "@/components/ui/select";
 import { customerDisplayNameStorageKey, useAuth } from "@/features/auth/model/auth-context";
 import { AddressSearchInput } from "@/features/consumer/ui/address-search-input";
 import { apiErrorMessage } from "@/features/workflow/api/workflow-api";
@@ -49,6 +51,10 @@ const residenceIcons = {
   단독주택: <HouseIcon aria-hidden="true" size="var(--icon-sm)" />,
 };
 const weekdays = ["일", "월", "화", "수", "목", "금", "토"];
+const moveStartTimeOptions = Array.from({ length: 23 }, (_, index) => {
+  const minutes = 7 * 60 + index * 30;
+  return `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
+});
 
 function roomZones() {
   return ["거실", "침실", "주방"].map((name, sort_order) => ({ name, sort_order }));
@@ -89,7 +95,7 @@ function CalendarStep({ month, onMonth, onSelect, selectedDate, time, onTime }: 
     <div className="flex items-center justify-between"><button aria-label="이전 달" className="grid size-11 place-items-center rounded-[var(--radius-component)] border border-line" onClick={() => onMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))} type="button"><CaretLeft aria-hidden="true" /></button><strong className="text-ui-section tracking-[var(--tracking-display)]">{month.getFullYear()}. {String(month.getMonth() + 1).padStart(2, "0")}</strong><button aria-label="다음 달" className="grid size-11 place-items-center rounded-[var(--radius-component)] border border-line" onClick={() => onMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))} type="button"><CaretRight aria-hidden="true" /></button></div>
     <div className="mt-6 grid grid-cols-7 border-b border-line pb-3 text-center text-sm font-bold text-ink-600">{weekdays.map((day) => <span key={day}>{day}</span>)}</div>
     <div className="mt-2 grid grid-cols-7 gap-y-2">{days.map((day) => { const value = dateValue(day); const selected = value === selectedDate; const inMonth = day.getMonth() === month.getMonth(); return <button aria-label={`${value} 선택`} aria-pressed={selected} className={`mx-auto grid size-11 place-items-center rounded-full text-sm font-bold ${selected ? "border border-primary-600 bg-primary-50 text-primary-700" : inMonth ? "text-ink-900" : "text-ink-400"}`} key={value} onClick={() => onSelect(value)} type="button">{day.getDate()}</button>; })}</div>
-    <section className="mt-8 border-t border-line pt-6"><div className="flex items-center justify-between"><Label htmlFor="move-start-time">서비스 시작 시간</Label><span className="text-sm text-ink-600">시간 협의 가능</span></div><Input className="mt-3" id="move-start-time" onChange={(event) => onTime(event.target.value)} type="time" value={time} /></section>
+    <section className="-mx-5 mt-8 border-t-8 border-canvas px-5 pt-5"><div className="flex items-center justify-between gap-3"><h3 className="text-ui-component">서비스 시작 시간</h3><span className="inline-flex items-center gap-1.5 text-sm font-bold text-primary-700"><CheckIndicator />시간 협의 가능</span></div><Select aria-label="서비스 시작 시간" className="mt-4" onChange={(event) => onTime(event.target.value)} value={time}>{moveStartTimeOptions.map((option) => <option key={option} value={option}>{option}</option>)}</Select></section>
   </div>;
 }
 

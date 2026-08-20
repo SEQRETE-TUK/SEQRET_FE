@@ -1098,7 +1098,7 @@ function ConnectedCapture({
         title={manualMode ? "짐 목록 선택" : job.title}
       />
 
-      <main className={`flex-1 px-5 pb-8 ${manualMode ? "pt-4" : "pt-5"}`}>
+      <main className={`flex-1 px-5 ${manualMode ? "pb-0 pt-0" : "pb-8 pt-5"}`}>
         {!manualMode ? (
           <>
             <div className="flex items-start justify-between gap-4">
@@ -1241,10 +1241,10 @@ function ConnectedCapture({
       </main>
 
       {manualMode && !manualValid ? null : (
-        <SheetFooter className="bg-surface/95 pt-4 backdrop-blur">
+        <SheetFooter className="grid gap-2 bg-surface/95 pt-4 backdrop-blur">
           {manualMode ? (
             workflow.manualScopeMutation.isSuccess ? null : (
-              <div><Button className="w-full" disabled={!manualValid || workflow.manualScopeMutation.isPending} form={MANUAL_SCOPE_FORM_ID} size="cta" type="submit">
+              <><Button className="w-full" disabled={!manualValid || workflow.manualScopeMutation.isPending} form={MANUAL_SCOPE_FORM_ID} size="cta" type="submit">
                 {workflow.manualScopeMutation.isPending ? (
                   <LoaderCircle
                     aria-hidden="true"
@@ -1255,7 +1255,7 @@ function ConnectedCapture({
                 {manualValid
                   ? `선택한 짐 ${manualDraftItems.length}개 저장`
                   : "짐을 선택해 주세요"}
-              </Button><button className="mx-auto flex min-h-11 items-center gap-2 px-4 text-sm font-semibold text-ink-600" onClick={() => setManualDraftItems([])} type="button"><RotateCcw aria-hidden="true" size="var(--icon-xs)" />선택 초기화</button></div>
+              </Button><button className="mx-auto flex min-h-11 items-center gap-2 px-4 text-sm font-semibold text-ink-600" onClick={() => setManualDraftItems([])} type="button"><RotateCcw aria-hidden="true" size="var(--icon-xs)" />선택 초기화</button></>
             )
           ) : analysis?.status === "completed" ? (
             workflow.reviewQuery.isPending || recoveringReview ? (
