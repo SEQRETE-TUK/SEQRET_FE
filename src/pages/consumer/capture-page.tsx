@@ -15,6 +15,9 @@ export function CapturePage() {
   const initialVideoFile = (location.state as { videoFile?: File } | null)?.videoFile ?? null;
   const captureJobId = params.get("job") ?? session.actor.job_id;
   const inventoryHref = `/consumer?tab=move&view=items&job=${encodeURIComponent(captureJobId)}`;
+  const captureMode = params.get("mode");
+  const videoRequested = captureMode === "video" || initialVideoFile !== null;
+  if (captureMode !== "manual" && !videoRequested) return <Navigate replace to={inventoryHref} />;
   const back = () => {
     if ((window.history.state?.idx ?? 0) > 0) navigate(-1);
     else navigate(inventoryHref, { replace: true });
@@ -28,8 +31,8 @@ export function CapturePage() {
           cacheScope: `${captureJobId}:customer`,
           jobId: captureJobId,
         }}
-        initialManual={params.get("mode") === "manual"}
-        initialVideo={params.get("mode") === "video"}
+        initialManual={captureMode === "manual"}
+        initialVideo={videoRequested}
         initialVideoFile={initialVideoFile}
         onComplete={async () => {
           await queryClient.invalidateQueries({ queryKey: workflowKeys.scope(captureJobId) });

@@ -135,6 +135,18 @@ test("opens the native video picker from the inventory action", async ({ page })
   await fileChooser.setFiles({ name: "move.mp4", mimeType: "video/mp4", buffer: Buffer.from("mock-video") });
   await expect(page).toHaveURL(/\/consumer\/capture\?mode=video&job=/);
   await expect(page.getByRole("heading", { name: "AI 분석 중" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "출발지 구역을 촬영해 주세요" })).toHaveCount(0);
+});
+
+test("redirects legacy capture URLs instead of showing the room flow", async ({ page }) => {
+  await page.goto("/consumer");
+  await expect(page.getByRole("heading", { name: /김서큐님/ })).toBeVisible();
+  await page.evaluate(() => {
+    history.pushState({}, "", "/consumer/capture?job=11111111-1111-4111-8111-111111111111");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  });
+  await expect(page).toHaveURL(/\/consumer\?tab=move&view=items&job=/);
+  await expect(page.getByRole("heading", { name: "출발지 구역을 촬영해 주세요" })).toHaveCount(0);
 });
 
 test("redirects stale video capture URLs back to the inventory action", async ({ page }) => {

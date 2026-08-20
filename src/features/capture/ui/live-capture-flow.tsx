@@ -951,6 +951,9 @@ function ConnectedCapture({
             try {
               const refreshed = await workflow.refreshReview();
               if (!refreshed.isError) {
+                workflow.createSessionMutation.reset();
+                workflow.uploadMutation.reset();
+                workflow.submitMutation.reset();
                 setLocalNotice("촬영 영상을 분석해 검토할 초안을 만들었어요.");
                 setVideoAnalysisSessionId(null);
                 setVideoMode(null);
