@@ -1014,6 +1014,27 @@ function ConnectedCapture({
     prepareVideoRef.current(initialVideoFile);
   }, [initialVideoFile, initialVideoReady]);
 
+  useEffect(() => {
+    if (
+      !initialVideo ||
+      initialVideoFile ||
+      initialVideoStarted.current ||
+      !initialVideoReady
+    ) return;
+    initialVideoStarted.current = true;
+    if (!resumableVideoSession) return;
+    const resumeTimer = window.setTimeout(() => {
+      setLocalError(null);
+      setVideoAnalysisSessionId(resumableVideoSession.id);
+      setVideoAnalysisRequested(true);
+      setVideoSubmitPendingSessionId(
+        resumableVideoSession.analysis ? null : resumableVideoSession.id,
+      );
+      setVideoMode("loading");
+    }, 0);
+    return () => window.clearTimeout(resumeTimer);
+  }, [initialVideo, initialVideoFile, initialVideoReady, resumableVideoSession]);
+
   if (workflow.jobQuery.isPending || workflow.sessionsQuery.isPending) {
     return (
       <div className="grid min-h-dvh place-items-center bg-canvas px-8 text-center">
