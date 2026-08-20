@@ -119,7 +119,8 @@ function ConnectedCrewApp({ session }: { session: AuthSession }) {
 }
 
 function CrewGuestApp() {
-  const { connect } = useAuth();
+  const { clearSession, connect } = useAuth();
+  const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const [inviteOpen, setInviteOpen] = useState(false);
   const requested = params.get("tab") as CrewTab | null;
@@ -130,7 +131,7 @@ function CrewGuestApp() {
       {tab === "home" ? <CrewGuestHome onInvite={() => setInviteOpen(true)} /> : null}
       {tab === "work" ? <CrewWorkList moveJobs={[]} onOpen={() => undefined} onSelect={() => undefined} /> : null}
       {tab === "notifications" ? <CrewNotifications onAction={() => setInviteOpen(true)} /> : null}
-      {tab === "more" ? <section className="px-[var(--content-gutter)] pb-28 pt-6"><h1 className="text-ui-section font-black tracking-[var(--tracking-display)]">더보기</h1><p className="mt-6 border-y border-line py-5 text-sm text-ink-600">이사 연결 코드를 입력하면 기사 정보와 배정된 이사를 확인할 수 있어요.</p></section> : null}
+      {tab === "more" ? <ConnectedProfile connected={false} displayName="현장기사" onDisconnect={() => { clearSession(); navigate("/"); }} roleLabel="현장기사" /> : null}
     </MobileAppShell>
     <CrewInviteSheet connect={connect} onOpenChange={setInviteOpen} open={inviteOpen} />
   </>;
