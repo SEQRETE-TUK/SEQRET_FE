@@ -1,6 +1,8 @@
 import { expect, test } from "@playwright/test";
 
 import { analysisReviewCompletePayload, captureSessionCreatePayload, scopeProposalPayload } from "../../src/api/contract-payloads";
+import type { CaptureSession } from "../../src/features/capture/api/capture-api";
+import { findResumableVideoSession } from "../../src/features/capture/model/capture-session";
 
 const moveConnectionCode = "MOVE-11111111";
 
@@ -127,6 +129,7 @@ test("opens the native video picker from the inventory action", async ({ page })
   await page.goto("/consumer?tab=move&view=items");
   const captureButton = page.getByRole("button", { name: "AI 영상 촬영", exact: true });
   await expect(captureButton).toBeVisible();
+  await expect(captureButton).toBeEnabled();
 
   const fileChooserPromise = page.waitForEvent("filechooser");
   await captureButton.click();
@@ -137,6 +140,20 @@ test("opens the native video picker from the inventory action", async ({ page })
   await expect(page.getByRole("heading", { name: "AI 분석 중" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "출발지 구역을 촬영해 주세요" })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "집 전체 촬영" })).toHaveCount(0);
+});
+
+test("reuses a video session while its analysis is active", () => {
+  const activeSession: CaptureSession = {
+    media_assets: [{
+      media_purpose: "inventory",
+      status: "ready",
+      content_type: "video/mp4",
+    }],
+    analysis: { status: "running" },
+  } as unknown as CaptureSession;
+
+  expect(findResumableVideoSession([activeSession])).toBe(activeSession);
+  expect(findResumableVideoSession([{ ...activeSession, analysis: { ...activeSession.analysis!, status: "completed" } }])).toBeNull();
 });
 
 test("redirects legacy capture URLs instead of showing the room flow", async ({ page }) => {

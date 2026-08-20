@@ -42,6 +42,7 @@ import {
   useCaptureWorkflow,
   type CaptureConnection,
 } from "@/features/capture/model/use-capture-workflow";
+import { findResumableVideoSession } from "@/features/capture/model/capture-session";
 import { ApiError, SignedUploadError } from "@/api/client";
 import { mockAccessSecrets, mockApiEnabled, mockJobId } from "@/api/mock-api";
 import { MovingItemIcon } from "@/components/moving-item-icon";
@@ -222,14 +223,7 @@ interface RemovedReviewItem {
   key: string;
 }
 
-const ACTIVE_ANALYSIS = new Set([
-  "pending",
-  "dispatching",
-  "queued",
-  "running",
-]);
 const MAX_REVIEW_ITEMS = 500;
-const VALIDATING_MEDIA = new Set(["uploaded", "processing"]);
 
 function friendlyError(error: unknown): string {
   if (error instanceof ApiError) {
@@ -487,16 +481,7 @@ function ConnectedCapture({
   const job = workflow.jobQuery.data;
   const sessions = workflow.sessionsQuery.data;
   const session = sessions?.[0] ?? null;
-  const resumableVideoSession = sessions?.find((candidate) => {
-    const videoAssets = candidate.media_assets.filter(
-      (asset) => asset.media_purpose === "inventory" && asset.content_type === "video/mp4",
-    );
-    if (videoAssets.length === 0) return false;
-    if (candidate.analysis) return ACTIVE_ANALYSIS.has(candidate.analysis.status);
-    return videoAssets.some(
-      (asset) => VALIDATING_MEDIA.has(asset.status) || asset.status === "ready",
-    );
-  }) ?? null;
+  const resumableVideoSession = findResumableVideoSession(sessions ?? []);
   const origin = job?.locations.find((location) => location.kind === "origin");
   const zones = [...(origin?.room_zones ?? [])].sort(
     (left, right) => left.sort_order - right.sort_order,
