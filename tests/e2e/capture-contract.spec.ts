@@ -26,7 +26,9 @@ test("enters the customer home without a guest app", async ({ page }) => {
   await page.getByRole("button", { name: "알림 확인" }).click();
   await expect(page.getByRole("heading", { name: "알림", exact: true })).toBeVisible();
   await expect(page.getByText("알림이 없어요")).toBeVisible();
-  await page.getByRole("button", { name: "홈으로 돌아가기" }).click();
+  await expect(page.getByText("작업 알림")).toHaveCount(0);
+  await expect(page.getByText("알림이 없어요").locator("..")).not.toHaveClass(/border/);
+  await page.getByRole("button", { name: "뒤로가기" }).click();
   await expect(page.getByRole("button", { name: "더보기" })).toBeVisible();
   await page.getByRole("button", { name: /60초 촬영으로/ }).click();
   await expect(page.getByRole("dialog", { name: "이사를 시작해요" }).getByRole("button", { name: "새 이사 시작하기" })).toBeVisible();
@@ -36,6 +38,7 @@ test("enters the customer home without a guest app", async ({ page }) => {
   await expect(page.getByRole("tab", { name: "진행 중 0" })).toBeVisible();
   await expect(page.getByRole("tab", { name: "기록 0" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "진행 중인 이사가 없어요" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "새 이사", exact: true }).locator("svg")).toHaveCount(1);
   await page.getByRole("tab", { name: "기록 0" }).click();
   await expect(page.getByRole("tab", { name: "기록 0" })).toHaveAttribute("aria-selected", "true");
   await expect(page.getByRole("heading", { name: "아직 이사 기록이 없어요" })).toBeVisible();
@@ -68,7 +71,7 @@ test("lists only the move created by a new mock customer", async ({ page }) => {
   await page.getByRole("textbox", { name: "이름" }).fill("목록 고객");
   await page.getByRole("button", { name: "시작" }).click();
   await page.getByRole("button", { name: "내 이사" }).click();
-  await page.getByRole("button", { name: "+ 새 이사" }).click();
+  await page.getByRole("button", { name: "새 이사", exact: true }).click();
   await page.getByRole("dialog", { name: "이사를 시작해요" }).getByRole("button", { name: "새 이사 시작하기" }).click();
   await page.getByRole("button", { name: "다음", exact: true }).click();
   await page.getByRole("button", { name: "다음", exact: true }).click();
@@ -136,7 +139,7 @@ test("loads provider mock data only after adding an invite key", async ({ page }
 
 test("lets a connected customer choose a new move or invite code", async ({ page }) => {
   await page.goto("/consumer?tab=move&view=list");
-  await page.getByRole("button", { name: "+ 새 이사" }).click();
+  await page.getByRole("button", { name: "새 이사", exact: true }).click();
 
   await expect(page.getByRole("dialog", { name: "이사를 시작해요" })).toBeVisible();
   await expect(page.getByRole("button", { name: "새 이사 시작하기" })).toBeVisible();
