@@ -1,64 +1,10 @@
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { fileURLToPath, URL } from "node:url";
-import { defineConfig, loadEnv, type Plugin } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
 
-const SIGNED_UPLOAD_PROXY_PATH = "/__seqret_signed_upload";
-
-function signedUploadProxy(): Plugin {
-  return {
-    name: "seqret-signed-upload-proxy",
-    configureServer(server) {
-      server.middlewares.use(async (request, response, next) => {
-        if (request.method !== "PUT" || request.url !== SIGNED_UPLOAD_PROXY_PATH) {
-          next();
-          return;
-        }
-
-        const uploadUrl = request.headers["x-seqret-upload-url"];
-        if (typeof uploadUrl !== "string") {
-          response.statusCode = 400;
-          response.end("Missing signed upload URL");
-          return;
-        }
-
-        try {
-          const parsedUploadUrl = new URL(uploadUrl);
-          if (parsedUploadUrl.protocol !== "https:") throw new Error("Signed upload URL must use HTTPS");
-
-          const uploadHeaders = Object.fromEntries(
-            Object.entries(request.headers).filter(([name]) => ![
-              "accept",
-              "accept-encoding",
-              "connection",
-              "content-length",
-              "host",
-              "origin",
-              "referer",
-              "transfer-encoding",
-              "user-agent",
-              "x-seqret-upload-url",
-            ].includes(name)),
-          ) as Record<string, string>;
-          const upstream = await fetch(uploadUrl, {
-            body: request as unknown as AsyncIterable<Uint8Array>,
-            duplex: "half",
-            headers: uploadHeaders,
-            method: "PUT",
-            redirect: "error",
-          } as RequestInit & { duplex: "half" });
-
-          response.statusCode = upstream.status;
-          response.end();
-        } catch {
-          response.statusCode = 502;
-          response.end("Signed upload proxy failed");
-        }
-      });
-    },
-  };
-}
+import { signedUploadProxy } from "./dev/signed-upload-proxy.ts";
 
 export default defineConfig(({ mode }) => {
   const apiProxyTarget = loadEnv("development", process.cwd(), "VITE_").VITE_API_BASE_URL;
@@ -66,7 +12,7 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [
-      signedUploadProxy(),
+      ...(mode === "api" ? [signedUploadProxy()] : []),
       react(),
       tailwindcss(),
       VitePWA({

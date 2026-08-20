@@ -51,6 +51,8 @@ VITE_API_BASE_URL=http://localhost:8000
 | `pnpm dev` | Vite 개발 서버 실행 |
 | `pnpm typecheck` | TypeScript 프로젝트 검사 |
 | `pnpm lint` | ESLint 검사 |
+| `pnpm test:unit` | 개발용 signed upload proxy 보안 회귀 검사 |
+| `pnpm test:e2e` | Chromium 주요 사용자 흐름 검사 |
 | `pnpm build` | 타입 검사 후 정적 프로덕션 빌드 생성 |
 | `pnpm preview` | `dist/` 빌드 결과 로컬 미리보기 |
 
@@ -108,5 +110,6 @@ Vercel 설정값:
 ```bash
 pnpm typecheck
 pnpm lint
+pnpm test:unit
 pnpm build
 ```

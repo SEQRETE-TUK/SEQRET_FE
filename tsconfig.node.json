@@ -10,5 +10,5 @@
     "skipLibCheck": true,
     "types": ["node"]
   },
-  "include": ["vite.config.ts"]
+  "include": ["dev/**/*.ts", "tests/unit/**/*.ts", "vite.config.ts"]
 }

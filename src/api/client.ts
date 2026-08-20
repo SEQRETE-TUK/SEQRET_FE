@@ -227,7 +227,10 @@ export async function uploadToSignedUrl({
   uploadUrl,
 }: SignedUploadRequest): Promise<void> {
   if (mockApiEnabled && uploadUrl.startsWith("mock-upload://")) return;
-  const useLocalProxy = import.meta.env.DEV && typeof window !== "undefined" && ["localhost", "127.0.0.1"].includes(window.location.hostname);
+  const useLocalProxy = import.meta.env.DEV
+    && import.meta.env.MODE === "api"
+    && typeof window !== "undefined"
+    && ["localhost", "127.0.0.1", "[::1]"].includes(window.location.hostname);
   const response = await fetch(useLocalProxy ? SIGNED_UPLOAD_PROXY_PATH : uploadUrl, {
     body,
     credentials: "omit",
