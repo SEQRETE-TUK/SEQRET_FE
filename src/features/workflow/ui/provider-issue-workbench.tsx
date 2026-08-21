@@ -13,7 +13,7 @@ import {
   createChangeProposal,
   explainChangeProposal,
   getChangeProposal,
-  scopeContentFromReview,
+  scopeContentFromReviewWithChange,
   workflowKeys,
   type Connection,
   type FieldIssue,
@@ -66,7 +66,7 @@ function IssueDetail({ connection, issue, scope }: { connection: Connection; iss
       base_scope_version_id: issue.base_scope_version_id,
       title: title.trim(),
       reason: reason.trim(),
-      proposed_content: scopeContentFromReview(scope),
+      proposed_content: scopeContentFromReviewWithChange(scope, title),
       quote: {
         base_amount_krw: scope.quote?.base_amount_krw ?? 0,
         adjustments: [

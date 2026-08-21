@@ -599,6 +599,31 @@ export function scopeContentFromReview(review: ScopeReview): ScopeContent {
   };
 }
 
+/**
+ * Build the immutable scope payload for a field-change proposal.
+ *
+ * The provider's title is the requested work change, so preserve it in the
+ * first scope line's work note/description. Sending the unmodified review
+ * content makes the API correctly reject the proposal as a no-op.
+ */
+export function scopeContentFromReviewWithChange(review: ScopeReview, changeTitle: string): ScopeContent {
+  const content = scopeContentFromReview(review);
+  const label = changeTitle.trim().slice(0, 100) || "현장 변경";
+
+  if (content.schema_version === 2) {
+    const [first, ...rest] = content.items;
+    const suffix = ` · 현장 변경: ${label}`;
+    const baseNote = first.work_note?.trim() ?? "";
+    const workNote = `${baseNote.slice(0, Math.max(0, 500 - suffix.length))}${suffix}`;
+    return { ...content, items: [{ ...first, work_note: workNote }, ...rest] };
+  }
+
+  const [first, ...rest] = content.items;
+  const suffix = ` · 현장 변경: ${label}`;
+  const description = `${first.description.trim().slice(0, Math.max(0, 2000 - suffix.length))}${suffix}`;
+  return { ...content, items: [{ ...first, description }, ...rest] };
+}
+
 export function createScopeProposal(connection: Connection, input: {
   source_scope_version_id: string;
   content: ScopeContent;
