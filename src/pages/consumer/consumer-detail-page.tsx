@@ -33,6 +33,12 @@ function ConsumerDetailPage({ kind }: { kind: ConsumerDetailKind }) {
     enabled: kind === "completion" && Boolean(connection),
     queryKey: workflowKeys.completion(jobId),
     queryFn: () => getCompletionSummary(connection!),
+    refetchInterval: (query) => {
+      const summary = query.state.data;
+      const requestStatus = summary?.completion_request?.status;
+      const isSettled = requestStatus && ["confirmed", "issue_reported", "revoked", "expired"].includes(requestStatus);
+      return summary?.job_status === "completed" || summary?.job_status === "canceled" || isSettled ? false : 2_000;
+    },
   });
   const issuesQuery = useQuery({
     enabled: kind === "completion" && Boolean(connection),

@@ -83,6 +83,7 @@ type ConsumerMoveView = "list" | "info" | "items" | "agreement";
 type MoveInfoEditor = "schedule" | MoveStopKind;
 
 const moneyFormatter = new Intl.NumberFormat("ko-KR");
+const LIVE_SYNC_INTERVAL_MS = 2_000;
 const renderStartedAt = Date.now();
 const fullDateFormatter = new Intl.DateTimeFormat("ko-KR", {
   year: "numeric",
@@ -259,9 +260,23 @@ function ConnectedConsumerApp() {
   });
   const storedCustomerName = window.sessionStorage.getItem(customerDisplayNameStorageKey)?.trim();
   const activeCustomerName = storedCustomerName || session!.actor.display_name || scopeQuery.data?.job.customer_display_name || "고객";
-  const completionQuery = useQuery({ queryKey: workflowKeys.completion(selectedJobId), queryFn: () => getCompletionSummary(connection) });
+  const completionQuery = useQuery({
+    queryKey: workflowKeys.completion(selectedJobId),
+    queryFn: () => getCompletionSummary(connection),
+    refetchInterval: (query) => {
+      const summary = query.state.data;
+      const requestStatus = summary?.completion_request?.status;
+      const isSettled = requestStatus && ["confirmed", "issue_reported", "revoked", "expired"].includes(requestStatus);
+      return summary?.job_status === "completed" || summary?.job_status === "canceled" || isSettled ? false : LIVE_SYNC_INTERVAL_MS;
+    },
+  });
   const issuesQuery = useQuery({ queryKey: workflowKeys.fieldIssues(selectedJobId), queryFn: () => listFieldIssues(connection), refetchInterval: mockApiEnabled ? 2_000 : false });
-  const notificationsQuery = useQuery({ enabled: tab === "notifications", queryKey: workflowKeys.notifications(selectedJobId), queryFn: () => listNotifications(connection) });
+  const notificationsQuery = useQuery({
+    enabled: tab === "notifications",
+    queryKey: workflowKeys.notifications(selectedJobId),
+    queryFn: () => listNotifications(connection),
+    refetchInterval: LIVE_SYNC_INTERVAL_MS,
+  });
   const deleteMutation = useMutation({
     mutationFn: (jobId: string) => deleteMoveJob({ accessToken: session!.accessToken, jobId }),
     onSuccess: async (_result, deletedJobId) => {
@@ -886,8 +901,11 @@ export function CompletionDecisionPage({ completion, connection, fieldIssues, fi
   const [problemType, setProblemType] = useState<"missing_work" | "damage" | "amount" | "other">("missing_work");
   const [description, setDescription] = useState("");
   const [unrecordedExtraCharge, setUnrecordedExtraCharge] = useState(false);
-  const request = completion.completion_request!;
-  const mutation = useMutation({ mutationFn: (input: Parameters<typeof decideCompletionRequest>[2]) => decideCompletionRequest(connection, request.completion_request_id, input), onSuccess: async () => { setReportOpen(false); await onResolved(); onBack(); } });
+  const request = completion.completion_request;
+  const mutation = useMutation({ mutationFn: (input: Parameters<typeof decideCompletionRequest>[2]) => { if (!request) throw new Error("완료 확인 요청이 아직 도착하지 않았어요."); return decideCompletionRequest(connection, request.completion_request_id, input); }, onSuccess: async () => { setReportOpen(false); await onResolved(); onBack(); } });
+  if (!request) {
+    return <div className="min-h-dvh bg-canvas"><MobilePageHeader onBack={onBack} title="작업 완료 확인" /><div className="grid min-h-[calc(100dvh-var(--header-height))] place-items-center px-5 text-center text-sm text-ink-600">완료 확인 요청이 아직 도착하지 않았어요.</div></div>;
+  }
   const requested = request.status === "requested";
   const unresolvedFieldIssueCount = fieldIssues.filter((issue) => issue.status !== "approved" && issue.status !== "rejected").length;
   const completionConfirmationBlocked = fieldIssuesError || unresolvedFieldIssueCount > 0;
